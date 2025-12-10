@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sanctuary HOA Architectural Review Generator</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Sanctuary HOA Architectural Review Generator</h1>
+            <p class="subtitle">Generate professional approval letters for architectural reviews</p>
+        </header>
+
+        <main>
+            <form id="reviewForm">
+                <!-- Project Information Section -->
+                <section class="form-section">
+                    <h2>Project Information</h2>
+                    
+                    <div class="form-group">
+                        <label for="address">
+                            Property Address <span class="required">*</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            id="address" 
+                            name="address" 
+                            required 
+                            placeholder="e.g., 113 Juniper Court"
+                        >
+                        <span class="error-message" id="address-error"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="lot">
+                            Lot Number <span class="required">*</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            id="lot" 
+                            name="lot" 
+                            required 
+                            placeholder="e.g., 434"
+                        >
+                        <span class="error-message" id="lot-error"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="projectType">
+                            Project Type <span class="required">*</span>
+                        </label>
+                        <select id="projectType" name="projectType" required>
+                            <option value="">Select a project type...</option>
+                            <option value="New Home">New Home</option>
+                            <option value="Renovation/Extension">Renovation/Extension</option>
+                            <option value="Accessory Structure">Accessory Structure</option>
+                            <option value="Pool">Pool</option>
+                            <option value="Other">Other</option>
+                        </select>
+                        <span class="error-message" id="projectType-error"></span>
+                    </div>
+
+                    <div class="form-group" id="otherProjectTypeGroup" style="display: none;">
+                        <label for="otherProjectType">
+                            Specify Project Type <span class="required">*</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            id="otherProjectType" 
+                            name="otherProjectType" 
+                            placeholder="Enter project type"
+                        >
+                        <span class="error-message" id="otherProjectType-error"></span>
+                    </div>
+                </section>
+
+                <!-- File Upload Section -->
+                <section class="form-section">
+                    <h2>Supporting Documents</h2>
+                    <p class="section-description">Upload any relevant documents, images, or plans (optional but recommended)</p>
+                    
+                    <div class="file-upload-area" id="fileUploadArea">
+                        <input 
+                            type="file" 
+                            id="fileInput" 
+                            name="files" 
+                            multiple 
+                            accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                        >
+                        <div class="upload-prompt">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="17 8 12 3 7 8"></polyline>
+                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
+                            <p>Click to upload or drag and drop files here</p>
+                            <p class="file-types">PDF, JPG, PNG, DOC, DOCX</p>
+                        </div>
+                    </div>
+
+                    <div class="file-list" id="fileList"></div>
+                </section>
+
+                <!-- Review Details Section -->
+                <section class="form-section">
+                    <h2>Review Details</h2>
+                    
+                    <div class="form-group">
+                        <label for="reviewComments">
+                            Review Comments <span class="required">*</span>
+                        </label>
+                        <textarea 
+                            id="reviewComments" 
+                            name="reviewComments" 
+                            required 
+                            rows="4"
+                            placeholder="e.g., The addition was reviewed for Sanctuary setback requirements"
+                        ></textarea>
+                        <span class="error-message" id="reviewComments-error"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="approvalReason">
+                            Approval Reason <span class="required">*</span>
+                        </label>
+                        <textarea 
+                            id="approvalReason" 
+                            name="approvalReason" 
+                            required 
+                            rows="4"
+                            placeholder="e.g., No variances are necessary. APPROVED."
+                        ></textarea>
+                        <span class="error-message" id="approvalReason-error"></span>
+                    </div>
+                </section>
+
+                <!-- Submit Button -->
+                <div class="form-actions">
+                    <button type="submit" id="generateBtn" class="btn-primary">
+                        <span class="btn-text">Generate Approval Letter</span>
+                        <span class="btn-loading" style="display: none;">
+                            <span class="spinner"></span> Generating PDF...
+                        </span>
+                    </button>
+                </div>
+            </form>
+        </main>
+
+        <footer>
+            <p>Sanctuary Homeowners Association Architectural Review Committee</p>
+        </footer>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+        <div class="loading-content">
+            <div class="spinner-large"></div>
+            <p>Generating your approval letter...</p>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <script src="js/form-handler.js"></script>
+    <script src="js/file-handler.js"></script>
+    <script src="js/pdf-generator.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
+

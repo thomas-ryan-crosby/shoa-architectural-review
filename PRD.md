@@ -73,26 +73,29 @@ Currently, the architectural review process requires manual creation of approval
 - **Validation:** Optional (but recommended)
 - **File Types:** PDF, images (JPG, PNG), documents (DOC, DOCX)
 - **Multiple Files:** Yes, allow multiple file uploads
-- **File Size Limit:** TBD (recommend 10MB per file, 50MB total)
+- **File Size Limit:** No enforced limit
 
 #### 4.1.5 Review Comments
 - **Requirement:** User must be able to input comments describing what was reviewed
 - **Field Type:** Textarea
 - **Validation:** Required field
+- **Character Limit:** None
 - **Example:** "The addition was reviewed for Sanctuary setback requirements"
 
 #### 4.1.6 Approval Reason
 - **Requirement:** User must be able to input the approval reason/decision
 - **Field Type:** Textarea
 - **Validation:** Required field
+- **Character Limit:** None
 - **Example:** "No variances are necessary. APPROVED."
 
 ### 4.2 PDF Generation
 
 #### 4.2.1 Approval Letter Generation
 - **Requirement:** Application must automatically generate a PDF approval letter upon workflow completion
-- **Format:** Professional letter format
-- **Letterhead:** "Sanctuary Homeowners Association Architectural Review Committee"
+- **Format:** Professional letter format (specific formatting requirements to be provided via example)
+- **Letterhead:** Must include Sanctuary logo and styling
+- **Branding:** Sanctuary logo must be prominently displayed on the letterhead
 - **Content Must Include:**
   - Date
   - Property address
@@ -104,15 +107,15 @@ Currently, the architectural review process requires manual creation of approval
 
 #### 4.2.2 Attachment Inclusion
 - **Requirement:** All uploaded files must be included in the generated PDF
-- **Method:** 
-  - Option A: Embed attachments as pages within the PDF
-  - Option B: Include attachments as separate PDFs in a combined document
-  - Option C: Reference attachments with download links (if hosted)
-- **Recommendation:** Embed as pages for portability
+- **Method:** **Embed attachments as pages within the PDF**
+- **Implementation:** All uploaded files (PDFs, images, documents) should be converted and embedded as additional pages in the final PDF document
 
 #### 4.2.3 PDF Download
 - **Requirement:** User must be able to download the generated PDF
-- **File Name Format:** `Sanctuary_HOA_Approval_[Address]_[Date].pdf`
+- **File Name Format:** `Sanctuary Architectural Approval Letter - [Lot] - [Address] - [Project Type] - [Date].pdf`
+  - **Example:** `Sanctuary Architectural Approval Letter - 434 - 113 Juniper Court - House - 01_09_2025.pdf`
+  - **Date Format:** DD_MM_YYYY (e.g., 01_09_2025 for January 9, 2025)
+  - **Project Type:** Use the selected project type (e.g., "House", "Renovation/Extension", "Pool", etc.)
 - **Action:** Automatic download or download button
 
 ### 4.3 User Interface Requirements
@@ -147,21 +150,95 @@ Currently, the architectural review process requires manual creation of approval
 - No database required for MVP
 
 ### 5.3 Technology Stack Recommendations
-- **Frontend:** React, Vue.js, or vanilla JavaScript
+
+**Note:** Since this is a standalone HTML file (Option 1), all technologies must work client-side with `file://` protocol.
+
+- **Frontend:** 
+  - **Recommended:** Vanilla JavaScript (simplest, no build step)
+  - **Alternative:** React or Vue.js (if using, must be bundled into single HTML or use CDN)
+  - All code should be embeddable in HTML or loadable via CDN/relative paths
+
 - **PDF Generation:** 
-  - jsPDF (client-side)
-  - PDFKit (Node.js)
-  - Puppeteer (server-side)
-  - pdf-lib (client-side, recommended for attachments)
+  - **Primary:** jsPDF (client-side, works with file:// protocol)
+  - **For attachments:** pdf-lib (client-side, excellent for merging/embedding PDFs and images)
+  - **Not suitable:** PDFKit (requires Node.js), Puppeteer (requires server)
+
 - **File Handling:** 
-  - Client-side file processing
-  - FileReader API for file reading
-- **Styling:** CSS/Tailwind/Bootstrap
+  - FileReader API for reading uploaded files
+  - Client-side file processing only
+  - Image processing: Canvas API for image manipulation if needed
+
+- **Styling:** 
+  - **Recommended:** Embedded CSS or external CSS file (relative path)
+  - **Alternative:** Tailwind/Bootstrap via CDN
+  - All styles must work with local file access
+
+- **Dependencies:**
+  - All libraries must be loaded via CDN or bundled
+  - No npm/node_modules (unless bundled into single file)
+  - Consider using ES6 modules with `type="module"` if needed
 
 ### 5.4 Browser Compatibility
 - Modern browsers (Chrome, Firefox, Safari, Edge)
 - Support for File API
 - Support for PDF generation/download
+
+### 5.5 Deployment & Access Methods
+
+**Selected Method:** ✅ **Option 1: Standalone HTML File**
+
+#### Access Method
+- **How to Use:** Double-click the main HTML file (e.g., `index.html`) to open in default browser
+- **No setup required** - works immediately
+- **No terminal/command line needed**
+- **Works offline** - all functionality is client-side
+- **Portable** - can be stored on USB drive, shared via email, or saved anywhere
+
+#### Implementation Requirements
+- Application must be a single HTML file or a small set of files (HTML, CSS, JS) that can be opened directly
+- All assets (logo, CSS, JavaScript) must be embedded or referenced using relative paths
+- Must work with `file://` protocol (local file access)
+- PDF generation must work entirely client-side
+- File uploads must work with local file access (some browsers may have limitations)
+
+#### Browser Considerations
+- **Chrome/Edge:** Full functionality expected
+- **Firefox:** Full functionality expected
+- **Safari:** May have some restrictions with local file access
+- **Note:** If browser restrictions are encountered, user can use a local web server as fallback (Option 2)
+
+#### File Structure
+The application should be structured as:
+```
+sanctuary-architectural-review/
+├── index.html          (main application file - double-click to open)
+├── assets/
+│   ├── logo/
+│   │   └── sanctuary logo.jpg
+│   └── reference/
+│       └── [reference PDF]
+├── css/                (optional - can be embedded in HTML)
+├── js/                 (optional - can be embedded in HTML)
+└── README.md           (usage instructions)
+```
+
+#### User Instructions
+1. Locate `index.html` in the application folder
+2. Double-click `index.html` to open in your default web browser
+3. Use the application as normal
+4. Generated PDFs will download to your default download folder
+
+### 5.6 Required Assets
+- **Sanctuary Logo:** ✅ Provided
+  - **File:** `assets/logo/sanctuary logo.jpg`
+  - **Format:** JPG
+  - **Usage:** Will be embedded in PDF letterhead
+  - Logo must maintain quality when scaled for letterhead use
+
+- **Formatting Reference Document:** ✅ Provided
+  - **File:** `assets/reference/Sanctuary Letterhead_Architectural Approval_ACUnits_Rockwell_Signed.pdf`
+  - **Format:** PDF
+  - **Usage:** Reference document for letter formatting, layout, typography, spacing, and styling
 
 ---
 
@@ -245,7 +322,7 @@ Currently, the architectural review process requires manual creation of approval
 ### 9.1 Constraints
 - No persistent data storage (session-based only)
 - Client-side processing preferred (no backend required for MVP)
-- File size limitations based on browser capabilities
+- File size limitations based on browser capabilities (no enforced limits, but browser may have practical limits)
 
 ### 9.2 Assumptions
 - User has modern web browser
@@ -281,13 +358,22 @@ Currently, the architectural review process requires manual creation of approval
 
 ---
 
-## 12. Open Questions
+## 12. Resolved Questions
 
-1. What is the preferred PDF structure for attachments? (Embedded pages vs. separate files)
-2. Are there specific formatting requirements for the approval letter?
-3. What file size limits should be enforced?
-4. Should there be a character limit for comments/approval reasons?
-5. Are there specific branding/logo requirements for the letterhead?
+1. ✅ **What is the preferred PDF structure for attachments?**  
+   **Answer:** Embedded pages - All uploaded files should be converted and embedded as pages within the PDF.
+
+2. ✅ **Are there specific formatting requirements for the approval letter?**  
+   **Answer:** Yes - Formatting reference document provided: `assets/reference/Sanctuary Letterhead_Architectural Approval_ACUnits_Rockwell_Signed.pdf`
+
+3. ✅ **What file size limits should be enforced?**  
+   **Answer:** No file size limits will be enforced.
+
+4. ✅ **Should there be a character limit for comments/approval reasons?**  
+   **Answer:** No character limits for review comments or approval reasons.
+
+5. ✅ **Are there specific branding/logo requirements for the letterhead?**  
+   **Answer:** Yes - The letterhead must include the Sanctuary logo and styling. The Sanctuary logo should be prominently displayed on the approval letter output. Logo file provided: `assets/logo/sanctuary logo.jpg`
 
 ---
 
@@ -295,7 +381,7 @@ Currently, the architectural review process requires manual creation of approval
 
 ### 13.1 Example Approval Letter Structure
 ```
-[Sanctuary Homeowners Association Letterhead]
+[Sanctuary Logo and Letterhead with Styling]
 
 Date: [Auto-generated]
 
@@ -317,6 +403,8 @@ Architectural Review Committee
 ---
 [Attachments: List of uploaded files]
 ```
+
+**Note:** Specific formatting requirements and layout details are provided in the reference document: `assets/reference/Sanctuary Letterhead_Architectural Approval_ACUnits_Rockwell_Signed.pdf`
 
 ### 13.2 Project Type Definitions
 - **New Home:** Construction of a new residential dwelling
