@@ -15,18 +15,37 @@ class PDFGenerator {
                 const logoPath = 'assets/logo/sanctuary logo.jpg';
                 const img = new Image();
                 
+                // Set a timeout to detect if image fails to load
+                const timeout = setTimeout(() => {
+                    if (!this.logoData) {
+                        console.error('Logo loading timeout');
+                        this.logoData = null;
+                        resolve();
+                    }
+                }, 5000);
+                
                 img.onload = () => {
+                    clearTimeout(timeout);
                     try {
                         // Convert image to canvas then to data URL for jsPDF
                         const canvas = document.createElement('canvas');
                         canvas.width = img.width;
                         canvas.height = img.height;
                         const ctx = canvas.getContext('2d');
+                        
+                        // Draw white background first (in case logo has transparency issues)
+                        ctx.fillStyle = '#FFFFFF';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        
                         ctx.drawImage(img, 0, 0);
                         this.logoData = canvas.toDataURL('image/jpeg', 0.95);
                         this.logoWidth = img.width;
                         this.logoHeight = img.height;
-                        console.log('Logo loaded successfully', { width: img.width, height: img.height });
+                        console.log('Logo loaded successfully', { 
+                            width: img.width, 
+                            height: img.height,
+                            dataUrlLength: this.logoData.length 
+                        });
                         resolve();
                     } catch (error) {
                         console.error('Error processing logo canvas:', error);
@@ -36,9 +55,54 @@ class PDFGenerator {
                 };
                 
                 img.onerror = (error) => {
+                    clearTimeout(timeout);
                     console.error('Could not load logo from:', logoPath, error);
-                    this.logoData = null;
-                    resolve();
+                    console.error('Trying alternative loading method...');
+                    
+                    // Try alternative: use fetch if available
+                    if (typeof fetch !== 'undefined') {
+                        fetch(logoPath)
+                            .then(response => {
+                                if (response.ok) {
+                                    return response.blob();
+                                }
+                                throw new Error('Logo fetch failed');
+                            })
+                            .then(blob => {
+                                const reader = new FileReader();
+                                reader.onload = (e) => {
+                                    const img2 = new Image();
+                                    img2.onload = () => {
+                                        const canvas = document.createElement('canvas');
+                                        canvas.width = img2.width;
+                                        canvas.height = img2.height;
+                                        const ctx = canvas.getContext('2d');
+                                        ctx.fillStyle = '#FFFFFF';
+                                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                                        ctx.drawImage(img2, 0, 0);
+                                        this.logoData = canvas.toDataURL('image/jpeg', 0.95);
+                                        this.logoWidth = img2.width;
+                                        this.logoHeight = img2.height;
+                                        console.log('Logo loaded via fetch fallback');
+                                        resolve();
+                                    };
+                                    img2.onerror = () => {
+                                        console.error('Failed to load logo via fetch fallback');
+                                        this.logoData = null;
+                                        resolve();
+                                    };
+                                    img2.src = e.target.result;
+                                };
+                                reader.readAsDataURL(blob);
+                            })
+                            .catch(() => {
+                                this.logoData = null;
+                                resolve();
+                            });
+                    } else {
+                        this.logoData = null;
+                        resolve();
+                    }
                 };
                 
                 // Load the image - this works with both file:// and http:// protocols
@@ -117,15 +181,18 @@ class PDFGenerator {
         
         let yPos = margin;
 
-        // Letterhead Section with Logo
-        const letterheadY = yPos;
+        // Modern Letterhead Section with Logo and Branding
+        // Add a subtle background color bar (light gray) for modern look
+        const headerBarHeight = 35; // mm
+        doc.setFillColor(245, 245, 245); // Light gray background
+        doc.rect(0, 0, pageWidth, headerBarHeight, 'F');
         
-        // Add logo prominently at the top
+        // Add logo prominently at the top left
         if (this.logoData && this.logoWidth && this.logoHeight) {
             try {
-                // Calculate logo dimensions to maintain aspect ratio
-                const logoMaxWidth = 50; // mm
-                const logoMaxHeight = 25; // mm
+                // Calculate logo dimensions - make it larger and more prominent
+                const logoMaxWidth = 60; // mm - larger for prominence
+                const logoMaxHeight = 30; // mm
                 const logoAspectRatio = this.logoWidth / this.logoHeight;
                 
                 let logoWidth = logoMaxWidth;
@@ -136,85 +203,125 @@ class PDFGenerator {
                     logoWidth = logoHeight * logoAspectRatio;
                 }
                 
-                doc.addImage(this.logoData, 'JPEG', margin, yPos, logoWidth, logoHeight);
-                yPos += logoHeight + 8; // Space after logo
-                console.log('Logo added to PDF', { logoWidth, logoHeight });
+                // Position logo in header bar, centered vertically
+                const logoY = (headerBarHeight - logoHeight) / 2;
+                doc.addImage(this.logoData, 'JPEG', margin, logoY, logoWidth, logoHeight);
+                console.log('Logo added to PDF', { logoWidth, logoHeight, logoY });
+                
+                // Position text to the right of logo or below if logo is large
+                const textStartX = margin + logoWidth + 10;
+                const textStartY = margin + 8;
+                
+                // Association name - modern, bold styling
+                doc.setFontSize(20);
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(44, 85, 48); // Dark green color similar to website
+                doc.text('Sanctuary Homeowners Association', textStartX, textStartY);
+                
+                // Committee name - smaller, elegant
+                doc.setFontSize(12);
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(70, 70, 70);
+                doc.text('Architectural Review Committee', textStartX, textStartY + 7);
+                
+                yPos = headerBarHeight + 15; // Start content below header
             } catch (error) {
                 console.error('Error adding logo to PDF:', error);
-                // Continue without logo
+                // Fallback: text-only header
+                doc.setFontSize(20);
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(44, 85, 48);
+                doc.text('Sanctuary Homeowners Association', margin, margin + 8);
+                doc.setFontSize(12);
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(70, 70, 70);
+                doc.text('Architectural Review Committee', margin, margin + 16);
+                yPos = headerBarHeight + 15;
             }
         } else {
-            console.warn('Logo not available for PDF generation');
+            console.warn('Logo not available - using text-only header');
+            // Text-only header if logo fails
+            doc.setFontSize(20);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(44, 85, 48);
+            doc.text('Sanctuary Homeowners Association', margin, margin + 8);
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(70, 70, 70);
+            doc.text('Architectural Review Committee', margin, margin + 16);
+            yPos = headerBarHeight + 15;
         }
 
-        // Letterhead text - Professional styling
-        doc.setFontSize(18);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(30, 30, 30);
-        doc.text('Sanctuary Homeowners Association', margin, yPos);
-        yPos += 8;
-        
-        doc.setFontSize(13);
-        doc.setFont('helvetica', 'normal');
-        doc.text('Architectural Review Committee', margin, yPos);
-        yPos += 18; // More space after letterhead
+        // Add a subtle divider line
+        doc.setDrawColor(200, 200, 200);
+        doc.setLineWidth(0.5);
+        doc.line(margin, yPos, pageWidth - margin, yPos);
+        yPos += 12;
 
-        // Date - formatted nicely
+        // Date - modern formatting
         const today = new Date();
         const dateStr = this.formatDate(today);
-        doc.setFontSize(11);
+        doc.setFontSize(10);
         doc.setFont('helvetica', 'normal');
-        doc.setTextColor(0, 0, 0);
+        doc.setTextColor(100, 100, 100);
         doc.text(`Date: ${dateStr}`, margin, yPos);
         yPos += 10;
 
-        // Property information - clean formatting
+        // Property information - clean, modern formatting
         doc.setFontSize(11);
         doc.setFont('helvetica', 'normal');
+        doc.setTextColor(0, 0, 0);
         doc.text(formData.address, margin, yPos);
         yPos += 7;
         doc.text(`Lot: ${formData.lot}`, margin, yPos);
-        yPos += 12; // More space before subject
+        yPos += 15; // More space before subject
 
-        // Subject line - bold and prominent
-        doc.setFontSize(11);
+        // Subject line - bold, prominent, modern styling
+        doc.setFontSize(12);
         doc.setFont('helvetica', 'bold');
+        doc.setTextColor(44, 85, 48); // Brand color
         doc.text(`RE: Architectural Review - ${formData.projectType}`, margin, yPos);
         yPos += 12;
 
         // Greeting
         doc.setFontSize(11);
         doc.setFont('helvetica', 'normal');
+        doc.setTextColor(0, 0, 0);
         doc.text('Dear Property Owner,', margin, yPos);
-        yPos += 10;
+        yPos += 12;
 
-        // Review comments - proper paragraph formatting
+        // Review comments - proper paragraph formatting with better spacing
         doc.setFontSize(11);
         doc.setFont('helvetica', 'normal');
+        doc.setTextColor(30, 30, 30);
         const reviewComments = doc.splitTextToSize(formData.reviewComments, contentWidth);
         doc.text(reviewComments, margin, yPos);
-        yPos += (reviewComments.length * 5.5) + 8; // Better line spacing
+        yPos += (reviewComments.length * 6) + 10; // Better line spacing
 
         // Approval reason - proper paragraph formatting
         const approvalReason = doc.splitTextToSize(formData.approvalReason, contentWidth);
         doc.text(approvalReason, margin, yPos);
-        yPos += (approvalReason.length * 5.5) + 12; // Better spacing
+        yPos += (approvalReason.length * 6) + 15; // Better spacing
 
-        // Closing - professional formatting
+        // Closing - professional, modern formatting
         doc.setFontSize(11);
         doc.setFont('helvetica', 'normal');
         doc.text('Sincerely,', margin, yPos);
-        yPos += 10;
+        yPos += 12;
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(44, 85, 48);
         doc.text('Sanctuary Homeowners Association', margin, yPos);
-        yPos += 7;
+        yPos += 8;
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(70, 70, 70);
         doc.text('Architectural Review Committee', margin, yPos);
-        yPos += 15;
+        yPos += 18;
 
-        // Add attachments note if there are files - italic and subtle
+        // Add attachments note if there are files - modern, subtle styling
         if (window.fileHandler && window.fileHandler.getFiles().length > 0) {
-            doc.setFontSize(10);
+            doc.setFontSize(9);
             doc.setFont('helvetica', 'italic');
-            doc.setTextColor(100, 100, 100);
+            doc.setTextColor(120, 120, 120);
             doc.text('Attachments included on following pages.', margin, yPos);
         }
     }
@@ -360,15 +467,19 @@ class PDFGenerator {
     }
 
     formatDate(date) {
-        const day = String(date.getDate()).padStart(2, '0');
         const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
         const year = date.getFullYear();
-        return `${day}_${month}_${year}`;
+        return `${month}/${day}/${year}`;
     }
 
     generateFilename(formData) {
         const today = new Date();
-        const dateStr = this.formatDate(today);
+        // Use MM_DD_YYYY format for filename (underscores for filesystem compatibility)
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        const year = today.getFullYear();
+        const dateStr = `${month}_${day}_${year}`;
         
         // Sanitize address for filename
         const sanitizedAddress = formData.address

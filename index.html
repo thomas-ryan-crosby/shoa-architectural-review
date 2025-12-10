@@ -108,29 +108,49 @@
                     <h2>Review Details</h2>
                     
                     <div class="form-group">
-                        <label for="reviewComments">
+                        <label for="reviewCommentsType">
                             Review Comments <span class="required">*</span>
+                        </label>
+                        <select id="reviewCommentsType" name="reviewCommentsType" required>
+                            <option value="default">The plan was reviewed for Sanctuary Setback Requirements</option>
+                            <option value="other">Other (specify below)</option>
+                        </select>
+                        <span class="error-message" id="reviewCommentsType-error"></span>
+                    </div>
+
+                    <div class="form-group" id="otherReviewCommentsGroup" style="display: none;">
+                        <label for="reviewComments">
+                            Specify Review Comments <span class="required">*</span>
                         </label>
                         <textarea 
                             id="reviewComments" 
                             name="reviewComments" 
-                            required 
                             rows="4"
-                            placeholder="e.g., The addition was reviewed for Sanctuary setback requirements"
+                            placeholder="Enter your review comments"
                         ></textarea>
                         <span class="error-message" id="reviewComments-error"></span>
                     </div>
 
                     <div class="form-group">
-                        <label for="approvalReason">
+                        <label for="approvalReasonType">
                             Approval Reason <span class="required">*</span>
+                        </label>
+                        <select id="approvalReasonType" name="approvalReasonType" required>
+                            <option value="default">The project meets Sanctuary Setback Requirements. No variances are required. Approved.</option>
+                            <option value="other">Other (specify below)</option>
+                        </select>
+                        <span class="error-message" id="approvalReasonType-error"></span>
+                    </div>
+
+                    <div class="form-group" id="otherApprovalReasonGroup" style="display: none;">
+                        <label for="approvalReason">
+                            Specify Approval Reason <span class="required">*</span>
                         </label>
                         <textarea 
                             id="approvalReason" 
                             name="approvalReason" 
-                            required 
                             rows="4"
-                            placeholder="e.g., No variances are necessary. APPROVED."
+                            placeholder="Enter your approval reason"
                         ></textarea>
                         <span class="error-message" id="approvalReason-error"></span>
                     </div>
