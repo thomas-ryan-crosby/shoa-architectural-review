@@ -245,11 +245,32 @@ class FormHandler {
         const formData = this.getFormData();
         const files = window.fileHandler ? window.fileHandler.getFiles() : [];
         
+        // Ensure PDF generator is initialized
+        if (!window.pdfGenerator) {
+            console.warn('PDF Generator not initialized, attempting to initialize...');
+            // Check if PDFGenerator class is available
+            if (typeof PDFGenerator !== 'undefined') {
+                window.pdfGenerator = new PDFGenerator();
+            } else {
+                console.error('PDFGenerator class not found. Scripts may not be loaded in correct order.');
+                alert('Error: PDF Generator could not be initialized. Please refresh the page and try again.');
+                return;
+            }
+        }
+        
+        // Verify jsPDF is available
+        if (typeof window.jspdf === 'undefined') {
+            console.error('jsPDF library not loaded');
+            alert('Error: PDF library not loaded. Please refresh the page and try again.');
+            return;
+        }
+        
         // Trigger PDF generation
-        if (window.pdfGenerator) {
+        if (window.pdfGenerator && typeof window.pdfGenerator.generatePDF === 'function') {
             window.pdfGenerator.generatePDF(formData, files);
         } else {
-            console.error('PDF Generator not initialized');
+            console.error('PDF Generator not properly initialized');
+            alert('Error: PDF Generator not ready. Please refresh the page and try again.');
         }
     }
 

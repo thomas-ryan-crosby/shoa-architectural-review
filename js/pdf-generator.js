@@ -13,100 +13,143 @@ class PDFGenerator {
         return new Promise((resolve) => {
             try {
                 const logoPath = 'assets/logo/sanctuary logo.jpg';
-                const img = new Image();
                 
-                // Set a timeout to detect if image fails to load
-                const timeout = setTimeout(() => {
-                    if (!this.logoData) {
-                        console.error('Logo loading timeout');
-                        this.logoData = null;
-                        resolve();
-                    }
-                }, 5000);
-                
-                img.onload = () => {
-                    clearTimeout(timeout);
-                    try {
-                        // Convert image to canvas then to data URL for jsPDF
-                        const canvas = document.createElement('canvas');
-                        canvas.width = img.width;
-                        canvas.height = img.height;
-                        const ctx = canvas.getContext('2d');
-                        
-                        // Draw white background first (in case logo has transparency issues)
-                        ctx.fillStyle = '#FFFFFF';
-                        ctx.fillRect(0, 0, canvas.width, canvas.height);
-                        
-                        ctx.drawImage(img, 0, 0);
-                        this.logoData = canvas.toDataURL('image/jpeg', 0.95);
-                        this.logoWidth = img.width;
-                        this.logoHeight = img.height;
-                        console.log('Logo loaded successfully', { 
-                            width: img.width, 
-                            height: img.height,
-                            dataUrlLength: this.logoData.length 
-                        });
-                        resolve();
-                    } catch (error) {
-                        console.error('Error processing logo canvas:', error);
-                        this.logoData = null;
-                        resolve();
-                    }
-                };
-                
-                img.onerror = (error) => {
-                    clearTimeout(timeout);
-                    console.error('Could not load logo from:', logoPath, error);
-                    console.error('Trying alternative loading method...');
-                    
-                    // Try alternative: use fetch if available
-                    if (typeof fetch !== 'undefined') {
-                        fetch(logoPath)
-                            .then(response => {
-                                if (response.ok) {
-                                    return response.blob();
-                                }
-                                throw new Error('Logo fetch failed');
-                            })
-                            .then(blob => {
-                                const reader = new FileReader();
-                                reader.onload = (e) => {
-                                    const img2 = new Image();
-                                    img2.onload = () => {
-                                        const canvas = document.createElement('canvas');
-                                        canvas.width = img2.width;
-                                        canvas.height = img2.height;
-                                        const ctx = canvas.getContext('2d');
-                                        ctx.fillStyle = '#FFFFFF';
-                                        ctx.fillRect(0, 0, canvas.width, canvas.height);
-                                        ctx.drawImage(img2, 0, 0);
-                                        this.logoData = canvas.toDataURL('image/jpeg', 0.95);
-                                        this.logoWidth = img2.width;
-                                        this.logoHeight = img2.height;
-                                        console.log('Logo loaded via fetch fallback');
-                                        resolve();
+                // Use FileReader to read the file directly as data URL
+                // This avoids CORS/tainted canvas issues with file:// protocol
+                if (typeof fetch !== 'undefined') {
+                    fetch(logoPath)
+                        .then(response => {
+                            if (response.ok) {
+                                return response.blob();
+                            }
+                            throw new Error('Logo fetch failed');
+                        })
+                        .then(blob => {
+                            const reader = new FileReader();
+                            reader.onload = (e) => {
+                                // Get image dimensions without tainting canvas
+                                const img = new Image();
+                                img.onload = () => {
+                                    this.logoData = e.target.result; // Use FileReader result directly
+                                    this.logoWidth = img.naturalWidth;
+                                    this.logoHeight = img.naturalHeight;
+                                    console.log('Logo loaded successfully via FileReader', { 
+                                        width: this.logoWidth, 
+                                        height: this.logoHeight,
+                                        dataUrlLength: this.logoData.length 
+                                    });
+                                    resolve();
+                                };
+                                img.onerror = () => {
+                                    console.error('Failed to get image dimensions');
+                                    // Still use the data URL even if we can't get dimensions
+                                    this.logoData = e.target.result;
+                                    this.logoWidth = 200; // Default dimensions
+                                    this.logoHeight = 100;
+                                    resolve();
+                                };
+                                img.src = e.target.result;
+                            };
+                            reader.onerror = () => {
+                                console.error('FileReader failed to read logo');
+                                this.logoData = null;
+                                resolve();
+                            };
+                            reader.readAsDataURL(blob);
+                        })
+                        .catch(() => {
+                            // Fallback: use XMLHttpRequest for file:// protocol
+                            console.log('Fetch failed, trying XMLHttpRequest for file:// protocol');
+                            const xhr = new XMLHttpRequest();
+                            xhr.open('GET', logoPath, true);
+                            xhr.responseType = 'blob';
+                            
+                            xhr.onload = () => {
+                                if (xhr.status === 200 || xhr.status === 0) { // 0 for file://
+                                    const blob = xhr.response;
+                                    const reader = new FileReader();
+                                    reader.onload = (e) => {
+                                        const img = new Image();
+                                        img.onload = () => {
+                                            this.logoData = e.target.result;
+                                            this.logoWidth = img.naturalWidth;
+                                            this.logoHeight = img.naturalHeight;
+                                            console.log('Logo loaded via XMLHttpRequest', { 
+                                                width: this.logoWidth, 
+                                                height: this.logoHeight 
+                                            });
+                                            resolve();
+                                        };
+                                        img.onerror = () => {
+                                            this.logoData = e.target.result;
+                                            this.logoWidth = 200;
+                                            this.logoHeight = 100;
+                                            resolve();
+                                        };
+                                        img.src = e.target.result;
                                     };
-                                    img2.onerror = () => {
-                                        console.error('Failed to load logo via fetch fallback');
+                                    reader.onerror = () => {
+                                        console.error('FileReader failed in XMLHttpRequest fallback');
                                         this.logoData = null;
                                         resolve();
                                     };
-                                    img2.src = e.target.result;
-                                };
-                                reader.readAsDataURL(blob);
-                            })
-                            .catch(() => {
+                                    reader.readAsDataURL(blob);
+                                } else {
+                                    console.error('XMLHttpRequest failed with status:', xhr.status);
+                                    this.logoData = null;
+                                    resolve();
+                                }
+                            };
+                            
+                            xhr.onerror = () => {
+                                console.error('XMLHttpRequest failed to load logo');
                                 this.logoData = null;
                                 resolve();
-                            });
-                    } else {
+                            };
+                            
+                            xhr.send();
+                        });
+                } else {
+                    // Fallback for browsers without fetch - use XMLHttpRequest
+                    console.log('No fetch support, using XMLHttpRequest');
+                    const xhr = new XMLHttpRequest();
+                    xhr.open('GET', logoPath, true);
+                    xhr.responseType = 'blob';
+                    
+                    xhr.onload = () => {
+                        if (xhr.status === 200 || xhr.status === 0) {
+                            const blob = xhr.response;
+                            const reader = new FileReader();
+                            reader.onload = (e) => {
+                                const img = new Image();
+                                img.onload = () => {
+                                    this.logoData = e.target.result;
+                                    this.logoWidth = img.naturalWidth;
+                                    this.logoHeight = img.naturalHeight;
+                                    resolve();
+                                };
+                                img.onerror = () => {
+                                    this.logoData = e.target.result;
+                                    this.logoWidth = 200;
+                                    this.logoHeight = 100;
+                                    resolve();
+                                };
+                                img.src = e.target.result;
+                            };
+                            reader.readAsDataURL(blob);
+                        } else {
+                            this.logoData = null;
+                            resolve();
+                        }
+                    };
+                    
+                    xhr.onerror = () => {
                         this.logoData = null;
                         resolve();
-                    }
-                };
-                
-                // Load the image - this works with both file:// and http:// protocols
-                img.src = logoPath;
+                    };
+                    
+                    xhr.send();
+                }
             } catch (error) {
                 console.error('Error in loadLogo:', error);
                 this.logoData = null;
@@ -119,9 +162,25 @@ class PDFGenerator {
         this.showLoading(true);
         
         try {
-            // Ensure logo is loaded before generating PDF
-            if (!this.logoData) {
+            // Ensure logo is loaded before generating PDF - always reload to be sure
+            console.log('Checking logo status before PDF generation...');
+            if (!this.logoData || !this.logoWidth || !this.logoHeight) {
+                console.log('Logo not loaded, loading now...');
                 await this.loadLogo();
+                // Wait a bit more to ensure canvas processing is complete
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            
+            // Verify logo is actually available
+            if (this.logoData && this.logoWidth && this.logoHeight) {
+                console.log('Logo is ready:', { 
+                    hasData: !!this.logoData, 
+                    width: this.logoWidth, 
+                    height: this.logoHeight,
+                    dataLength: this.logoData.length 
+                });
+            } else {
+                console.warn('Logo failed to load - PDF will be generated without logo');
             }
             
             const { jsPDF } = window.jspdf;
@@ -188,6 +247,7 @@ class PDFGenerator {
         doc.rect(0, 0, pageWidth, headerBarHeight, 'F');
         
         // Add logo prominently at the top left
+        let logoAdded = false;
         if (this.logoData && this.logoWidth && this.logoHeight) {
             try {
                 // Calculate logo dimensions - make it larger and more prominent
@@ -205,52 +265,50 @@ class PDFGenerator {
                 
                 // Position logo in header bar, centered vertically
                 const logoY = (headerBarHeight - logoHeight) / 2;
-                doc.addImage(this.logoData, 'JPEG', margin, logoY, logoWidth, logoHeight);
-                console.log('Logo added to PDF', { logoWidth, logoHeight, logoY });
                 
-                // Position text to the right of logo or below if logo is large
-                const textStartX = margin + logoWidth + 10;
-                const textStartY = margin + 8;
-                
-                // Association name - modern, bold styling
-                doc.setFontSize(20);
-                doc.setFont('helvetica', 'bold');
-                doc.setTextColor(44, 85, 48); // Dark green color similar to website
-                doc.text('Sanctuary Homeowners Association', textStartX, textStartY);
-                
-                // Committee name - smaller, elegant
-                doc.setFontSize(12);
-                doc.setFont('helvetica', 'normal');
-                doc.setTextColor(70, 70, 70);
-                doc.text('Architectural Review Committee', textStartX, textStartY + 7);
-                
-                yPos = headerBarHeight + 15; // Start content below header
+                // Try to add the image - check if data URL is valid
+                if (this.logoData.startsWith('data:image/')) {
+                    doc.addImage(this.logoData, 'JPEG', margin, logoY, logoWidth, logoHeight);
+                    logoAdded = true;
+                    console.log('Logo successfully added to PDF', { 
+                        logoWidth, 
+                        logoHeight, 
+                        logoY,
+                        dataUrlPrefix: this.logoData.substring(0, 50) 
+                    });
+                } else {
+                    console.error('Logo data is not a valid data URL:', this.logoData.substring(0, 50));
+                }
             } catch (error) {
                 console.error('Error adding logo to PDF:', error);
-                // Fallback: text-only header
-                doc.setFontSize(20);
-                doc.setFont('helvetica', 'bold');
-                doc.setTextColor(44, 85, 48);
-                doc.text('Sanctuary Homeowners Association', margin, margin + 8);
-                doc.setFontSize(12);
-                doc.setFont('helvetica', 'normal');
-                doc.setTextColor(70, 70, 70);
-                doc.text('Architectural Review Committee', margin, margin + 16);
-                yPos = headerBarHeight + 15;
+                console.error('Logo data type:', typeof this.logoData);
+                console.error('Logo data length:', this.logoData ? this.logoData.length : 'null');
             }
         } else {
-            console.warn('Logo not available - using text-only header');
-            // Text-only header if logo fails
-            doc.setFontSize(20);
-            doc.setFont('helvetica', 'bold');
-            doc.setTextColor(44, 85, 48);
-            doc.text('Sanctuary Homeowners Association', margin, margin + 8);
-            doc.setFontSize(12);
-            doc.setFont('helvetica', 'normal');
-            doc.setTextColor(70, 70, 70);
-            doc.text('Architectural Review Committee', margin, margin + 16);
-            yPos = headerBarHeight + 15;
+            console.warn('Logo not available:', {
+                hasData: !!this.logoData,
+                hasWidth: !!this.logoWidth,
+                hasHeight: !!this.logoHeight
+            });
         }
+        
+        // Position text - adjust based on whether logo was added
+        const textStartX = logoAdded ? margin + 60 + 10 : margin;
+        const textStartY = margin + 8;
+        
+        // Association name - modern, bold styling
+        doc.setFontSize(20);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(44, 85, 48); // Dark green color similar to website
+        doc.text('Sanctuary Homeowners Association', textStartX, textStartY);
+        
+        // Committee name - smaller, elegant
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(70, 70, 70);
+        doc.text('Architectural Review Committee', textStartX, textStartY + 7);
+        
+        yPos = headerBarHeight + 15; // Start content below header
 
         // Add a subtle divider line
         doc.setDrawColor(200, 200, 200);
@@ -301,7 +359,14 @@ class PDFGenerator {
         // Approval reason - proper paragraph formatting
         const approvalReason = doc.splitTextToSize(formData.approvalReason, contentWidth);
         doc.text(approvalReason, margin, yPos);
-        yPos += (approvalReason.length * 6) + 15; // Better spacing
+        yPos += (approvalReason.length * 6) + 12; // Better spacing
+
+        // Closing sentiment
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(30, 30, 30);
+        doc.text('We look forward to another beautiful addition to the neighborhood.', margin, yPos);
+        yPos += 12;
 
         // Closing - professional, modern formatting
         doc.setFontSize(11);
@@ -526,12 +591,20 @@ class PDFGenerator {
     }
 }
 
-// Initialize when DOM is ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
+// Initialize PDF Generator
+function initPDFGenerator() {
+    if (typeof PDFGenerator !== 'undefined') {
         window.pdfGenerator = new PDFGenerator();
-    });
+        console.log('PDF Generator initialized');
+    } else {
+        console.error('PDFGenerator class not found');
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initPDFGenerator);
 } else {
-    window.pdfGenerator = new PDFGenerator();
+    // DOM already loaded, but wait a tick to ensure all scripts are parsed
+    setTimeout(initPDFGenerator, 0);
 }
 

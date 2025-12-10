@@ -11,34 +11,51 @@ class FileHandler {
     }
 
     init() {
-        // File input change
+        // File input change - use capture phase to ensure it fires
         this.fileInput.addEventListener('change', (e) => {
-            this.handleFiles(e.target.files);
-        });
+            if (e.target.files && e.target.files.length > 0) {
+                this.handleFiles(e.target.files);
+            }
+        }, false);
 
         // Drag and drop
         this.fileUploadArea.addEventListener('dragover', (e) => {
             e.preventDefault();
+            e.stopPropagation();
             this.fileUploadArea.classList.add('dragover');
         });
 
-        this.fileUploadArea.addEventListener('dragleave', () => {
+        this.fileUploadArea.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
             this.fileUploadArea.classList.remove('dragover');
         });
 
         this.fileUploadArea.addEventListener('drop', (e) => {
             e.preventDefault();
+            e.stopPropagation();
             this.fileUploadArea.classList.remove('dragover');
-            this.handleFiles(e.dataTransfer.files);
+            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                this.handleFiles(e.dataTransfer.files);
+            }
         });
 
-        // Click to upload
-        this.fileUploadArea.addEventListener('click', () => {
-            this.fileInput.click();
+        // Click to upload - prevent double-triggering
+        this.fileUploadArea.addEventListener('click', (e) => {
+            // Only trigger if clicking directly on the upload area, not on child elements
+            if (e.target === this.fileUploadArea || e.target.closest('.upload-prompt')) {
+                e.preventDefault();
+                this.fileInput.click();
+            }
         });
     }
 
     handleFiles(fileList) {
+        if (!fileList || fileList.length === 0) {
+            return;
+        }
+        
+        // Process files sequentially to avoid race conditions
         Array.from(fileList).forEach(file => {
             if (this.isValidFileType(file)) {
                 this.addFile(file);
@@ -46,6 +63,11 @@ class FileHandler {
                 this.showError(`File "${file.name}" is not a supported type.`);
             }
         });
+        
+        // Reset file input to allow selecting the same file again
+        if (this.fileInput) {
+            this.fileInput.value = '';
+        }
     }
 
     isValidFileType(file) {
@@ -65,14 +87,21 @@ class FileHandler {
     }
 
     async addFile(file) {
-        // Check if file already exists
-        if (this.files.some(f => f.name === file.name && f.size === file.size)) {
-            this.showError(`File "${file.name}" is already added.`);
+        // Check if file already exists (by name and size)
+        const existingFile = this.files.find(f => f.name === file.name && f.size === file.size);
+        if (existingFile) {
+            console.log(`File "${file.name}" is already added, skipping.`);
             return;
         }
 
         try {
+            // Show loading state for this file
+            const tempId = `temp-${Date.now()}-${Math.random()}`;
+            this.renderFileList(); // Render current state first
+            
             const fileDataResult = await this.readFile(file);
+            
+            // Add file to list
             this.files.push({
                 file: file,
                 name: file.name,
@@ -83,6 +112,7 @@ class FileHandler {
             });
             
             this.renderFileList();
+            console.log(`File "${file.name}" added successfully`);
         } catch (error) {
             console.error('Error reading file:', error);
             this.showError(`Error reading file "${file.name}". Please try again.`);

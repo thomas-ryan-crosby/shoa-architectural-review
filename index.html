@@ -181,6 +181,9 @@
         </div>
     </div>
 
+    <!-- Preload logo for better reliability -->
+    <img id="logoPreload" src="assets/logo/sanctuary logo.jpg" style="display: none;" alt="Sanctuary Logo" onload="console.log('Logo preloaded successfully')" onerror="console.error('Logo preload failed')">
+
     <!-- Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
