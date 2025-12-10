@@ -3,31 +3,63 @@
 class PDFGenerator {
     constructor() {
         this.logoData = null;
+        this.logoWidth = null;
+        this.logoHeight = null;
+        // Load logo asynchronously - will be ready when needed
         this.loadLogo();
     }
 
     async loadLogo() {
-        try {
-            // Load logo as base64 data URL
-            const response = await fetch('assets/logo/sanctuary logo.jpg');
-            const blob = await response.blob();
-            const reader = new FileReader();
-            
-            reader.onload = (e) => {
-                this.logoData = e.target.result;
-            };
-            
-            reader.readAsDataURL(blob);
-        } catch (error) {
-            console.error('Error loading logo:', error);
-            // Continue without logo if it fails
-        }
+        return new Promise((resolve) => {
+            try {
+                const logoPath = 'assets/logo/sanctuary logo.jpg';
+                const img = new Image();
+                
+                img.onload = () => {
+                    try {
+                        // Convert image to canvas then to data URL for jsPDF
+                        const canvas = document.createElement('canvas');
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0);
+                        this.logoData = canvas.toDataURL('image/jpeg', 0.95);
+                        this.logoWidth = img.width;
+                        this.logoHeight = img.height;
+                        console.log('Logo loaded successfully', { width: img.width, height: img.height });
+                        resolve();
+                    } catch (error) {
+                        console.error('Error processing logo canvas:', error);
+                        this.logoData = null;
+                        resolve();
+                    }
+                };
+                
+                img.onerror = (error) => {
+                    console.error('Could not load logo from:', logoPath, error);
+                    this.logoData = null;
+                    resolve();
+                };
+                
+                // Load the image - this works with both file:// and http:// protocols
+                img.src = logoPath;
+            } catch (error) {
+                console.error('Error in loadLogo:', error);
+                this.logoData = null;
+                resolve();
+            }
+        });
     }
 
     async generatePDF(formData, files) {
         this.showLoading(true);
         
         try {
+            // Ensure logo is loaded before generating PDF
+            if (!this.logoData) {
+                await this.loadLogo();
+            }
+            
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF({
                 orientation: 'portrait',
@@ -80,81 +112,109 @@ class PDFGenerator {
     async generateLetter(doc, formData) {
         const pageWidth = doc.internal.pageSize.getWidth();
         const pageHeight = doc.internal.pageSize.getHeight();
-        const margin = 25;
+        const margin = 25.4; // 1 inch in mm
         const contentWidth = pageWidth - (margin * 2);
         
         let yPos = margin;
 
-        // Add logo to letterhead
-        if (this.logoData) {
+        // Letterhead Section with Logo
+        const letterheadY = yPos;
+        
+        // Add logo prominently at the top
+        if (this.logoData && this.logoWidth && this.logoHeight) {
             try {
-                doc.addImage(this.logoData, 'JPEG', margin, yPos, 60, 20);
-                yPos += 30;
+                // Calculate logo dimensions to maintain aspect ratio
+                const logoMaxWidth = 50; // mm
+                const logoMaxHeight = 25; // mm
+                const logoAspectRatio = this.logoWidth / this.logoHeight;
+                
+                let logoWidth = logoMaxWidth;
+                let logoHeight = logoWidth / logoAspectRatio;
+                
+                if (logoHeight > logoMaxHeight) {
+                    logoHeight = logoMaxHeight;
+                    logoWidth = logoHeight * logoAspectRatio;
+                }
+                
+                doc.addImage(this.logoData, 'JPEG', margin, yPos, logoWidth, logoHeight);
+                yPos += logoHeight + 8; // Space after logo
+                console.log('Logo added to PDF', { logoWidth, logoHeight });
             } catch (error) {
-                console.error('Error adding logo:', error);
+                console.error('Error adding logo to PDF:', error);
                 // Continue without logo
             }
+        } else {
+            console.warn('Logo not available for PDF generation');
         }
 
-        // Add letterhead text
-        doc.setFontSize(16);
-        doc.setFont(undefined, 'bold');
+        // Letterhead text - Professional styling
+        doc.setFontSize(18);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(30, 30, 30);
         doc.text('Sanctuary Homeowners Association', margin, yPos);
-        yPos += 7;
+        yPos += 8;
         
-        doc.setFontSize(12);
-        doc.setFont(undefined, 'normal');
+        doc.setFontSize(13);
+        doc.setFont('helvetica', 'normal');
         doc.text('Architectural Review Committee', margin, yPos);
-        yPos += 15;
+        yPos += 18; // More space after letterhead
 
-        // Date
+        // Date - formatted nicely
         const today = new Date();
         const dateStr = this.formatDate(today);
         doc.setFontSize(11);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(0, 0, 0);
         doc.text(`Date: ${dateStr}`, margin, yPos);
         yPos += 10;
 
-        // Property information
+        // Property information - clean formatting
         doc.setFontSize(11);
+        doc.setFont('helvetica', 'normal');
         doc.text(formData.address, margin, yPos);
-        yPos += 6;
+        yPos += 7;
         doc.text(`Lot: ${formData.lot}`, margin, yPos);
-        yPos += 10;
+        yPos += 12; // More space before subject
 
-        // Subject line
+        // Subject line - bold and prominent
         doc.setFontSize(11);
-        doc.setFont(undefined, 'bold');
+        doc.setFont('helvetica', 'bold');
         doc.text(`RE: Architectural Review - ${formData.projectType}`, margin, yPos);
-        yPos += 10;
+        yPos += 12;
 
         // Greeting
-        doc.setFont(undefined, 'normal');
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'normal');
         doc.text('Dear Property Owner,', margin, yPos);
         yPos += 10;
 
-        // Review comments
+        // Review comments - proper paragraph formatting
         doc.setFontSize(11);
+        doc.setFont('helvetica', 'normal');
         const reviewComments = doc.splitTextToSize(formData.reviewComments, contentWidth);
         doc.text(reviewComments, margin, yPos);
-        yPos += (reviewComments.length * 6) + 5;
+        yPos += (reviewComments.length * 5.5) + 8; // Better line spacing
 
-        // Approval reason
+        // Approval reason - proper paragraph formatting
         const approvalReason = doc.splitTextToSize(formData.approvalReason, contentWidth);
         doc.text(approvalReason, margin, yPos);
-        yPos += (approvalReason.length * 6) + 10;
+        yPos += (approvalReason.length * 5.5) + 12; // Better spacing
 
-        // Closing
+        // Closing - professional formatting
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'normal');
         doc.text('Sincerely,', margin, yPos);
-        yPos += 8;
+        yPos += 10;
         doc.text('Sanctuary Homeowners Association', margin, yPos);
-        yPos += 6;
+        yPos += 7;
         doc.text('Architectural Review Committee', margin, yPos);
         yPos += 15;
 
-        // Add attachments note if there are files
+        // Add attachments note if there are files - italic and subtle
         if (window.fileHandler && window.fileHandler.getFiles().length > 0) {
             doc.setFontSize(10);
-            doc.setFont(undefined, 'italic');
+            doc.setFont('helvetica', 'italic');
+            doc.setTextColor(100, 100, 100);
             doc.text('Attachments included on following pages.', margin, yPos);
         }
     }
