@@ -88,7 +88,7 @@ class FormHandler {
     }
 
     setupRealTimeValidation() {
-        const fields = ['address', 'lot', 'projectType', 'reviewCommentsType', 'approvalReasonType'];
+        const fields = ['ownerLastName', 'address', 'lot', 'projectType', 'reviewCommentsType', 'approvalReasonType'];
         
         fields.forEach(fieldId => {
             const field = document.getElementById(fieldId);
@@ -172,7 +172,7 @@ class FormHandler {
 
     validateForm() {
         let isValid = true;
-        const fields = ['address', 'lot', 'projectType', 'reviewCommentsType', 'approvalReasonType'];
+        const fields = ['ownerLastName', 'address', 'lot', 'projectType', 'reviewCommentsType', 'approvalReasonType'];
         
         // Validate all standard fields
         fields.forEach(fieldId => {
@@ -225,7 +225,7 @@ class FormHandler {
         // Get review comments - use default or custom
         const reviewComments = this.reviewCommentsTypeSelect.value === 'other'
             ? this.reviewCommentsInput.value.trim()
-            : 'The plan was reviewed for Sanctuary Setback Requirements';
+            : 'The plan was reviewed for Sanctuary Setback Requirements.';
 
         // Get approval reason - use default or custom
         const approvalReason = this.approvalReasonTypeSelect.value === 'other'
@@ -235,6 +235,7 @@ class FormHandler {
         return {
             address: document.getElementById('address').value.trim(),
             lot: document.getElementById('lot').value.trim(),
+            ownerLastName: document.getElementById('ownerLastName').value.trim(),
             projectType: projectType,
             reviewComments: reviewComments,
             approvalReason: approvalReason
@@ -243,7 +244,8 @@ class FormHandler {
 
     handleSubmit() {
         const formData = this.getFormData();
-        const files = window.fileHandler ? window.fileHandler.getFiles() : [];
+        const siteConditionsFiles = window.fileHandler ? window.fileHandler.getSiteConditionsFiles() : [];
+        const projectFiles = window.fileHandler ? window.fileHandler.getProjectFiles() : [];
         
         // Ensure PDF generator is initialized
         if (!window.pdfGenerator) {
@@ -265,9 +267,9 @@ class FormHandler {
             return;
         }
         
-        // Trigger PDF generation
+        // Trigger PDF generation with separate file lists
         if (window.pdfGenerator && typeof window.pdfGenerator.generatePDF === 'function') {
-            window.pdfGenerator.generatePDF(formData, files);
+            window.pdfGenerator.generatePDF(formData, siteConditionsFiles, projectFiles);
         } else {
             console.error('PDF Generator not properly initialized');
             alert('Error: PDF Generator not ready. Please refresh the page and try again.');

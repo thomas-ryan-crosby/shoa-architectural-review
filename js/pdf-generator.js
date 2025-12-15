@@ -221,19 +221,19 @@ class PDFGenerator {
         doc.setTextColor(30, 30, 30);
         const reviewComments = doc.splitTextToSize(formData.reviewComments, contentWidth);
         doc.text(reviewComments, margin, yPos);
-        yPos += (reviewComments.length * 6) + 10; // Better line spacing
+        yPos += (reviewComments.length * 6) + 12; // Better line spacing
 
         // Approval reason - proper paragraph formatting
         const approvalReason = doc.splitTextToSize(formData.approvalReason, contentWidth);
         doc.text(approvalReason, margin, yPos);
-        yPos += (approvalReason.length * 6) + 12; // Better spacing
+        yPos += (approvalReason.length * 6) + 15; // Better spacing
 
         // Closing sentiment
         doc.setFontSize(11);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(30, 30, 30);
         doc.text('We look forward to another beautiful addition to the neighborhood.', margin, yPos);
-        yPos += 15;
+        yPos += 18;
 
         // Builder deposit information based on project type
         const depositAmount = formData.projectType === 'New Home' ? '2000' : '1000';
@@ -243,17 +243,17 @@ class PDFGenerator {
         const depositText = `Please submit a $${depositAmount} builder deposit, which will be held for the duration of the project to cover any unremedied HOA property damage. We return nearly all deposits in full; only in rare cases have deductions been necessary. Checks are made out to:`;
         const depositLines = doc.splitTextToSize(depositText, contentWidth);
         doc.text(depositLines, margin, yPos);
-        yPos += (depositLines.length * 6) + 8;
+        yPos += (depositLines.length * 6) + 10;
         
         // Deposit address
         doc.setFont('helvetica', 'bold');
         doc.text('Sanctuary Homeowners Association', margin, yPos);
-        yPos += 6;
+        yPos += 7;
         doc.setFont('helvetica', 'normal');
         doc.text('1 Sanctuary Blvd, Suite 100', margin, yPos);
-        yPos += 6;
+        yPos += 7;
         doc.text('Mandeville, LA 70471', margin, yPos);
-        yPos += 18;
+        yPos += 20;
 
         // Closing - professional, modern formatting
         doc.setFontSize(11);
@@ -326,14 +326,21 @@ class PDFGenerator {
                 await this.processFiles(mergedPdfDoc, projectFiles);
             }
 
-            // Add Builder's Rules PDF
+            // Add Builder's Rules PDF - always add with section label
             const buildersRulesBytes = await this.loadBuildersRules();
             if (buildersRulesBytes) {
-                await this.addSectionLabel(mergedPdfDoc, 'Builder\'s Rules');
-                const buildersRulesPdf = await PDFDocument.load(buildersRulesBytes);
-                const pageIndices = buildersRulesPdf.getPageIndices();
-                const pages = await mergedPdfDoc.copyPages(buildersRulesPdf, pageIndices);
-                pages.forEach((page) => mergedPdfDoc.addPage(page));
+                try {
+                    await this.addSectionLabel(mergedPdfDoc, 'Builder\'s Rules');
+                    const buildersRulesPdf = await PDFDocument.load(buildersRulesBytes);
+                    const pageIndices = buildersRulesPdf.getPageIndices();
+                    const pages = await mergedPdfDoc.copyPages(buildersRulesPdf, pageIndices);
+                    pages.forEach((page) => mergedPdfDoc.addPage(page));
+                    console.log('Builder\'s Rules PDF attached successfully');
+                } catch (error) {
+                    console.error('Error attaching Builder\'s Rules PDF:', error);
+                }
+            } else {
+                console.warn('Builder\'s Rules PDF not found or could not be loaded');
             }
 
             // Save the merged PDF

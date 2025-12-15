@@ -20,6 +20,20 @@
                     <h2>Project Information</h2>
                     
                     <div class="form-group">
+                        <label for="ownerLastName">
+                            Property Owner Last Name <span class="required">*</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            id="ownerLastName" 
+                            name="ownerLastName" 
+                            required 
+                            placeholder="e.g., Smith"
+                        >
+                        <span class="error-message" id="ownerLastName-error"></span>
+                    </div>
+
+                    <div class="form-group">
                         <label for="address">
                             Property Address <span class="required">*</span>
                         </label>
@@ -78,14 +92,40 @@
 
                 <!-- File Upload Section -->
                 <section class="form-section">
-                    <h2>Supporting Documents</h2>
-                    <p class="section-description">Upload any relevant documents, images, or plans (optional but recommended)</p>
+                    <h2>Current Site Conditions</h2>
+                    <p class="section-description">Attach image of Google Maps or site picture (optional but recommended)</p>
                     
-                    <div class="file-upload-area" id="fileUploadArea">
+                    <div class="file-upload-area" id="siteConditionsUploadArea">
                         <input 
                             type="file" 
-                            id="fileInput" 
-                            name="files" 
+                            id="siteConditionsInput" 
+                            name="siteConditionsFiles" 
+                            multiple 
+                            accept=".pdf,.jpg,.jpeg,.png"
+                        >
+                        <div class="upload-prompt">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="17 8 12 3 7 8"></polyline>
+                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
+                            <p>Click to upload or drag and drop files here</p>
+                            <p class="file-types">PDF, JPG, PNG</p>
+                        </div>
+                    </div>
+
+                    <div class="file-list" id="siteConditionsFileList"></div>
+                </section>
+
+                <section class="form-section">
+                    <h2>Submitted Project Files</h2>
+                    <p class="section-description">Upload project documents, plans, or drawings (optional but recommended)</p>
+                    
+                    <div class="file-upload-area" id="projectFilesUploadArea">
+                        <input 
+                            type="file" 
+                            id="projectFilesInput" 
+                            name="projectFiles" 
                             multiple 
                             accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                         >
@@ -100,7 +140,7 @@
                         </div>
                     </div>
 
-                    <div class="file-list" id="fileList"></div>
+                    <div class="file-list" id="projectFilesFileList"></div>
                 </section>
 
                 <!-- Review Details Section -->
@@ -112,7 +152,7 @@
                             Review Comments <span class="required">*</span>
                         </label>
                         <select id="reviewCommentsType" name="reviewCommentsType" required>
-                            <option value="default">The plan was reviewed for Sanctuary Setback Requirements</option>
+                            <option value="default">The plan was reviewed for Sanctuary Setback Requirements.</option>
                             <option value="other">Other (specify below)</option>
                         </select>
                         <span class="error-message" id="reviewCommentsType-error"></span>
@@ -187,6 +227,7 @@
     <!-- Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <script src="js/logo-data.js"></script>
     <script src="js/form-handler.js"></script>
     <script src="js/file-handler.js"></script>
     <script src="js/pdf-generator.js"></script>
