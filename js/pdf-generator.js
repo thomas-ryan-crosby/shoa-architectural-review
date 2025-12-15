@@ -12,144 +12,39 @@ class PDFGenerator {
     async loadLogo() {
         return new Promise((resolve) => {
             try {
-                const logoPath = 'assets/logo/sanctuary logo.jpg';
-                
-                // Use FileReader to read the file directly as data URL
-                // This avoids CORS/tainted canvas issues with file:// protocol
-                if (typeof fetch !== 'undefined') {
-                    fetch(logoPath)
-                        .then(response => {
-                            if (response.ok) {
-                                return response.blob();
-                            }
-                            throw new Error('Logo fetch failed');
-                        })
-                        .then(blob => {
-                            const reader = new FileReader();
-                            reader.onload = (e) => {
-                                // Get image dimensions without tainting canvas
-                                const img = new Image();
-                                img.onload = () => {
-                                    this.logoData = e.target.result; // Use FileReader result directly
-                                    this.logoWidth = img.naturalWidth;
-                                    this.logoHeight = img.naturalHeight;
-                                    console.log('Logo loaded successfully via FileReader', { 
-                                        width: this.logoWidth, 
-                                        height: this.logoHeight,
-                                        dataUrlLength: this.logoData.length 
-                                    });
-                                    resolve();
-                                };
-                                img.onerror = () => {
-                                    console.error('Failed to get image dimensions');
-                                    // Still use the data URL even if we can't get dimensions
-                                    this.logoData = e.target.result;
-                                    this.logoWidth = 200; // Default dimensions
-                                    this.logoHeight = 100;
-                                    resolve();
-                                };
-                                img.src = e.target.result;
-                            };
-                            reader.onerror = () => {
-                                console.error('FileReader failed to read logo');
-                                this.logoData = null;
-                                resolve();
-                            };
-                            reader.readAsDataURL(blob);
-                        })
-                        .catch(() => {
-                            // Fallback: use XMLHttpRequest for file:// protocol
-                            console.log('Fetch failed, trying XMLHttpRequest for file:// protocol');
-                            const xhr = new XMLHttpRequest();
-                            xhr.open('GET', logoPath, true);
-                            xhr.responseType = 'blob';
-                            
-                            xhr.onload = () => {
-                                if (xhr.status === 200 || xhr.status === 0) { // 0 for file://
-                                    const blob = xhr.response;
-                                    const reader = new FileReader();
-                                    reader.onload = (e) => {
-                                        const img = new Image();
-                                        img.onload = () => {
-                                            this.logoData = e.target.result;
-                                            this.logoWidth = img.naturalWidth;
-                                            this.logoHeight = img.naturalHeight;
-                                            console.log('Logo loaded via XMLHttpRequest', { 
-                                                width: this.logoWidth, 
-                                                height: this.logoHeight 
-                                            });
-                                            resolve();
-                                        };
-                                        img.onerror = () => {
-                                            this.logoData = e.target.result;
-                                            this.logoWidth = 200;
-                                            this.logoHeight = 100;
-                                            resolve();
-                                        };
-                                        img.src = e.target.result;
-                                    };
-                                    reader.onerror = () => {
-                                        console.error('FileReader failed in XMLHttpRequest fallback');
-                                        this.logoData = null;
-                                        resolve();
-                                    };
-                                    reader.readAsDataURL(blob);
-                                } else {
-                                    console.error('XMLHttpRequest failed with status:', xhr.status);
-                                    this.logoData = null;
-                                    resolve();
-                                }
-                            };
-                            
-                            xhr.onerror = () => {
-                                console.error('XMLHttpRequest failed to load logo');
-                                this.logoData = null;
-                                resolve();
-                            };
-                            
-                            xhr.send();
-                        });
-                } else {
-                    // Fallback for browsers without fetch - use XMLHttpRequest
-                    console.log('No fetch support, using XMLHttpRequest');
-                    const xhr = new XMLHttpRequest();
-                    xhr.open('GET', logoPath, true);
-                    xhr.responseType = 'blob';
-                    
-                    xhr.onload = () => {
-                        if (xhr.status === 200 || xhr.status === 0) {
-                            const blob = xhr.response;
-                            const reader = new FileReader();
-                            reader.onload = (e) => {
-                                const img = new Image();
-                                img.onload = () => {
-                                    this.logoData = e.target.result;
-                                    this.logoWidth = img.naturalWidth;
-                                    this.logoHeight = img.naturalHeight;
-                                    resolve();
-                                };
-                                img.onerror = () => {
-                                    this.logoData = e.target.result;
-                                    this.logoWidth = 200;
-                                    this.logoHeight = 100;
-                                    resolve();
-                                };
-                                img.src = e.target.result;
-                            };
-                            reader.readAsDataURL(blob);
-                        } else {
-                            this.logoData = null;
-                            resolve();
-                        }
-                    };
-                    
-                    xhr.onerror = () => {
-                        this.logoData = null;
-                        resolve();
-                    };
-                    
-                    xhr.send();
+                // First, try to use embedded logo data (avoids all CORS issues)
+                if (window.SANCTUARY_LOGO_DATA) {
+                    this.logoData = window.SANCTUARY_LOGO_DATA;
+                    this.logoWidth = window.SANCTUARY_LOGO_WIDTH || 900;
+                    this.logoHeight = window.SANCTUARY_LOGO_HEIGHT || 633;
+                    console.log('Logo loaded from embedded base64 data', { 
+                        width: this.logoWidth, 
+                        height: this.logoHeight 
+                    });
+                    resolve();
+                    return;
                 }
+                
+                // Fallback: try to use preloaded image if available
+                const preloadedImg = document.getElementById('logoPreload');
+                if (preloadedImg && preloadedImg.complete && preloadedImg.naturalWidth > 0) {
+                    // Check if src is already a data URL
+                    if (preloadedImg.src && preloadedImg.src.startsWith('data:')) {
+                        this.logoData = preloadedImg.src;
+                        this.logoWidth = preloadedImg.naturalWidth;
+                        this.logoHeight = preloadedImg.naturalHeight;
+                        console.log('Logo loaded from preloaded image data URL', { 
+                            width: this.logoWidth, 
+                            height: this.logoHeight 
+                        });
+                        resolve();
+                        return;
+                    }
+                }
+                
+                console.warn('No embedded logo data found. Logo will not appear in PDF.');
+                this.logoData = null;
+                resolve();
             } catch (error) {
                 console.error('Error in loadLogo:', error);
                 this.logoData = null;
@@ -158,7 +53,7 @@ class PDFGenerator {
         });
     }
 
-    async generatePDF(formData, files) {
+    async generatePDF(formData, siteConditionsFiles, projectFiles) {
         this.showLoading(true);
         
         try {
@@ -193,22 +88,20 @@ class PDFGenerator {
             // Generate main letter
             await this.generateLetter(doc, formData);
 
-            // If we have attachments, merge them
-            if (files && files.length > 0) {
-                const hasAttachments = await this.addAttachments(doc, files, formData);
-                if (hasAttachments) {
-                    // If attachments were added via pdf-lib, download already happened
-                    this.showLoading(false);
-                    this.showSuccess('Approval letter generated successfully!');
-                    setTimeout(() => {
-                        if (window.formHandler) window.formHandler.resetForm();
-                        if (window.fileHandler) window.fileHandler.clearFiles();
-                    }, 2000);
-                    return;
-                }
+            // Always merge attachments (including builder's rules) using pdf-lib
+            const hasAttachments = await this.addAttachments(doc, siteConditionsFiles || [], projectFiles || [], formData);
+            if (hasAttachments) {
+                // If attachments were added via pdf-lib, download already happened
+                this.showLoading(false);
+                this.showSuccess('Approval letter generated successfully!');
+                setTimeout(() => {
+                    if (window.formHandler) window.formHandler.resetForm();
+                    if (window.fileHandler) window.fileHandler.clearFiles();
+                }, 2000);
+                return;
             }
 
-            // Generate filename and download
+            // Fallback: Generate filename and download if addAttachments failed
             const filename = this.generateFilename(formData);
             doc.save(filename);
             
@@ -238,83 +131,61 @@ class PDFGenerator {
         const margin = 25.4; // 1 inch in mm
         const contentWidth = pageWidth - (margin * 2);
         
+        // Simple header layout: LOGO, then TITLE, then SUBJECT
         let yPos = margin;
-
-        // Modern Letterhead Section with Logo and Branding
-        // Add a subtle background color bar (light gray) for modern look
-        const headerBarHeight = 35; // mm
-        doc.setFillColor(245, 245, 245); // Light gray background
-        doc.rect(0, 0, pageWidth, headerBarHeight, 'F');
         
-        // Add logo prominently at the top left
-        let logoAdded = false;
+        // 1. LOGO - at the top, left-aligned
+        let logoHeight = 0;
         if (this.logoData && this.logoWidth && this.logoHeight) {
             try {
-                // Calculate logo dimensions - make it larger and more prominent
-                const logoMaxWidth = 60; // mm - larger for prominence
+                const logoMaxWidth = 60; // mm
                 const logoMaxHeight = 30; // mm
                 const logoAspectRatio = this.logoWidth / this.logoHeight;
                 
                 let logoWidth = logoMaxWidth;
-                let logoHeight = logoWidth / logoAspectRatio;
+                logoHeight = logoWidth / logoAspectRatio;
                 
                 if (logoHeight > logoMaxHeight) {
                     logoHeight = logoMaxHeight;
                     logoWidth = logoHeight * logoAspectRatio;
                 }
                 
-                // Position logo in header bar, centered vertically
-                const logoY = (headerBarHeight - logoHeight) / 2;
-                
-                // Try to add the image - check if data URL is valid
                 if (this.logoData.startsWith('data:image/')) {
-                    doc.addImage(this.logoData, 'JPEG', margin, logoY, logoWidth, logoHeight);
-                    logoAdded = true;
-                    console.log('Logo successfully added to PDF', { 
-                        logoWidth, 
-                        logoHeight, 
-                        logoY,
-                        dataUrlPrefix: this.logoData.substring(0, 50) 
-                    });
-                } else {
-                    console.error('Logo data is not a valid data URL:', this.logoData.substring(0, 50));
+                    doc.addImage(this.logoData, 'JPEG', margin, yPos, logoWidth, logoHeight);
+                    logoHeight = logoHeight; // Keep track of height
                 }
             } catch (error) {
                 console.error('Error adding logo to PDF:', error);
-                console.error('Logo data type:', typeof this.logoData);
-                console.error('Logo data length:', this.logoData ? this.logoData.length : 'null');
             }
-        } else {
-            console.warn('Logo not available:', {
-                hasData: !!this.logoData,
-                hasWidth: !!this.logoWidth,
-                hasHeight: !!this.logoHeight
-            });
         }
         
-        // Position text - adjust based on whether logo was added
-        const textStartX = logoAdded ? margin + 60 + 10 : margin;
-        const textStartY = margin + 8;
+        // Move down after logo - more spacing
+        yPos += logoHeight > 0 ? logoHeight + 15 : 0;
         
-        // Association name - modern, bold styling
+        // 2. TITLE - below logo, left-aligned
         doc.setFontSize(20);
         doc.setFont('helvetica', 'bold');
-        doc.setTextColor(44, 85, 48); // Dark green color similar to website
-        doc.text('Sanctuary Homeowners Association', textStartX, textStartY);
+        doc.setTextColor(44, 85, 48);
+        doc.text('Sanctuary Homeowners Association', margin, yPos);
+        yPos += 12;
         
-        // Committee name - smaller, elegant
         doc.setFontSize(12);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(70, 70, 70);
-        doc.text('Architectural Review Committee', textStartX, textStartY + 7);
+        doc.text('Architectural Review Committee', margin, yPos);
+        yPos += 15;
         
-        yPos = headerBarHeight + 15; // Start content below header
-
-        // Add a subtle divider line
-        doc.setDrawColor(200, 200, 200);
-        doc.setLineWidth(0.5);
-        doc.line(margin, yPos, pageWidth - margin, yPos);
-        yPos += 12;
+        // 3. SUBJECT - below title, left-aligned
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(44, 85, 48);
+        const subjectText = `RE: Architectural Review - ${formData.projectType}`;
+        const subjectAvailableWidth = pageWidth - (margin * 2);
+        const subjectLines = doc.splitTextToSize(subjectText, subjectAvailableWidth);
+        subjectLines.forEach((line, index) => {
+            doc.text(line, margin, yPos + (index * 5));
+        });
+        yPos += (subjectLines.length * 5) + 15;
 
         // Date - modern formatting
         const today = new Date();
@@ -332,20 +203,16 @@ class PDFGenerator {
         doc.text(formData.address, margin, yPos);
         yPos += 7;
         doc.text(`Lot: ${formData.lot}`, margin, yPos);
-        yPos += 15; // More space before subject
-
-        // Subject line - bold, prominent, modern styling
-        doc.setFontSize(12);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(44, 85, 48); // Brand color
-        doc.text(`RE: Architectural Review - ${formData.projectType}`, margin, yPos);
-        yPos += 12;
+        yPos += 15; // More space before greeting
 
         // Greeting
         doc.setFontSize(11);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(0, 0, 0);
-        doc.text('Dear Property Owner,', margin, yPos);
+        const greeting = formData.ownerLastName 
+            ? `Dear ${formData.ownerLastName} Residence,`
+            : 'Dear Property Owner,';
+        doc.text(greeting, margin, yPos);
         yPos += 12;
 
         // Review comments - proper paragraph formatting with better spacing
@@ -366,7 +233,27 @@ class PDFGenerator {
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(30, 30, 30);
         doc.text('We look forward to another beautiful addition to the neighborhood.', margin, yPos);
-        yPos += 12;
+        yPos += 15;
+
+        // Builder deposit information based on project type
+        const depositAmount = formData.projectType === 'New Home' ? '2000' : '1000';
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(30, 30, 30);
+        const depositText = `Please submit a $${depositAmount} builder deposit, which will be held for the duration of the project to cover any unremedied HOA property damage. We return nearly all deposits in full; only in rare cases have deductions been necessary. Checks are made out to:`;
+        const depositLines = doc.splitTextToSize(depositText, contentWidth);
+        doc.text(depositLines, margin, yPos);
+        yPos += (depositLines.length * 6) + 8;
+        
+        // Deposit address
+        doc.setFont('helvetica', 'bold');
+        doc.text('Sanctuary Homeowners Association', margin, yPos);
+        yPos += 6;
+        doc.setFont('helvetica', 'normal');
+        doc.text('1 Sanctuary Blvd, Suite 100', margin, yPos);
+        yPos += 6;
+        doc.text('Mandeville, LA 70471', margin, yPos);
+        yPos += 18;
 
         // Closing - professional, modern formatting
         doc.setFontSize(11);
@@ -391,7 +278,34 @@ class PDFGenerator {
         }
     }
 
-    async addAttachments(mainDoc, files, formData) {
+    async loadBuildersRules() {
+        return new Promise((resolve, reject) => {
+            const rulesPath = 'assets/Sanctuary Builder Rules.pdf';
+            
+            // Use XMLHttpRequest for file:// protocol compatibility
+            const xhr = new XMLHttpRequest();
+            xhr.open('GET', rulesPath, true);
+            xhr.responseType = 'arraybuffer';
+            
+            xhr.onload = function() {
+                if (xhr.status === 200 || xhr.status === 0) {
+                    resolve(xhr.response);
+                } else {
+                    console.warn('Could not load builder\'s rules PDF:', xhr.status);
+                    resolve(null);
+                }
+            };
+            
+            xhr.onerror = function() {
+                console.warn('Error loading builder\'s rules PDF');
+                resolve(null);
+            };
+            
+            xhr.send();
+        });
+    }
+
+    async addAttachments(mainDoc, siteConditionsFiles, projectFiles, formData) {
         // Use pdf-lib to merge attachments
         const { PDFDocument } = PDFLib;
         
@@ -400,66 +314,26 @@ class PDFGenerator {
             const mainPdfBytes = mainDoc.output('arraybuffer');
             const mergedPdfDoc = await PDFDocument.load(mainPdfBytes);
 
-            // Process each attachment
-            for (const fileItem of files) {
-                try {
-                    if (fileItem.type === 'application/pdf') {
-                        // Embed PDF pages
-                        const attachmentPdf = await PDFDocument.load(fileItem.data);
-                        const pages = await mergedPdfDoc.copyPages(attachmentPdf, attachmentPdf.getPageIndices());
-                        pages.forEach(page => mergedPdfDoc.addPage(page));
-                    } else if (fileItem.type.startsWith('image/')) {
-                        // Convert image to PDF page using pdf-lib
-                        try {
-                            let imageBytes;
-                            // fileItem.data is a data URL, need to convert to Uint8Array
-                            if (fileItem.format === 'dataurl' || (typeof fileItem.data === 'string' && fileItem.data.startsWith('data:'))) {
-                                // Convert data URL to Uint8Array
-                                const base64 = fileItem.data.split(',')[1];
-                                const binaryString = atob(base64);
-                                const bytes = new Uint8Array(binaryString.length);
-                                for (let i = 0; i < binaryString.length; i++) {
-                                    bytes[i] = binaryString.charCodeAt(i);
-                                }
-                                imageBytes = bytes;
-                            } else {
-                                imageBytes = fileItem.data;
-                            }
-                            
-                            let image;
-                            if (fileItem.type === 'image/jpeg' || fileItem.type === 'image/jpg') {
-                                image = await mergedPdfDoc.embedJpg(imageBytes);
-                            } else if (fileItem.type === 'image/png') {
-                                image = await mergedPdfDoc.embedPng(imageBytes);
-                            }
-                            
-                            if (image) {
-                                // Use standard letter size for image pages
-                                const page = mergedPdfDoc.addPage([612, 792]); // Letter size in points
-                                const scale = Math.min(612 / image.width, 792 / image.height) * 0.9;
-                                const width = image.width * scale;
-                                const height = image.height * scale;
-                                const x = (612 - width) / 2;
-                                const y = (792 - height) / 2;
-                                
-                                page.drawImage(image, {
-                                    x: x,
-                                    y: y,
-                                    width: width,
-                                    height: height,
-                                });
-                            }
-                        } catch (error) {
-                            console.error(`Error embedding image ${fileItem.name}:`, error);
-                        }
-                    } else {
-                        // DOC/DOCX files - skip with note
-                        console.warn(`File type ${fileItem.type} not supported for embedding`);
-                    }
-                } catch (error) {
-                    console.error(`Error processing file ${fileItem.name}:`, error);
-                    // Continue with other files
-                }
+            // Add Current Site Conditions section if there are files
+            if (siteConditionsFiles && siteConditionsFiles.length > 0) {
+                await this.addSectionLabel(mergedPdfDoc, 'Current Site Conditions');
+                await this.processFiles(mergedPdfDoc, siteConditionsFiles);
+            }
+
+            // Add Submitted Files for Review section if there are files
+            if (projectFiles && projectFiles.length > 0) {
+                await this.addSectionLabel(mergedPdfDoc, 'Submitted Files for Review');
+                await this.processFiles(mergedPdfDoc, projectFiles);
+            }
+
+            // Add Builder's Rules PDF
+            const buildersRulesBytes = await this.loadBuildersRules();
+            if (buildersRulesBytes) {
+                await this.addSectionLabel(mergedPdfDoc, 'Builder\'s Rules');
+                const buildersRulesPdf = await PDFDocument.load(buildersRulesBytes);
+                const pageIndices = buildersRulesPdf.getPageIndices();
+                const pages = await mergedPdfDoc.copyPages(buildersRulesPdf, pageIndices);
+                pages.forEach((page) => mergedPdfDoc.addPage(page));
             }
 
             // Save the merged PDF
@@ -484,45 +358,223 @@ class PDFGenerator {
         } catch (error) {
             console.error('Error adding attachments with pdf-lib:', error);
             // Fallback to simple image-only approach
-            await this.addAttachmentsSimple(mainDoc, files);
+            await this.addAttachmentsSimple(mainDoc, [...(siteConditionsFiles || []), ...(projectFiles || [])]);
             return false;
         }
     }
 
+    async addSectionLabel(pdfDoc, labelText) {
+        // Create a section label page
+        const page = pdfDoc.addPage([612, 792]); // Letter size in points
+        const { width, height } = page.getSize();
+        
+        // Embed font and get text width for centering
+        const font = await pdfDoc.embedFont('Helvetica-Bold');
+        const fontSize = 20;
+        const textWidth = font.widthOfTextAtSize(labelText, fontSize);
+        
+        // Draw label text centered on page (using default black color for now)
+        page.drawText(labelText, {
+            x: (width - textWidth) / 2,
+            y: height / 2,
+            size: fontSize,
+            font: font,
+        });
+    }
+
+    async processFiles(pdfDoc, files) {
+        const { PDFDocument } = PDFLib;
+        
+        // Process each attachment
+        for (const fileItem of files) {
+            try {
+                if (fileItem.type === 'application/pdf') {
+                    // Embed PDF pages - ensure all pages are copied
+                    const attachmentPdf = await PDFDocument.load(fileItem.data);
+                    const pageIndices = attachmentPdf.getPageIndices();
+                    const pages = await pdfDoc.copyPages(attachmentPdf, pageIndices);
+                    
+                    // Add all pages to ensure nothing is truncated
+                    pages.forEach(page => {
+                        pdfDoc.addPage(page);
+                    });
+                    
+                    console.log(`PDF "${fileItem.name}" embedded: ${pages.length} page(s) added`);
+                } else if (fileItem.type.startsWith('image/')) {
+                    // Convert image to PDF page using pdf-lib
+                    try {
+                        let imageBytes;
+                        // fileItem.data is a data URL, need to convert to Uint8Array
+                        if (fileItem.format === 'dataurl' || (typeof fileItem.data === 'string' && fileItem.data.startsWith('data:'))) {
+                            // Convert data URL to Uint8Array
+                            const base64 = fileItem.data.split(',')[1];
+                            const binaryString = atob(base64);
+                            const bytes = new Uint8Array(binaryString.length);
+                            for (let i = 0; i < binaryString.length; i++) {
+                                bytes[i] = binaryString.charCodeAt(i);
+                            }
+                            imageBytes = bytes;
+                        } else {
+                            imageBytes = fileItem.data;
+                        }
+                        
+                        let image;
+                        if (fileItem.type === 'image/jpeg' || fileItem.type === 'image/jpg') {
+                            image = await pdfDoc.embedJpg(imageBytes);
+                        } else if (fileItem.type === 'image/png') {
+                            image = await pdfDoc.embedPng(imageBytes);
+                        }
+                        
+                        if (image) {
+                            // Calculate page size based on image dimensions to prevent truncation
+                            // Add padding (margins) of 20 points on each side
+                            const padding = 40; // 20 points on each side
+                            const maxPageWidth = 792; // Maximum page width (11 inches)
+                            const maxPageHeight = 1224; // Maximum page height (17 inches) - allows for larger images
+                            
+                            // Get image dimensions in points (pdf-lib uses points, 72 DPI)
+                            const imgWidth = image.width;
+                            const imgHeight = image.height;
+                            
+                            // Calculate the page size needed to fit the image with padding
+                            let pageWidth = imgWidth + padding;
+                            let pageHeight = imgHeight + padding;
+                            
+                            // If image is larger than max size, scale it down proportionally
+                            // but ensure the full image is visible (no truncation)
+                            if (pageWidth > maxPageWidth || pageHeight > maxPageHeight) {
+                                const scaleX = (maxPageWidth - padding) / imgWidth;
+                                const scaleY = (maxPageHeight - padding) / imgHeight;
+                                const scale = Math.min(scaleX, scaleY); // Use the smaller scale to fit both dimensions
+                                
+                                pageWidth = (imgWidth * scale) + padding;
+                                pageHeight = (imgHeight * scale) + padding;
+                            }
+                            
+                            // Ensure minimum page size (at least letter size)
+                            pageWidth = Math.max(pageWidth, 612);
+                            pageHeight = Math.max(pageHeight, 792);
+                            
+                            // Create page with calculated dimensions
+                            const page = pdfDoc.addPage([pageWidth, pageHeight]);
+                                
+                                // Calculate image position (centered with padding)
+                                const imageWidth = pageWidth - padding;
+                                const imageHeight = pageHeight - padding;
+                                
+                                // Scale image to fit within the available space while maintaining aspect ratio
+                                const scaleX = imageWidth / imgWidth;
+                                const scaleY = imageHeight / imgHeight;
+                                const finalScale = Math.min(scaleX, scaleY);
+                                
+                                const finalWidth = imgWidth * finalScale;
+                                const finalHeight = imgHeight * finalScale;
+                                
+                                // Center the image on the page
+                                const x = (pageWidth - finalWidth) / 2;
+                                const y = (pageHeight - finalHeight) / 2;
+                                
+                                // Draw the full image without truncation
+                                page.drawImage(image, {
+                                    x: x,
+                                    y: y,
+                                    width: finalWidth,
+                                    height: finalHeight,
+                                });
+                                
+                                console.log(`Image "${fileItem.name}" embedded: ${imgWidth}x${imgHeight} on page ${pageWidth}x${pageHeight}`);
+                            }
+                        } catch (error) {
+                            console.error(`Error embedding image ${fileItem.name}:`, error);
+                        }
+                    } else {
+                        // DOC/DOCX files - skip with note
+                        console.warn(`File type ${fileItem.type} not supported for embedding`);
+                    }
+                } catch (error) {
+                    console.error(`Error processing file ${fileItem.name}:`, error);
+                    // Continue with other files
+                }
+            }
+    }
+
     async addAttachmentsSimple(mainDoc, files) {
         // Fallback: add images as pages using jsPDF directly
+        // Note: This method has limitations with very large images due to jsPDF constraints
         for (const fileItem of files) {
             try {
                 if (fileItem.type.startsWith('image/')) {
-                    mainDoc.addPage();
-                    
                     const img = new Image();
                     img.src = fileItem.data;
                     
                     await new Promise((resolve) => {
                         img.onload = () => {
-                            const pageWidth = mainDoc.internal.pageSize.getWidth();
-                            const pageHeight = mainDoc.internal.pageSize.getHeight();
-                            const margin = 10;
+                            // Convert pixels to mm (assuming 96 DPI: 1 pixel ≈ 0.264583 mm)
+                            // jsPDF uses mm as units
+                            const pixelsToMm = 0.264583;
+                            const margin = 10; // 10mm margin
                             
-                            // Calculate dimensions to fit page
-                            const imgWidth = img.width;
-                            const imgHeight = img.height;
-                            const ratio = Math.min(
-                                (pageWidth - margin * 2) / imgWidth,
-                                (pageHeight - margin * 2) / imgHeight
-                            );
+                            const imgWidthMm = img.width * pixelsToMm;
+                            const imgHeightMm = img.height * pixelsToMm;
                             
-                            const width = imgWidth * ratio;
-                            const height = imgHeight * ratio;
-                            const x = (pageWidth - width) / 2;
-                            const y = (pageHeight - height) / 2;
+                            // Calculate page size needed (with margins)
+                            let pageWidth = imgWidthMm + (margin * 2);
+                            let pageHeight = imgHeightMm + (margin * 2);
+                            
+                            // Maximum page sizes (A4 is 210x297mm, but allow larger)
+                            const maxWidth = 420; // ~16.5 inches
+                            const maxHeight = 594; // ~23.4 inches
+                            
+                            // If image is too large, scale it down but keep full image visible
+                            if (pageWidth > maxWidth || pageHeight > maxHeight) {
+                                const scaleX = (maxWidth - margin * 2) / imgWidthMm;
+                                const scaleY = (maxHeight - margin * 2) / imgHeightMm;
+                                const scale = Math.min(scaleX, scaleY);
+                                
+                                pageWidth = (imgWidthMm * scale) + (margin * 2);
+                                pageHeight = (imgHeightMm * scale) + (margin * 2);
+                            }
+                            
+                            // Ensure minimum page size (A4)
+                            pageWidth = Math.max(pageWidth, 210);
+                            pageHeight = Math.max(pageHeight, 297);
+                            
+                            // Add page with custom size
+                            mainDoc.addPage([pageWidth, pageHeight], 'mm');
+                            
+                            // Calculate image dimensions and position
+                            const finalWidth = pageWidth - (margin * 2);
+                            const finalHeight = pageHeight - (margin * 2);
+                            
+                            // Maintain aspect ratio
+                            const imgAspect = imgWidthMm / imgHeightMm;
+                            const pageAspect = finalWidth / finalHeight;
+                            
+                            let drawWidth, drawHeight;
+                            if (imgAspect > pageAspect) {
+                                // Image is wider - fit to width
+                                drawWidth = finalWidth;
+                                drawHeight = finalWidth / imgAspect;
+                            } else {
+                                // Image is taller - fit to height
+                                drawHeight = finalHeight;
+                                drawWidth = finalHeight * imgAspect;
+                            }
+                            
+                            // Center the image
+                            const x = (pageWidth - drawWidth) / 2;
+                            const y = (pageHeight - drawHeight) / 2;
                             
                             const format = fileItem.type === 'image/png' ? 'PNG' : 'JPEG';
-                            mainDoc.addImage(fileItem.data, format, x, y, width, height);
+                            mainDoc.addImage(fileItem.data, format, x, y, drawWidth, drawHeight, undefined, 'FAST');
+                            
+                            console.log(`Image "${fileItem.name}" embedded (fallback): ${img.width}x${img.height} on page ${pageWidth.toFixed(1)}x${pageHeight.toFixed(1)}mm`);
                             resolve();
                         };
-                        img.onerror = () => resolve(); // Continue even if image fails
+                        img.onerror = () => {
+                            console.error(`Failed to load image ${fileItem.name} in fallback method`);
+                            resolve(); // Continue even if image fails
+                        };
                     });
                 }
             } catch (error) {
