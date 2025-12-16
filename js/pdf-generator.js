@@ -159,21 +159,21 @@ class PDFGenerator {
             }
         }
         
-        // Move down after logo - more spacing
-        yPos += logoHeight > 0 ? logoHeight + 15 : 0;
+        // Move down after logo - compact spacing
+        yPos += logoHeight > 0 ? logoHeight + 10 : 0;
         
         // 2. TITLE - below logo, left-aligned
         doc.setFontSize(20);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(44, 85, 48);
         doc.text('Sanctuary Homeowners Association', margin, yPos);
-        yPos += 12;
+        yPos += 8;
         
         doc.setFontSize(12);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(70, 70, 70);
         doc.text('Architectural Review Committee', margin, yPos);
-        yPos += 15;
+        yPos += 10;
         
         // 3. SUBJECT - below title, left-aligned
         doc.setFontSize(11);
@@ -185,7 +185,7 @@ class PDFGenerator {
         subjectLines.forEach((line, index) => {
             doc.text(line, margin, yPos + (index * 5));
         });
-        yPos += (subjectLines.length * 5) + 15;
+        yPos += (subjectLines.length * 5) + 10;
 
         // Date - modern formatting
         const today = new Date();
@@ -194,16 +194,20 @@ class PDFGenerator {
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(100, 100, 100);
         doc.text(`Date: ${dateStr}`, margin, yPos);
-        yPos += 10;
+        yPos += 6;
 
         // Property information - clean, modern formatting
         doc.setFontSize(11);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(0, 0, 0);
         doc.text(formData.address, margin, yPos);
-        yPos += 7;
+        yPos += 5;
         doc.text(`Lot: ${formData.lot}`, margin, yPos);
-        yPos += 15; // More space before greeting
+        if (formData.contractorName) {
+            yPos += 5;
+            doc.text(`Contractor: ${formData.contractorName}`, margin, yPos);
+        }
+        yPos += 10; // Space before greeting
 
         // Greeting
         doc.setFontSize(11);
@@ -213,61 +217,61 @@ class PDFGenerator {
             ? `Dear ${formData.ownerLastName} Residence,`
             : 'Dear Property Owner,';
         doc.text(greeting, margin, yPos);
-        yPos += 12;
+        yPos += 8;
 
-        // Review comments - proper paragraph formatting with better spacing
+        // Review comments - proper paragraph formatting
+        const reviewComments = doc.splitTextToSize(formData.reviewComments, contentWidth);
         doc.setFontSize(11);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(30, 30, 30);
-        const reviewComments = doc.splitTextToSize(formData.reviewComments, contentWidth);
         doc.text(reviewComments, margin, yPos);
-        yPos += (reviewComments.length * 6) + 12; // Better line spacing
+        yPos += (reviewComments.length * 5) + 8;
 
         // Approval reason - proper paragraph formatting
         const approvalReason = doc.splitTextToSize(formData.approvalReason, contentWidth);
         doc.text(approvalReason, margin, yPos);
-        yPos += (approvalReason.length * 6) + 15; // Better spacing
+        yPos += (approvalReason.length * 5) + 8;
 
         // Closing sentiment
         doc.setFontSize(11);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(30, 30, 30);
         doc.text('We look forward to another beautiful addition to the neighborhood.', margin, yPos);
-        yPos += 18;
+        yPos += 10;
 
         // Builder deposit information based on project type
         const depositAmount = formData.projectType === 'New Home' ? '2000' : '1000';
+        const depositText = `Please submit a $${depositAmount} builder deposit, which will be held for the duration of the project to cover any unremedied HOA property damage. We return nearly all deposits in full; only in rare cases have deductions been necessary. Checks are made out to:`;
+        const depositLines = doc.splitTextToSize(depositText, contentWidth);
         doc.setFontSize(11);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(30, 30, 30);
-        const depositText = `Please submit a $${depositAmount} builder deposit, which will be held for the duration of the project to cover any unremedied HOA property damage. We return nearly all deposits in full; only in rare cases have deductions been necessary. Checks are made out to:`;
-        const depositLines = doc.splitTextToSize(depositText, contentWidth);
         doc.text(depositLines, margin, yPos);
-        yPos += (depositLines.length * 6) + 10;
+        yPos += (depositLines.length * 5) + 6;
         
         // Deposit address
         doc.setFont('helvetica', 'bold');
         doc.text('Sanctuary Homeowners Association', margin, yPos);
-        yPos += 7;
+        yPos += 5;
         doc.setFont('helvetica', 'normal');
         doc.text('1 Sanctuary Blvd, Suite 100', margin, yPos);
-        yPos += 7;
+        yPos += 5;
         doc.text('Mandeville, LA 70471', margin, yPos);
-        yPos += 20;
+        yPos += 12;
 
         // Closing - professional, modern formatting
         doc.setFontSize(11);
         doc.setFont('helvetica', 'normal');
         doc.text('Sincerely,', margin, yPos);
-        yPos += 12;
+        yPos += 8;
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(44, 85, 48);
         doc.text('Sanctuary Homeowners Association', margin, yPos);
-        yPos += 8;
+        yPos += 6;
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(70, 70, 70);
         doc.text('Architectural Review Committee', margin, yPos);
-        yPos += 18;
+        yPos += 10;
 
         // Add attachments note if there are files - modern, subtle styling
         if (window.fileHandler && window.fileHandler.getFiles().length > 0) {
@@ -279,25 +283,42 @@ class PDFGenerator {
     }
 
     async loadBuildersRules() {
-        return new Promise((resolve, reject) => {
-            const rulesPath = 'assets/Sanctuary Builder Rules.pdf';
+        return new Promise((resolve) => {
+            // Check if base64 data is available (embedded in builders-rules-data.js)
+            if (typeof BUILDERS_RULES_PDF_BASE64 !== 'undefined' && BUILDERS_RULES_PDF_BASE64) {
+                try {
+                    // Convert base64 string to ArrayBuffer
+                    const binaryString = atob(BUILDERS_RULES_PDF_BASE64);
+                    const bytes = new Uint8Array(binaryString.length);
+                    for (let i = 0; i < binaryString.length; i++) {
+                        bytes[i] = binaryString.charCodeAt(i);
+                    }
+                    console.log('Builder\'s Rules PDF loaded from embedded base64 data');
+                    resolve(bytes.buffer);
+                    return;
+                } catch (error) {
+                    console.error('Error converting base64 to ArrayBuffer:', error);
+                }
+            }
             
-            // Use XMLHttpRequest for file:// protocol compatibility
+            // Fallback: Try loading from file (for development/testing)
+            const rulesPath = 'assets/Sanctuary Builder Rules.pdf';
             const xhr = new XMLHttpRequest();
             xhr.open('GET', rulesPath, true);
             xhr.responseType = 'arraybuffer';
             
             xhr.onload = function() {
                 if (xhr.status === 200 || xhr.status === 0) {
+                    console.log('Builder\'s Rules PDF loaded via XMLHttpRequest (fallback)');
                     resolve(xhr.response);
                 } else {
-                    console.warn('Could not load builder\'s rules PDF:', xhr.status);
+                    console.error('Could not load builder\'s rules PDF:', xhr.status);
                     resolve(null);
                 }
             };
             
             xhr.onerror = function() {
-                console.warn('Error loading builder\'s rules PDF');
+                console.error('Error loading builder\'s rules PDF from file');
                 resolve(null);
             };
             
@@ -327,20 +348,25 @@ class PDFGenerator {
             }
 
             // Add Builder's Rules PDF - always add with section label
+            console.log('Attempting to load Builder\'s Rules PDF...');
             const buildersRulesBytes = await this.loadBuildersRules();
-            if (buildersRulesBytes) {
+            if (buildersRulesBytes && buildersRulesBytes.byteLength > 0) {
                 try {
+                    console.log('Builder\'s Rules PDF loaded, size:', buildersRulesBytes.byteLength, 'bytes');
                     await this.addSectionLabel(mergedPdfDoc, 'Builder\'s Rules');
                     const buildersRulesPdf = await PDFDocument.load(buildersRulesBytes);
                     const pageIndices = buildersRulesPdf.getPageIndices();
+                    console.log('Builder\'s Rules PDF has', pageIndices.length, 'pages');
                     const pages = await mergedPdfDoc.copyPages(buildersRulesPdf, pageIndices);
                     pages.forEach((page) => mergedPdfDoc.addPage(page));
-                    console.log('Builder\'s Rules PDF attached successfully');
+                    console.log('Builder\'s Rules PDF attached successfully with', pages.length, 'pages');
                 } catch (error) {
                     console.error('Error attaching Builder\'s Rules PDF:', error);
+                    console.error('Error details:', error.message, error.stack);
                 }
             } else {
-                console.warn('Builder\'s Rules PDF not found or could not be loaded');
+                console.error('Builder\'s Rules PDF not found or could not be loaded. Path: assets/Sanctuary Builder Rules.pdf');
+                console.error('Make sure the file exists in the assets folder relative to index.html');
             }
 
             // Save the merged PDF

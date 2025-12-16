@@ -11,6 +11,7 @@
         <header>
             <h1>Sanctuary HOA Architectural Review Generator</h1>
             <p class="subtitle">Generate professional approval letters for architectural reviews</p>
+            <button type="button" id="standardsButton" class="standards-button">Refresher on SHOA Arch Standards</button>
         </header>
 
         <main>
@@ -59,6 +60,19 @@
                             placeholder="e.g., 434"
                         >
                         <span class="error-message" id="lot-error"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="contractorName">
+                            Contractor Name
+                        </label>
+                        <input 
+                            type="text" 
+                            id="contractorName" 
+                            name="contractorName" 
+                            placeholder="e.g., ABC Construction"
+                        >
+                        <span class="error-message" id="contractorName-error"></span>
                     </div>
 
                     <div class="form-group">
@@ -214,6 +228,337 @@
     </div>
 
     <!-- Loading Overlay -->
+    <!-- Standards Modal -->
+    <div class="modal-overlay" id="standardsModal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Consolidated Setback & Site Improvement Standards</h2>
+                <p class="modal-subtitle">(Phases 1A – Phase 5)</p>
+                <button class="modal-close" id="closeStandardsModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="standards-content">
+                    <section class="standards-section">
+                        <h3>I. Primary Residential Building Setbacks</h3>
+                        
+                        <div class="phase-section">
+                            <h4>Phase 1A</h4>
+                            <ul>
+                                <li><strong>Front</strong>
+                                    <ul>
+                                        <li>Lots 11–14: 30 ft</li>
+                                        <li>All other lots: 40 ft</li>
+                                    </ul>
+                                </li>
+                                <li><strong>Side</strong>
+                                    <ul>
+                                        <li>Corner side: 25 ft</li>
+                                        <li>Interior side (except where shown): 20 ft</li>
+                                        <li>Interior side (where shown): 15 ft</li>
+                                        <li>Corner side (no access): 5 ft</li>
+                                    </ul>
+                                </li>
+                                <li><strong>Rear</strong>
+                                    <ul>
+                                        <li>40 ft</li>
+                                    </ul>
+                                </li>
+                                <li><strong>Special</strong>
+                                    <ul>
+                                        <li>Lot 27: setbacks as shown on plan</li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div class="phase-section">
+                            <h4>Phase 1A1</h4>
+                            <ul>
+                                <li><strong>Front:</strong> 40 ft</li>
+                                <li><strong>Side (interior):</strong> 15 ft</li>
+                                <li><strong>Rear</strong>
+                                    <ul>
+                                        <li>Standard: 40 ft</li>
+                                        <li>Lot 29 only: 30 ft</li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div class="phase-section">
+                            <h4>Phase 1B</h4>
+                            <ul>
+                                <li><strong>Front:</strong> 40 ft</li>
+                                <li><strong>Side</strong>
+                                    <ul>
+                                        <li>Corner side: 25 ft</li>
+                                        <li>Interior side (except where shown): 20 ft</li>
+                                        <li>Interior side (where shown): 15 ft</li>
+                                        <li>Corner side (no access): 5 ft</li>
+                                    </ul>
+                                </li>
+                                <li><strong>Rear:</strong> 40 ft</li>
+                                <li><strong>Lots with special side setbacks:</strong> Lots 64, 65, 75–85, 92, 93, 115, 116</li>
+                            </ul>
+                        </div>
+
+                        <div class="phase-section">
+                            <h4>Phase 1C</h4>
+                            <ul>
+                                <li><strong>Front:</strong> 40 ft</li>
+                                <li><strong>Side (interior):</strong> 15 ft or 20 ft (as shown)</li>
+                                <li><strong>Rear:</strong> 40 ft</li>
+                            </ul>
+                        </div>
+
+                        <div class="phase-section">
+                            <h4>Phase 2</h4>
+                            <ul>
+                                <li><strong>Front:</strong> 50 ft</li>
+                                <li><strong>Side</strong>
+                                    <ul>
+                                        <li>Corner side: 40 ft</li>
+                                        <li>Interior side (except where shown): 40 ft</li>
+                                        <li>Interior side (where shown): 30 ft</li>
+                                        <li>Corner side (no access): 5 ft</li>
+                                    </ul>
+                                </li>
+                                <li><strong>Rear:</strong> 75 ft</li>
+                            </ul>
+                        </div>
+
+                        <div class="phase-section">
+                            <h4>Phase 3A</h4>
+                            <ul>
+                                <li><strong>Front:</strong> 50 ft</li>
+                                <li><strong>Side</strong>
+                                    <ul>
+                                        <li>Corner side: 40 ft</li>
+                                        <li>Interior side (except where shown): 40 ft</li>
+                                        <li>Interior side (where shown): 30 ft</li>
+                                        <li>Corner side (no access): 5 ft</li>
+                                    </ul>
+                                </li>
+                                <li><strong>Rear:</strong> 65 ft</li>
+                            </ul>
+                        </div>
+
+                        <div class="phase-section">
+                            <h4>Phase 3B</h4>
+                            <ul>
+                                <li><strong>Front:</strong> 50 ft</li>
+                                <li><strong>Side</strong>
+                                    <ul>
+                                        <li>Corner side: 40 ft</li>
+                                        <li>Interior side (except where shown): 40 ft</li>
+                                        <li>Interior side (where shown): 30 ft or 35 ft</li>
+                                        <li>Corner side (no access): 5 ft</li>
+                                    </ul>
+                                </li>
+                                <li><strong>Rear:</strong> 65 ft</li>
+                            </ul>
+                        </div>
+
+                        <div class="phase-section">
+                            <h4>Phase 4A</h4>
+                            <p><strong>0.5± Acre Lots</strong></p>
+                            <ul>
+                                <li><strong>Front:</strong> 40 ft (30 ft where shown)</li>
+                                <li><strong>Side:</strong>
+                                    <ul>
+                                        <li>Corner: 25 ft</li>
+                                        <li>Interior: 20 ft (15 ft where shown)</li>
+                                    </ul>
+                                </li>
+                                <li><strong>Rear:</strong> 40 ft</li>
+                            </ul>
+                            <p><strong>1.0± Acre Lots</strong></p>
+                            <ul>
+                                <li><strong>Front:</strong> 50 ft</li>
+                                <li><strong>Side:</strong>
+                                    <ul>
+                                        <li>Corner: 40 ft</li>
+                                        <li>Interior: 40 ft</li>
+                                    </ul>
+                                </li>
+                                <li><strong>Rear:</strong> 65 ft</li>
+                            </ul>
+                        </div>
+
+                        <div class="phase-section">
+                            <h4>Phase 4B</h4>
+                            <p><strong>Standard Lots</strong></p>
+                            <ul>
+                                <li><strong>Front:</strong> 30 ft</li>
+                                <li><strong>Side:</strong> 15 ft</li>
+                                <li><strong>Rear:</strong> 30 ft</li>
+                            </ul>
+                            <p><strong>Lot 412</strong></p>
+                            <ul>
+                                <li><strong>Front:</strong> 40 ft</li>
+                                <li><strong>Side:</strong> 30 ft</li>
+                                <li><strong>Rear:</strong> 40 ft</li>
+                            </ul>
+                        </div>
+
+                        <div class="phase-section">
+                            <h4>Phase 4C</h4>
+                            <p><strong>Standard (unless otherwise shown)</strong></p>
+                            <ul>
+                                <li><strong>Front:</strong> 30 ft</li>
+                                <li><strong>Side:</strong> 15 ft</li>
+                                <li><strong>Rear:</strong> 30 ft</li>
+                            </ul>
+                        </div>
+
+                        <div class="phase-section">
+                            <h4>Phase 5</h4>
+                            <p><strong>Standard (unless otherwise shown)</strong></p>
+                            <ul>
+                                <li><strong>Front:</strong> 30 ft</li>
+                                <li><strong>Side:</strong> 15 ft</li>
+                                <li><strong>Rear:</strong> 30 ft</li>
+                            </ul>
+                        </div>
+
+                        <div class="phase-section">
+                            <p><strong>Governing Rule</strong></p>
+                            <p>CLURO, approved PUD, or private provisions — whichever is more restrictive</p>
+                        </div>
+                    </section>
+
+                    <section class="standards-section">
+                        <h3>II. Accessory Improvements – Pools, Patios, & Courts</h3>
+                        
+                        <div class="phase-section">
+                            <h4>Uncovered Improvements</h4>
+                            <p>(Pools, tennis courts, uncovered patios)</p>
+                            <ul>
+                                <li><strong>Rear Setback</strong>
+                                    <ul>
+                                        <li>Lots &lt; 40,000 SF: 10 ft</li>
+                                        <li>Lots ≥ 40,000 SF: 20 ft</li>
+                                    </ul>
+                                </li>
+                                <li><strong>Side Setback</strong>
+                                    <ul>
+                                        <li>Same as required for the primary dwelling</li>
+                                    </ul>
+                                </li>
+                                <li><strong>Exceptions</strong>
+                                    <ul>
+                                        <li>AECC may grant exceptions upon site plan review</li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div class="phase-section">
+                            <h4>Covered Improvements</h4>
+                            <p>(Covered patios & structures)</p>
+                            <ul>
+                                <li><strong>Rear Setback</strong>
+                                    <ul>
+                                        <li>Lots &lt; 40,000 SF: 20 ft</li>
+                                        <li>Lots ≥ 40,000 SF: 40 ft</li>
+                                    </ul>
+                                </li>
+                                <li><strong>Side Setback</strong>
+                                    <ul>
+                                        <li>Same as required for the primary dwelling</li>
+                                    </ul>
+                                </li>
+                                <li><strong>Exceptions</strong>
+                                    <ul>
+                                        <li>AECC approval required</li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </div>
+                    </section>
+
+                    <section class="standards-section">
+                        <h3>III. Swimming Pool & Pool Deck Standards</h3>
+                        <ul>
+                            <li>Must be located on the rear portion of the lot</li>
+                            <li>Not visible from any street</li>
+                            <li>Must be in-ground and at normal ground level</li>
+                            <li>Pools are not required to be below 9.5 feet above mean sea level</li>
+                            <li>Fill must be added as necessary to create an in-ground appearance</li>
+                            <li>Pools must be fully enclosed by an AECC-approved fence compliant with all applicable ordinances</li>
+                        </ul>
+                    </section>
+
+                    <section class="standards-section">
+                        <h3>IV. Playground & Recreational Equipment</h3>
+                        <p>(Playscapes, swing sets, monkey bars, play gyms)</p>
+                        <ul>
+                            <li><strong>Maximum height:</strong> 12 ft</li>
+                            <li><strong>Location:</strong> Rear yard only</li>
+                            <li><strong>Setbacks</strong>
+                                <ul>
+                                    <li>Lots &lt; 40,000 SF: 20 ft from rear & side</li>
+                                    <li>Lots ≥ 40,000 SF: 40 ft from rear & side</li>
+                                </ul>
+                            </li>
+                            <li><strong>Exceptions</strong>
+                                <ul>
+                                    <li>AECC may grant variances upon request and site plan review</li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </section>
+
+                    <section class="standards-section">
+                        <h3>V. Driveway Design & Location Standards</h3>
+                        
+                        <div class="phase-section">
+                            <h4>Recommended materials</h4>
+                            <ul>
+                                <li>Pervious materials (gravel, loose pavers)</li>
+                                <li>Gravel/Limestone
+                                    <ul>
+                                        <li>Must be bordered by AECC-approved edging</li>
+                                        <li>Maximum width: 16 ft</li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div class="phase-section">
+                            <h4>Location</h4>
+                            <ul>
+                                <li>Driveways shall not encroach into side yard setback areas</li>
+                            </ul>
+                        </div>
+
+                        <div class="phase-section">
+                            <h4>Garage-adjacent paved parking</h4>
+                            <ul>
+                                <li>Max width: equal to garage</li>
+                                <li>Max depth: 25 ft</li>
+                            </ul>
+                        </div>
+                    </section>
+
+                    <section class="standards-section">
+                        <h3>VI. Hierarchy of Control</h3>
+                        <p>All development and improvements shall comply with:</p>
+                        <ol>
+                            <li>Plat-specific requirements</li>
+                            <li>Approved PUD / CLURO</li>
+                            <li>Private covenants and AECC determinations</li>
+                        </ol>
+                        <p><strong>The most restrictive standard shall govern.</strong></p>
+                    </section>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="closeStandardsModalBtn">Close</button>
+            </div>
+        </div>
+    </div>
+
     <div class="loading-overlay" id="loadingOverlay" style="display: none;">
         <div class="loading-content">
             <div class="spinner-large"></div>
@@ -228,6 +573,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
     <script src="js/logo-data.js"></script>
+    <script src="js/builders-rules-data.js"></script>
     <script src="js/form-handler.js"></script>
     <script src="js/file-handler.js"></script>
     <script src="js/pdf-generator.js"></script>

@@ -236,6 +236,7 @@ class FormHandler {
             address: document.getElementById('address').value.trim(),
             lot: document.getElementById('lot').value.trim(),
             ownerLastName: document.getElementById('ownerLastName').value.trim(),
+            contractorName: document.getElementById('contractorName').value.trim(),
             projectType: projectType,
             reviewComments: reviewComments,
             approvalReason: approvalReason
