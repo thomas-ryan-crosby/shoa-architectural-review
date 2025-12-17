@@ -1,76 +1,121 @@
-// File Handler - Handles file uploads, preview, and management
+// File Handler - Handles file uploads, preview, and management for multiple upload areas
 
 class FileHandler {
     constructor() {
-        this.files = [];
-        this.fileInput = document.getElementById('fileInput');
-        this.fileUploadArea = document.getElementById('fileUploadArea');
-        this.fileList = document.getElementById('fileList');
+        // Separate file lists for each upload area
+        this.siteConditionsFiles = [];
+        this.projectFiles = [];
+        
+        // Site Conditions upload area
+        this.siteConditionsInput = document.getElementById('siteConditionsInput');
+        this.siteConditionsUploadArea = document.getElementById('siteConditionsUploadArea');
+        this.siteConditionsFileList = document.getElementById('siteConditionsFileList');
+        
+        // Project Files upload area
+        this.projectFilesInput = document.getElementById('projectFilesInput');
+        this.projectFilesUploadArea = document.getElementById('projectFilesUploadArea');
+        this.projectFilesFileList = document.getElementById('projectFilesFileList');
         
         this.init();
     }
 
     init() {
-        // File input change - use capture phase to ensure it fires
-        this.fileInput.addEventListener('change', (e) => {
+        // Check if elements exist before initializing
+        if (!this.siteConditionsInput || !this.siteConditionsUploadArea || !this.siteConditionsFileList) {
+            console.warn('Site Conditions file input elements not found. They may be in a hidden tab.');
+            return;
+        }
+        
+        if (!this.projectFilesInput || !this.projectFilesUploadArea || !this.projectFilesFileList) {
+            console.warn('Project Files input elements not found. They may be in a hidden tab.');
+            return;
+        }
+        
+        // Initialize Site Conditions upload area
+        this.initUploadArea(
+            'siteConditions',
+            this.siteConditionsInput,
+            this.siteConditionsUploadArea,
+            this.siteConditionsFileList,
+            ['.pdf', '.jpg', '.jpeg', '.png'] // Only images and PDFs for site conditions
+        );
+
+        // Initialize Project Files upload area
+        this.initUploadArea(
+            'projectFiles',
+            this.projectFilesInput,
+            this.projectFilesUploadArea,
+            this.projectFilesFileList,
+            ['.pdf', '.jpg', '.jpeg', '.png', '.doc', '.docx'] // All file types for project files
+        );
+    }
+
+    initUploadArea(areaName, fileInput, uploadArea, fileListElement, allowedExtensions) {
+        if (!fileInput || !uploadArea || !fileListElement) {
+            console.warn(`${areaName} upload area elements not found`);
+            return;
+        }
+
+        // File input change
+        fileInput.addEventListener('change', (e) => {
             if (e.target.files && e.target.files.length > 0) {
-                this.handleFiles(e.target.files);
+                this.handleFiles(e.target.files, areaName, allowedExtensions);
             }
         }, false);
 
         // Drag and drop
-        this.fileUploadArea.addEventListener('dragover', (e) => {
+        uploadArea.addEventListener('dragover', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            this.fileUploadArea.classList.add('dragover');
+            uploadArea.classList.add('dragover');
         });
 
-        this.fileUploadArea.addEventListener('dragleave', (e) => {
+        uploadArea.addEventListener('dragleave', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            this.fileUploadArea.classList.remove('dragover');
+            uploadArea.classList.remove('dragover');
         });
 
-        this.fileUploadArea.addEventListener('drop', (e) => {
+        uploadArea.addEventListener('drop', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            this.fileUploadArea.classList.remove('dragover');
+            uploadArea.classList.remove('dragover');
             if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                this.handleFiles(e.dataTransfer.files);
+                this.handleFiles(e.dataTransfer.files, areaName, allowedExtensions);
             }
         });
 
-        // Click to upload - prevent double-triggering
-        this.fileUploadArea.addEventListener('click', (e) => {
-            // Only trigger if clicking directly on the upload area, not on child elements
-            if (e.target === this.fileUploadArea || e.target.closest('.upload-prompt')) {
+        // Click to upload
+        uploadArea.addEventListener('click', (e) => {
+            if (e.target === uploadArea || e.target.closest('.upload-prompt')) {
                 e.preventDefault();
-                this.fileInput.click();
+                fileInput.click();
             }
         });
     }
 
-    handleFiles(fileList) {
+    handleFiles(fileList, areaName, allowedExtensions) {
         if (!fileList || fileList.length === 0) {
             return;
         }
         
         // Process files sequentially to avoid race conditions
         Array.from(fileList).forEach(file => {
-            if (this.isValidFileType(file)) {
-                this.addFile(file);
+            if (this.isValidFileType(file, allowedExtensions)) {
+                this.addFile(file, areaName);
             } else {
-                this.showError(`File "${file.name}" is not a supported type.`);
+                this.showError(`File "${file.name}" is not a supported type for ${areaName === 'siteConditions' ? 'Current Site Conditions' : 'Submitted Project Files'}.`);
             }
         });
         
         // Reset file input to allow selecting the same file again
-        if (this.fileInput) {
-            this.fileInput.value = '';
+        const fileInput = areaName === 'siteConditions' ? this.siteConditionsInput : this.projectFilesInput;
+        if (fileInput) {
+            fileInput.value = '';
         }
     }
 
-    isValidFileType(file) {
+    isValidFileType(file, allowedExtensions) {
         const validTypes = [
             'application/pdf',
             'image/jpeg',
@@ -80,29 +125,31 @@ class FileHandler {
             'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         ];
         
-        const validExtensions = ['.pdf', '.jpg', '.jpeg', '.png', '.doc', '.docx'];
         const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
         
-        return validTypes.includes(file.type) || validExtensions.includes(fileExtension);
+        // Check if file type is valid
+        const hasValidType = validTypes.includes(file.type);
+        // Check if extension is in allowed list
+        const hasValidExtension = allowedExtensions.includes(fileExtension);
+        
+        return hasValidType || hasValidExtension;
     }
 
-    async addFile(file) {
+    async addFile(file, areaName) {
+        const fileList = areaName === 'siteConditions' ? this.siteConditionsFiles : this.projectFiles;
+        
         // Check if file already exists (by name and size)
-        const existingFile = this.files.find(f => f.name === file.name && f.size === file.size);
+        const existingFile = fileList.find(f => f.name === file.name && f.size === file.size);
         if (existingFile) {
-            console.log(`File "${file.name}" is already added, skipping.`);
+            console.log(`File "${file.name}" is already added to ${areaName}, skipping.`);
             return;
         }
 
         try {
-            // Show loading state for this file
-            const tempId = `temp-${Date.now()}-${Math.random()}`;
-            this.renderFileList(); // Render current state first
-            
             const fileDataResult = await this.readFile(file);
             
-            // Add file to list
-            this.files.push({
+            // Add file to appropriate list
+            fileList.push({
                 file: file,
                 name: file.name,
                 size: file.size,
@@ -111,8 +158,8 @@ class FileHandler {
                 format: fileDataResult.format
             });
             
-            this.renderFileList();
-            console.log(`File "${file.name}" added successfully`);
+            this.renderFileList(areaName);
+            console.log(`File "${file.name}" added successfully to ${areaName}`);
         } catch (error) {
             console.error('Error reading file:', error);
             this.showError(`Error reading file "${file.name}". Please try again.`);
@@ -143,18 +190,24 @@ class FileHandler {
         });
     }
 
-    removeFile(index) {
-        this.files.splice(index, 1);
-        this.renderFileList();
+    removeFile(index, areaName) {
+        const fileList = areaName === 'siteConditions' ? this.siteConditionsFiles : this.projectFiles;
+        fileList.splice(index, 1);
+        this.renderFileList(areaName);
     }
 
-    renderFileList() {
-        if (this.files.length === 0) {
-            this.fileList.innerHTML = '';
+    renderFileList(areaName) {
+        const fileList = areaName === 'siteConditions' ? this.siteConditionsFiles : this.projectFiles;
+        const fileListElement = areaName === 'siteConditions' ? this.siteConditionsFileList : this.projectFilesFileList;
+        
+        if (!fileListElement) return;
+        
+        if (fileList.length === 0) {
+            fileListElement.innerHTML = '';
             return;
         }
 
-        this.fileList.innerHTML = this.files.map((fileItem, index) => {
+        fileListElement.innerHTML = fileList.map((fileItem, index) => {
             const fileIcon = this.getFileIcon(fileItem.type);
             const fileSize = this.formatFileSize(fileItem.size);
             
@@ -167,7 +220,7 @@ class FileHandler {
                         <span class="file-name" title="${fileItem.name}">${fileItem.name}</span>
                         <span class="file-size">${fileSize}</span>
                     </div>
-                    <button type="button" class="file-remove" onclick="window.fileHandler.removeFile(${index})" aria-label="Remove file">
+                    <button type="button" class="file-remove" onclick="window.fileHandler.removeFile(${index}, '${areaName}')" aria-label="Remove file">
                         ×
                     </button>
                 </div>
@@ -193,14 +246,27 @@ class FileHandler {
         return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
     }
 
+    // Get all files from both areas combined
     getFiles() {
-        return this.files;
+        return [...this.siteConditionsFiles, ...this.projectFiles];
+    }
+
+    // Get files from a specific area
+    getSiteConditionsFiles() {
+        return this.siteConditionsFiles;
+    }
+
+    getProjectFiles() {
+        return this.projectFiles;
     }
 
     clearFiles() {
-        this.files = [];
-        this.fileInput.value = '';
-        this.renderFileList();
+        this.siteConditionsFiles = [];
+        this.projectFiles = [];
+        if (this.siteConditionsInput) this.siteConditionsInput.value = '';
+        if (this.projectFilesInput) this.projectFilesInput.value = '';
+        this.renderFileList('siteConditions');
+        this.renderFileList('projectFiles');
     }
 
     showError(message) {
@@ -212,9 +278,22 @@ class FileHandler {
 // Initialize when DOM is ready
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
-        window.fileHandler = new FileHandler();
+        // Wait a bit to ensure all elements are rendered (especially if in hidden tabs)
+        setTimeout(() => {
+            try {
+                window.fileHandler = new FileHandler();
+            } catch (error) {
+                console.error('Error initializing FileHandler:', error);
+            }
+        }, 100);
     });
 } else {
-    window.fileHandler = new FileHandler();
+    // Wait a bit to ensure all elements are rendered
+    setTimeout(() => {
+        try {
+            window.fileHandler = new FileHandler();
+        } catch (error) {
+            console.error('Error initializing FileHandler:', error);
+        }
+    }, 100);
 }
-

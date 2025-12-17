@@ -150,6 +150,25 @@ class ProjectManager {
             } catch (error) {
                 console.error('Error converting base64 to ArrayBuffer:', error);
             }
+        } else if (data.hasLargePdf) {
+            // For large PDFs, try to get from localStorage as fallback
+            const localStorageKey = `project_pdf_${id}`;
+            const storedBase64 = localStorage.getItem(localStorageKey);
+            if (storedBase64) {
+                try {
+                    const binaryString = atob(storedBase64);
+                    const bytes = new Uint8Array(binaryString.length);
+                    for (let i = 0; i < binaryString.length; i++) {
+                        bytes[i] = binaryString.charCodeAt(i);
+                    }
+                    approvalLetterBlob = bytes.buffer;
+                    console.log('Large PDF loaded from localStorage');
+                } catch (error) {
+                    console.error('Error loading large PDF from localStorage:', error);
+                }
+            } else {
+                console.warn('Large PDF detected but not found in localStorage for project:', id);
+            }
         }
 
         return {
@@ -171,18 +190,28 @@ class ProjectManager {
     }
 
     convertProjectToFirestore(project) {
-        // Convert ArrayBuffer to base64 for Firestore storage
+        // Check PDF size - Firestore has 1MB limit per field
+        // For large PDFs, we'll store a reference and keep the blob in localStorage
         let approvalLetterBlobBase64 = null;
+        let approvalLetterSize = 0;
+        
         if (project.approvalLetterBlob) {
-            try {
-                const bytes = new Uint8Array(project.approvalLetterBlob);
-                let binary = '';
-                for (let i = 0; i < bytes.length; i++) {
-                    binary += String.fromCharCode(bytes[i]);
+            approvalLetterSize = project.approvalLetterBlob.byteLength || 0;
+            const maxSize = 800000; // ~800KB to leave room (1MB = 1048576 bytes)
+            
+            if (approvalLetterSize <= maxSize) {
+                try {
+                    const bytes = new Uint8Array(project.approvalLetterBlob);
+                    let binary = '';
+                    for (let i = 0; i < bytes.length; i++) {
+                        binary += String.fromCharCode(bytes[i]);
+                    }
+                    approvalLetterBlobBase64 = btoa(binary);
+                } catch (error) {
+                    console.error('Error converting ArrayBuffer to base64:', error);
                 }
-                approvalLetterBlobBase64 = btoa(binary);
-            } catch (error) {
-                console.error('Error converting ArrayBuffer to base64:', error);
+            } else {
+                console.warn(`PDF too large for Firestore (${approvalLetterSize} bytes). Storing reference only.`);
             }
         }
 
@@ -194,8 +223,10 @@ class ProjectManager {
             dateApproved: project.dateApproved || '',
             dateConstructionStarted: project.dateConstructionStarted || '',
             status: project.status || 'open',
-            approvalLetterBlobBase64: approvalLetterBlobBase64,
+            approvalLetterBlobBase64: approvalLetterBlobBase64, // null if too large
             approvalLetterFilename: project.approvalLetterFilename || '',
+            approvalLetterSize: approvalLetterSize,
+            hasLargePdf: approvalLetterSize > 800000, // Flag for large PDFs
             depositAmountReceived: project.depositAmountReceived || null,
             dateDepositReceived: project.dateDepositReceived || '',
             depositAmountReturned: project.depositAmountReturned || null,
@@ -268,10 +299,22 @@ class ProjectManager {
 
     resetAddProjectForm() {
         const form = document.getElementById('addProjectForm');
-        if (form) {
+        if (form && typeof form.reset === 'function') {
             form.reset();
             // Clear error messages
             const errorMessages = form.querySelectorAll('.error-message');
+            errorMessages.forEach(msg => msg.textContent = '');
+        } else {
+            // Manual reset if form.reset() doesn't work
+            const inputs = document.querySelectorAll('#addProjectForm input, #addProjectForm select, #addProjectForm textarea');
+            inputs.forEach(input => {
+                if (input.type === 'file') {
+                    input.value = '';
+                } else {
+                    input.value = '';
+                }
+            });
+            const errorMessages = document.querySelectorAll('#addProjectForm .error-message');
             errorMessages.forEach(msg => msg.textContent = '');
         }
     }
@@ -344,6 +387,25 @@ class ProjectManager {
                     const firestoreData = this.convertProjectToFirestore(project);
                     const docRef = await this.db.collection(this.collectionName).add(firestoreData);
                     project.id = docRef.id; // Use Firestore document ID
+                    
+                    // If PDF is too large for Firestore, store it in localStorage as fallback
+                    if (project.approvalLetterBlob && project.approvalLetterBlob.byteLength > 800000) {
+                        const localStorageKey = `project_pdf_${project.id}`;
+                        try {
+                            // Convert ArrayBuffer to base64 for localStorage
+                            const bytes = new Uint8Array(project.approvalLetterBlob);
+                            let binary = '';
+                            for (let i = 0; i < bytes.length; i++) {
+                                binary += String.fromCharCode(bytes[i]);
+                            }
+                            const base64 = btoa(binary);
+                            localStorage.setItem(localStorageKey, base64);
+                            console.log('Large PDF stored in localStorage as fallback');
+                        } catch (storageError) {
+                            console.error('Error storing large PDF in localStorage:', storageError);
+                        }
+                    }
+                    
                     this.projects.unshift(project);
                     console.log('Project added to Firestore:', docRef.id);
                 } catch (error) {
