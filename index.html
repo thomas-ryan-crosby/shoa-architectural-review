@@ -246,7 +246,12 @@
             <!-- Project Overview Tab -->
             <div class="tab-content" id="projectsTab" style="display: none;">
                 <section class="form-section">
-                    <h2>Project Tracking</h2>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h2 style="margin: 0;">Project Tracking</h2>
+                        <div id="storageStatus" class="storage-status">
+                            <span id="storageStatusText">Loading...</span>
+                        </div>
+                    </div>
                     
                     <div class="project-filters">
                         <button type="button" class="filter-btn active" data-filter="all">All Projects</button>
@@ -783,6 +788,14 @@
     <!-- Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    
+    <!-- Firebase Config (user needs to add their config) -->
+    <script src="js/firebase-config.js"></script>
+    
     <script src="js/logo-data.js"></script>
     <script src="js/builders-rules-data.js"></script>
     <script src="js/form-handler.js"></script>

@@ -1,0 +1,18 @@
+# Note: firebase-config.js is kept in the repo as a template
+# Users should fill in their own Firebase keys but not commit real keys to public repos
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporary files
+*.tmp
+*.log
+*.swp
+*~
+
+# Build/convert files
+convert-*.html
+*-base64.txt
+

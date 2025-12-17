@@ -97,7 +97,7 @@ class PDFGenerator {
                 
                 // Save project if project manager is available
                 if (window.projectManager && result.blob) {
-                    window.projectManager.addProject({
+                    await window.projectManager.addProject({
                         ...formData,
                         approvalLetterBlob: result.blob,
                         approvalLetterFilename: result.filename
@@ -120,7 +120,7 @@ class PDFGenerator {
             if (window.projectManager) {
                 // Convert blob to array buffer for storage
                 const arrayBuffer = await pdfBlob.arrayBuffer();
-                window.projectManager.addProject({
+                await window.projectManager.addProject({
                     ...formData,
                     approvalLetterBlob: arrayBuffer,
                     approvalLetterFilename: filename

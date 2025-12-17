@@ -3,12 +3,14 @@
 class ProjectManager {
     constructor() {
         this.storageKey = 'shoa_projects';
-        this.projects = this.loadProjects();
+        this.projects = [];
         this.currentFilter = 'all';
+        this.firestoreEnabled = false;
+        this.collectionName = 'projects';
         this.init();
     }
 
-    init() {
+    async init() {
         // Setup tab switching
         this.setupTabs();
         
@@ -18,8 +20,188 @@ class ProjectManager {
         // Setup add project form
         this.setupAddProjectForm();
         
+        // Initialize Firebase/Firestore
+        await this.initializeFirestore();
+        
+        // Load projects (from Firestore or localStorage fallback)
+        await this.loadProjects();
+        
         // Render projects
         this.renderProjects();
+    }
+
+    async initializeFirestore() {
+        // Check if Firebase is available
+        if (typeof firebase === 'undefined' || !window.firestore) {
+            console.warn('Firebase not available, using localStorage fallback');
+            this.firestoreEnabled = false;
+            return;
+        }
+
+        try {
+            this.db = window.firestore;
+            this.firestoreEnabled = true;
+            console.log('Firestore initialized successfully');
+            
+            // Set up real-time listener for projects
+            this.setupRealtimeListener();
+        } catch (error) {
+            console.error('Error initializing Firestore:', error);
+            this.firestoreEnabled = false;
+        }
+    }
+
+    setupRealtimeListener() {
+        if (!this.firestoreEnabled || !this.db) return;
+
+        try {
+            // Try with orderBy, fallback to without if index doesn't exist
+            let query = this.db.collection(this.collectionName);
+            
+            try {
+                query = query.orderBy('dateApproved', 'desc');
+            } catch (error) {
+                console.warn('OrderBy not available, using basic query:', error);
+            }
+
+            this.unsubscribe = query.onSnapshot((snapshot) => {
+                const changes = snapshot.docChanges();
+                changes.forEach((change) => {
+                    if (change.type === 'added' || change.type === 'modified') {
+                        const project = this.convertFirestoreToProject(change.doc.data(), change.doc.id);
+                        const index = this.projects.findIndex(p => p.id === change.doc.id);
+                        if (index >= 0) {
+                            this.projects[index] = project;
+                        } else {
+                            this.projects.push(project);
+                        }
+                    } else if (change.type === 'removed') {
+                        this.projects = this.projects.filter(p => p.id !== change.doc.id);
+                    }
+                });
+                // Sort by date approved (newest first)
+                this.projects.sort((a, b) => {
+                    const dateA = this.parseDate(a.dateApproved);
+                    const dateB = this.parseDate(b.dateApproved);
+                    return dateB - dateA;
+                });
+                this.renderProjects();
+            }, (error) => {
+                console.error('Error in real-time listener:', error);
+                // If orderBy fails, try without it
+                if (error.code === 'failed-precondition') {
+                    console.log('Retrying without orderBy...');
+                    this.setupRealtimeListenerWithoutOrderBy();
+                }
+            });
+        } catch (error) {
+            console.error('Error setting up real-time listener:', error);
+            // Fallback to listener without orderBy
+            this.setupRealtimeListenerWithoutOrderBy();
+        }
+    }
+
+    setupRealtimeListenerWithoutOrderBy() {
+        if (!this.firestoreEnabled || !this.db) return;
+
+        try {
+            this.unsubscribe = this.db.collection(this.collectionName)
+                .onSnapshot((snapshot) => {
+                    const changes = snapshot.docChanges();
+                    changes.forEach((change) => {
+                        if (change.type === 'added' || change.type === 'modified') {
+                            const project = this.convertFirestoreToProject(change.doc.data(), change.doc.id);
+                            const index = this.projects.findIndex(p => p.id === change.doc.id);
+                            if (index >= 0) {
+                                this.projects[index] = project;
+                            } else {
+                                this.projects.push(project);
+                            }
+                        } else if (change.type === 'removed') {
+                            this.projects = this.projects.filter(p => p.id !== change.doc.id);
+                        }
+                    });
+                    // Sort by date approved (newest first)
+                    this.projects.sort((a, b) => {
+                        const dateA = this.parseDate(a.dateApproved);
+                        const dateB = this.parseDate(b.dateApproved);
+                        return dateB - dateA;
+                    });
+                    this.renderProjects();
+                }, (error) => {
+                    console.error('Error in real-time listener (fallback):', error);
+                });
+        } catch (error) {
+            console.error('Error setting up fallback real-time listener:', error);
+        }
+    }
+
+    convertFirestoreToProject(data, id) {
+        // Convert base64 back to ArrayBuffer for approval letter
+        let approvalLetterBlob = null;
+        if (data.approvalLetterBlobBase64) {
+            try {
+                const binaryString = atob(data.approvalLetterBlobBase64);
+                const bytes = new Uint8Array(binaryString.length);
+                for (let i = 0; i < binaryString.length; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
+                }
+                approvalLetterBlob = bytes.buffer;
+            } catch (error) {
+                console.error('Error converting base64 to ArrayBuffer:', error);
+            }
+        }
+
+        return {
+            id: id,
+            homeownerName: data.homeownerName || '',
+            address: data.address || '',
+            lot: data.lot || '',
+            projectType: data.projectType || '',
+            dateApproved: data.dateApproved || '',
+            dateConstructionStarted: data.dateConstructionStarted || '',
+            status: data.status || 'open',
+            approvalLetterBlob: approvalLetterBlob,
+            approvalLetterFilename: data.approvalLetterFilename || '',
+            depositAmountReceived: data.depositAmountReceived || null,
+            dateDepositReceived: data.dateDepositReceived || '',
+            depositAmountReturned: data.depositAmountReturned || null,
+            dateDepositReturned: data.dateDepositReturned || ''
+        };
+    }
+
+    convertProjectToFirestore(project) {
+        // Convert ArrayBuffer to base64 for Firestore storage
+        let approvalLetterBlobBase64 = null;
+        if (project.approvalLetterBlob) {
+            try {
+                const bytes = new Uint8Array(project.approvalLetterBlob);
+                let binary = '';
+                for (let i = 0; i < bytes.length; i++) {
+                    binary += String.fromCharCode(bytes[i]);
+                }
+                approvalLetterBlobBase64 = btoa(binary);
+            } catch (error) {
+                console.error('Error converting ArrayBuffer to base64:', error);
+            }
+        }
+
+        return {
+            homeownerName: project.homeownerName || '',
+            address: project.address || '',
+            lot: project.lot || '',
+            projectType: project.projectType || '',
+            dateApproved: project.dateApproved || '',
+            dateConstructionStarted: project.dateConstructionStarted || '',
+            status: project.status || 'open',
+            approvalLetterBlobBase64: approvalLetterBlobBase64,
+            approvalLetterFilename: project.approvalLetterFilename || '',
+            depositAmountReceived: project.depositAmountReceived || null,
+            dateDepositReceived: project.dateDepositReceived || '',
+            depositAmountReturned: project.depositAmountReturned || null,
+            dateDepositReturned: project.dateDepositReturned || '',
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
     }
 
     setupAddProjectForm() {
@@ -157,8 +339,24 @@ class ProjectManager {
                 dateDepositReturned: formattedDateDepositReturned
             };
 
-            this.projects.unshift(project);
-            this.saveProjects();
+            if (this.firestoreEnabled && this.db) {
+                try {
+                    const firestoreData = this.convertProjectToFirestore(project);
+                    const docRef = await this.db.collection(this.collectionName).add(firestoreData);
+                    project.id = docRef.id; // Use Firestore document ID
+                    this.projects.unshift(project);
+                    console.log('Project added to Firestore:', docRef.id);
+                } catch (error) {
+                    console.error('Error adding project to Firestore:', error);
+                    // Fallback to localStorage
+                    this.projects.unshift(project);
+                    this.saveProjects();
+                }
+            } else {
+                this.projects.unshift(project);
+                this.saveProjects();
+            }
+            
             this.renderProjects();
             this.resetAddProjectForm();
             
@@ -248,25 +446,82 @@ class ProjectManager {
         });
     }
 
-    loadProjects() {
-        try {
-            const stored = localStorage.getItem(this.storageKey);
-            return stored ? JSON.parse(stored) : [];
-        } catch (error) {
-            console.error('Error loading projects:', error);
-            return [];
+    async loadProjects() {
+        if (this.firestoreEnabled && this.db) {
+            try {
+                // Try to get projects ordered by dateApproved
+                let snapshot;
+                try {
+                    snapshot = await this.db.collection(this.collectionName)
+                        .orderBy('dateApproved', 'desc')
+                        .get();
+                } catch (orderError) {
+                    // If ordering fails (no index), get all and sort in memory
+                    console.warn('OrderBy failed, fetching all and sorting:', orderError);
+                    snapshot = await this.db.collection(this.collectionName).get();
+                }
+                
+                this.projects = snapshot.docs.map(doc => 
+                    this.convertFirestoreToProject(doc.data(), doc.id)
+                );
+                
+                // Sort by dateApproved if we couldn't use orderBy
+                this.projects.sort((a, b) => {
+                    const dateA = this.parseDate(a.dateApproved);
+                    const dateB = this.parseDate(b.dateApproved);
+                    return dateB - dateA; // Descending order
+                });
+                
+                console.log(`Loaded ${this.projects.length} projects from Firestore`);
+            } catch (error) {
+                console.error('Error loading projects from Firestore:', error);
+                // Fallback to localStorage
+                this.loadProjectsFromLocalStorage();
+            }
+        } else {
+            // Fallback to localStorage
+            this.loadProjectsFromLocalStorage();
         }
     }
 
-    saveProjects() {
+    parseDate(dateString) {
+        if (!dateString) return new Date(0);
+        // Parse MM/DD/YYYY format
+        const parts = dateString.split('/');
+        if (parts.length === 3) {
+            return new Date(parts[2], parts[0] - 1, parts[1]);
+        }
+        return new Date(dateString);
+    }
+
+    loadProjectsFromLocalStorage() {
+        try {
+            const stored = localStorage.getItem(this.storageKey);
+            this.projects = stored ? JSON.parse(stored) : [];
+            console.log(`Loaded ${this.projects.length} projects from localStorage`);
+        } catch (error) {
+            console.error('Error loading projects from localStorage:', error);
+            this.projects = [];
+        }
+    }
+
+    async saveProjects() {
+        // Save to Firestore if enabled
+        if (this.firestoreEnabled && this.db) {
+            // Note: Individual project saves are handled in addProject/updateProject/deleteProject
+            // This method is kept for backward compatibility
+            return;
+        }
+        
+        // Fallback to localStorage
         try {
             localStorage.setItem(this.storageKey, JSON.stringify(this.projects));
         } catch (error) {
-            console.error('Error saving projects:', error);
+            console.error('Error saving projects to localStorage:', error);
         }
     }
 
-    addProject(projectData) {
+    async addProject(projectData) {
         const project = {
             id: Date.now().toString(),
             homeownerName: projectData.ownerLastName || 'Unknown',
@@ -284,26 +539,68 @@ class ProjectManager {
             dateDepositReturned: ''
         };
 
-        this.projects.unshift(project); // Add to beginning
-        this.saveProjects();
-        this.renderProjects();
+        if (this.firestoreEnabled && this.db) {
+            try {
+                const firestoreData = this.convertProjectToFirestore(project);
+                const docRef = await this.db.collection(this.collectionName).add(firestoreData);
+                project.id = docRef.id; // Use Firestore document ID
+                this.projects.unshift(project);
+                console.log('Project added to Firestore:', docRef.id);
+            } catch (error) {
+                console.error('Error adding project to Firestore:', error);
+                // Fallback to localStorage
+                this.projects.unshift(project);
+                this.saveProjects();
+            }
+        } else {
+            this.projects.unshift(project);
+            this.saveProjects();
+        }
         
+        this.renderProjects();
         return project;
     }
 
-    updateProject(projectId, updates) {
+    async updateProject(projectId, updates) {
         const project = this.projects.find(p => p.id === projectId);
-        if (project) {
-            Object.assign(project, updates);
+        if (!project) return;
+
+        Object.assign(project, updates);
+
+        if (this.firestoreEnabled && this.db) {
+            try {
+                const firestoreData = this.convertProjectToFirestore(project);
+                await this.db.collection(this.collectionName).doc(projectId).update(firestoreData);
+                console.log('Project updated in Firestore:', projectId);
+            } catch (error) {
+                console.error('Error updating project in Firestore:', error);
+                // Fallback to localStorage
+                this.saveProjects();
+            }
+        } else {
             this.saveProjects();
-            this.renderProjects();
         }
+        
+        this.renderProjects();
     }
 
-    deleteProject(projectId) {
+    async deleteProject(projectId) {
         if (confirm('Are you sure you want to delete this project?')) {
-            this.projects = this.projects.filter(p => p.id !== projectId);
-            this.saveProjects();
+            if (this.firestoreEnabled && this.db) {
+                try {
+                    await this.db.collection(this.collectionName).doc(projectId).delete();
+                    console.log('Project deleted from Firestore:', projectId);
+                } catch (error) {
+                    console.error('Error deleting project from Firestore:', error);
+                    // Fallback to localStorage
+                    this.projects = this.projects.filter(p => p.id !== projectId);
+                    this.saveProjects();
+                }
+            } else {
+                this.projects = this.projects.filter(p => p.id !== projectId);
+                this.saveProjects();
+            }
+            
             this.renderProjects();
         }
     }
