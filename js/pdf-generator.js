@@ -89,11 +89,21 @@ class PDFGenerator {
             await this.generateLetter(doc, formData);
 
             // Always merge attachments (including builder's rules) using pdf-lib
-            const hasAttachments = await this.addAttachments(doc, siteConditionsFiles || [], projectFiles || [], formData);
-            if (hasAttachments) {
+            const result = await this.addAttachments(doc, siteConditionsFiles || [], projectFiles || [], formData);
+            if (result && result.success) {
                 // If attachments were added via pdf-lib, download already happened
                 this.showLoading(false);
                 this.showSuccess('Approval letter generated successfully!');
+                
+                // Save project if project manager is available
+                if (window.projectManager && result.blob) {
+                    window.projectManager.addProject({
+                        ...formData,
+                        approvalLetterBlob: result.blob,
+                        approvalLetterFilename: result.filename
+                    });
+                }
+                
                 setTimeout(() => {
                     if (window.formHandler) window.formHandler.resetForm();
                     if (window.fileHandler) window.fileHandler.clearFiles();
@@ -103,7 +113,19 @@ class PDFGenerator {
 
             // Fallback: Generate filename and download if addAttachments failed
             const filename = this.generateFilename(formData);
+            const pdfBlob = doc.output('blob');
             doc.save(filename);
+            
+            // Save project if project manager is available
+            if (window.projectManager) {
+                // Convert blob to array buffer for storage
+                const arrayBuffer = await pdfBlob.arrayBuffer();
+                window.projectManager.addProject({
+                    ...formData,
+                    approvalLetterBlob: arrayBuffer,
+                    approvalLetterFilename: filename
+                });
+            }
             
             this.showLoading(false);
             this.showSuccess('Approval letter generated successfully!');
@@ -395,13 +417,18 @@ class PDFGenerator {
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
             
-            return true; // Indicate that download already happened
+            // Return blob and filename for project tracking
+            return {
+                success: true,
+                blob: mergedPdfBytes, // Return ArrayBuffer for storage
+                filename: filename
+            };
             
         } catch (error) {
             console.error('Error adding attachments with pdf-lib:', error);
             // Fallback to simple image-only approach
             await this.addAttachmentsSimple(mainDoc, [...(siteConditionsFiles || []), ...(projectFiles || [])]);
-            return false;
+            return { success: false };
         }
     }
 

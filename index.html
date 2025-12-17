@@ -15,6 +15,14 @@
         </header>
 
         <main>
+            <!-- Tab Navigation -->
+            <div class="tab-navigation">
+                <button type="button" class="tab-button active" data-tab="generate">Generate Letter</button>
+                <button type="button" class="tab-button" data-tab="projects">Project Overview</button>
+            </div>
+
+            <!-- Generate Letter Tab -->
+            <div class="tab-content active" id="generateTab">
             <form id="reviewForm">
                 <!-- Project Information Section -->
                 <section class="form-section">
@@ -233,6 +241,28 @@
                     </button>
                 </div>
             </form>
+            </div>
+
+            <!-- Project Overview Tab -->
+            <div class="tab-content" id="projectsTab" style="display: none;">
+                <section class="form-section">
+                    <h2>Project Tracking</h2>
+                    
+                    <div class="project-filters">
+                        <button type="button" class="filter-btn active" data-filter="all">All Projects</button>
+                        <button type="button" class="filter-btn" data-filter="open">Open</button>
+                        <button type="button" class="filter-btn" data-filter="previous">Previous</button>
+                    </div>
+
+                    <div class="project-list" id="projectList">
+                        <!-- Projects will be dynamically added here -->
+                    </div>
+
+                    <div class="no-projects" id="noProjects" style="display: none;">
+                        <p>No projects found. Projects will appear here after you generate approval letters.</p>
+                    </div>
+                </section>
+            </div>
         </main>
 
         <footer>
@@ -590,6 +620,7 @@
     <script src="js/form-handler.js"></script>
     <script src="js/file-handler.js"></script>
     <script src="js/pdf-generator.js"></script>
+    <script src="js/project-manager.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>
