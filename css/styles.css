@@ -878,4 +878,30 @@ footer {
     color: var(--white);
 }
 
+/* Deposit Information */
+.deposit-info {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 2px solid var(--border-color);
+}
+
+.deposit-info h4 {
+    margin: 0 0 15px 0;
+    color: var(--primary-color);
+    font-size: 1.1rem;
+}
+
+.form-section-divider {
+    margin: 25px 0 20px;
+    padding-top: 20px;
+    border-top: 2px solid var(--border-color);
+}
+
+.form-section-divider h4 {
+    margin: 0;
+    color: var(--primary-color);
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
 

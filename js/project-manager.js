@@ -103,6 +103,10 @@ class ProjectManager {
         const dateConstructionStarted = document.getElementById('addDateConstructionStarted')?.value;
         const status = document.getElementById('addProjectStatus')?.value;
         const approvalLetterFile = document.getElementById('addApprovalLetter')?.files[0];
+        const depositAmountReceived = document.getElementById('addDepositAmountReceived')?.value;
+        const dateDepositReceived = document.getElementById('addDateDepositReceived')?.value;
+        const depositAmountReturned = document.getElementById('addDepositAmountReturned')?.value;
+        const dateDepositReturned = document.getElementById('addDateDepositReturned')?.value;
 
         // Validation
         if (!homeownerName) {
@@ -129,9 +133,11 @@ class ProjectManager {
             // Read the PDF file as ArrayBuffer
             const arrayBuffer = await this.readFileAsArrayBuffer(approvalLetterFile);
             
-            // Format date for display
+            // Format dates for display
             const formattedDateApproved = this.formatDate(dateApproved);
             const formattedDateStarted = dateConstructionStarted ? this.formatDate(dateConstructionStarted) : '';
+            const formattedDateDepositReceived = dateDepositReceived ? this.formatDate(dateDepositReceived) : '';
+            const formattedDateDepositReturned = dateDepositReturned ? this.formatDate(dateDepositReturned) : '';
 
             // Create project
             const project = {
@@ -144,7 +150,11 @@ class ProjectManager {
                 dateConstructionStarted: formattedDateStarted,
                 status: status || 'open',
                 approvalLetterBlob: arrayBuffer,
-                approvalLetterFilename: approvalLetterFile.name
+                approvalLetterFilename: approvalLetterFile.name,
+                depositAmountReceived: depositAmountReceived ? parseFloat(depositAmountReceived) : null,
+                dateDepositReceived: formattedDateDepositReceived,
+                depositAmountReturned: depositAmountReturned ? parseFloat(depositAmountReturned) : null,
+                dateDepositReturned: formattedDateDepositReturned
             };
 
             this.projects.unshift(project);
@@ -267,7 +277,11 @@ class ProjectManager {
             dateConstructionStarted: '',
             status: 'open', // 'open' or 'previous'
             approvalLetterBlob: projectData.approvalLetterBlob || null,
-            approvalLetterFilename: projectData.approvalLetterFilename || ''
+            approvalLetterFilename: projectData.approvalLetterFilename || '',
+            depositAmountReceived: null,
+            dateDepositReceived: '',
+            depositAmountReturned: null,
+            dateDepositReturned: ''
         };
 
         this.projects.unshift(project); // Add to beginning
@@ -352,6 +366,27 @@ class ProjectManager {
                             </span>
                         </div>
                     </div>
+                    <div class="deposit-info">
+                        <h4>Deposit Information</h4>
+                        <div class="project-info">
+                            <div class="info-item">
+                                <span class="info-label">Amount Received:</span>
+                                <span class="info-value">${project.depositAmountReceived ? '$' + project.depositAmountReceived.toFixed(2) : 'Not recorded'}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Date Received:</span>
+                                <span class="info-value">${project.dateDepositReceived || 'Not recorded'}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Amount Returned:</span>
+                                <span class="info-value">${project.depositAmountReturned !== null ? '$' + project.depositAmountReturned.toFixed(2) : 'Not returned'}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Date Returned:</span>
+                                <span class="info-value">${project.dateDepositReturned || 'Not returned'}</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="project-card-actions">
                     <button type="button" class="btn-small btn-primary" onclick="window.projectManager.downloadLetter('${project.id}')">
@@ -395,16 +430,79 @@ class ProjectManager {
         const project = this.projects.find(p => p.id === projectId);
         if (!project) return;
 
-        const dateStarted = prompt('Enter construction start date (MM/DD/YYYY) or leave blank:', project.dateConstructionStarted || '');
-        if (dateStarted !== null) {
-            const status = prompt('Status (open/previous):', project.status || 'open');
-            if (status !== null) {
-                this.updateProject(projectId, {
-                    dateConstructionStarted: dateStarted.trim(),
-                    status: status.trim().toLowerCase() === 'previous' ? 'previous' : 'open'
-                });
-            }
-        }
+        // Create edit form HTML
+        const editForm = `
+            <div style="padding: 20px;">
+                <h3>Edit Project: ${project.homeownerName}</h3>
+                <div style="margin-bottom: 15px;">
+                    <label>Construction Start Date (MM/DD/YYYY):</label><br>
+                    <input type="text" id="editDateStarted" value="${project.dateConstructionStarted || ''}" style="width: 100%; padding: 8px; margin-top: 5px;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label>Status:</label><br>
+                    <select id="editStatus" style="width: 100%; padding: 8px; margin-top: 5px;">
+                        <option value="open" ${project.status === 'open' ? 'selected' : ''}>Open</option>
+                        <option value="previous" ${project.status === 'previous' ? 'selected' : ''}>Previous</option>
+                    </select>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label>Deposit Amount Received ($):</label><br>
+                    <input type="number" id="editDepositReceived" value="${project.depositAmountReceived || ''}" step="0.01" min="0" style="width: 100%; padding: 8px; margin-top: 5px;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label>Date Deposit Received (MM/DD/YYYY):</label><br>
+                    <input type="text" id="editDateDepositReceived" value="${project.dateDepositReceived || ''}" style="width: 100%; padding: 8px; margin-top: 5px;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label>Deposit Amount Returned ($):</label><br>
+                    <input type="number" id="editDepositReturned" value="${project.depositAmountReturned !== null ? project.depositAmountReturned : ''}" step="0.01" min="0" style="width: 100%; padding: 8px; margin-top: 5px;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label>Date Deposit Returned (MM/DD/YYYY):</label><br>
+                    <input type="text" id="editDateDepositReturned" value="${project.dateDepositReturned || ''}" style="width: 100%; padding: 8px; margin-top: 5px;">
+                </div>
+            </div>
+        `;
+
+        // Show form in a dialog
+        const dialog = document.createElement('div');
+        dialog.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; display: flex; align-items: center; justify-content: center;';
+        dialog.innerHTML = `
+            <div style="background: white; padding: 0; border-radius: 8px; max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto;">
+                ${editForm}
+                <div style="padding: 20px; border-top: 1px solid #ddd; display: flex; gap: 10px; justify-content: flex-end;">
+                    <button id="editCancelBtn" style="padding: 10px 20px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 6px; cursor: pointer;">Cancel</button>
+                    <button id="editSaveBtn" style="padding: 10px 20px; background: #2c5530; color: white; border: none; border-radius: 6px; cursor: pointer;">Save</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(dialog);
+
+        // Handle save
+        document.getElementById('editSaveBtn').addEventListener('click', () => {
+            const dateStarted = document.getElementById('editDateStarted').value.trim();
+            const status = document.getElementById('editStatus').value;
+            const depositReceived = document.getElementById('editDepositReceived').value.trim();
+            const dateDepositReceived = document.getElementById('editDateDepositReceived').value.trim();
+            const depositReturned = document.getElementById('editDepositReturned').value.trim();
+            const dateDepositReturned = document.getElementById('editDateDepositReturned').value.trim();
+
+            this.updateProject(projectId, {
+                dateConstructionStarted: dateStarted,
+                status: status,
+                depositAmountReceived: depositReceived ? parseFloat(depositReceived) : null,
+                dateDepositReceived: dateDepositReceived,
+                depositAmountReturned: depositReturned ? parseFloat(depositReturned) : null,
+                dateDepositReturned: dateDepositReturned
+            });
+
+            document.body.removeChild(dialog);
+        });
+
+        // Handle cancel
+        document.getElementById('editCancelBtn').addEventListener('click', () => {
+            document.body.removeChild(dialog);
+        });
     }
 }
 

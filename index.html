@@ -361,6 +361,60 @@
                                 <small class="form-hint">Upload the previously issued architectural approval letter</small>
                             </div>
 
+                            <div class="form-section-divider">
+                                <h4>Deposit Information</h4>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="addDepositAmountReceived">
+                                    Deposit Amount Received ($)
+                                </label>
+                                <input 
+                                    type="number" 
+                                    id="addDepositAmountReceived" 
+                                    name="addDepositAmountReceived" 
+                                    step="0.01"
+                                    min="0"
+                                    placeholder="e.g., 1000.00"
+                                >
+                            </div>
+
+                            <div class="form-group">
+                                <label for="addDateDepositReceived">
+                                    Date Deposit Received
+                                </label>
+                                <input 
+                                    type="date" 
+                                    id="addDateDepositReceived" 
+                                    name="addDateDepositReceived"
+                                >
+                            </div>
+
+                            <div class="form-group">
+                                <label for="addDepositAmountReturned">
+                                    Deposit Amount Returned ($)
+                                </label>
+                                <input 
+                                    type="number" 
+                                    id="addDepositAmountReturned" 
+                                    name="addDepositAmountReturned" 
+                                    step="0.01"
+                                    min="0"
+                                    placeholder="e.g., 1000.00"
+                                >
+                            </div>
+
+                            <div class="form-group">
+                                <label for="addDateDepositReturned">
+                                    Date Deposit Returned
+                                </label>
+                                <input 
+                                    type="date" 
+                                    id="addDateDepositReturned" 
+                                    name="addDateDepositReturned"
+                                >
+                            </div>
+
                             <div class="form-actions">
                                 <button type="button" class="btn-primary" id="saveProjectBtn">Save Project</button>
                                 <button type="button" class="btn-secondary" id="cancelAddProjectBtn">Cancel</button>
