@@ -239,7 +239,8 @@ class FormHandler {
             contractorName: document.getElementById('contractorName').value.trim(),
             projectType: projectType,
             reviewComments: reviewComments,
-            approvalReason: approvalReason
+            approvalReason: approvalReason,
+            approvedBy: document.getElementById('approvedBy').value.trim()
         };
     }
 

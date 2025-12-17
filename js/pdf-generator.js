@@ -272,6 +272,15 @@ class PDFGenerator {
         doc.setTextColor(70, 70, 70);
         doc.text('Architectural Review Committee', margin, yPos);
         yPos += 10;
+        
+        // Approved by (if provided)
+        if (formData.approvedBy) {
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'italic');
+            doc.setTextColor(100, 100, 100);
+            doc.text(`Approved by: ${formData.approvedBy}`, margin, yPos);
+            yPos += 8;
+        }
 
         // Add attachments note if there are files - modern, subtle styling
         if (window.fileHandler && window.fileHandler.getFiles().length > 0) {
