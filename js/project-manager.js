@@ -10,6 +10,35 @@ class ProjectManager {
     }
 
     async init() {
+        // Wait for authentication
+        if (window.authHandler) {
+            // Wait for auth state to be determined
+            await new Promise((resolve) => {
+                if (window.authHandler.isAuthenticated()) {
+                    resolve();
+                } else {
+                    // Wait for auth state change
+                    const checkAuth = setInterval(() => {
+                        if (window.authHandler && window.authHandler.isAuthenticated()) {
+                            clearInterval(checkAuth);
+                            resolve();
+                        }
+                    }, 100);
+                    // Timeout after 5 seconds
+                    setTimeout(() => {
+                        clearInterval(checkAuth);
+                        resolve();
+                    }, 5000);
+                }
+            });
+        }
+
+        // Only initialize if authenticated
+        if (!window.authHandler || !window.authHandler.isAuthenticated()) {
+            console.log('Not authenticated, skipping project manager initialization');
+            return;
+        }
+
         // Setup tab switching
         this.setupTabs();
         
@@ -21,6 +50,9 @@ class ProjectManager {
         
         // Initialize Firebase/Firestore
         await this.initializeFirestore();
+        
+        // Update storage status indicator
+        this.updateStorageStatus();
         
         // Load projects from Firestore
         await this.loadProjects();

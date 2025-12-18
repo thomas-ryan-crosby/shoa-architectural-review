@@ -26,15 +26,20 @@
 6. Copy the `firebaseConfig` object that appears
 7. Paste it into `js/firebase-config.js` (this file will be created)
 
-## Step 4: Enable Authentication (Optional but Recommended)
+## Step 4: Enable Authentication (REQUIRED for Production)
 
 1. In Firebase Console, click "Authentication" in the left menu
 2. Click "Get started"
 3. Click "Sign-in method" tab
 4. Enable "Email/Password" provider
 5. Click "Save"
+6. **Create your first user:**
+   - Click "Users" tab
+   - Click "Add user"
+   - Enter email and password
+   - Click "Add user"
 
-## Step 5: Security Rules (Important!)
+## Step 5: Production Security Rules (REQUIRED)
 
 1. In Firestore Database, click "Rules" tab
 2. Replace the rules with:
@@ -43,16 +48,17 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow read/write access to projects collection
-    // In production, you should add authentication checks
+    // Require authentication for all operations
     match /projects/{projectId} {
-      allow read, write: if true; // For now, allow all access
+      allow read, write: if request.auth != null;
     }
   }
 }
 ```
 
-**Note:** For production, you should restrict access to authenticated users only.
+3. Click "Publish" to save the rules
+
+**Important:** These rules require users to be authenticated. Only signed-in users can read or write projects.
 
 ## Step 6: Update firebase-config.js
 

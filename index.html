@@ -8,9 +8,42 @@
 </head>
 <body>
     <div class="container">
+        <!-- Login Screen -->
+        <div id="loginScreen" class="login-screen">
+            <div class="login-box">
+                <h1>Sanctuary HOA</h1>
+                <h2>Architectural Review Generator</h2>
+                <p class="login-subtitle">Please sign in to continue</p>
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="loginEmail">Email</label>
+                        <input type="email" id="loginEmail" required placeholder="your@email.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">Password</label>
+                        <input type="password" id="loginPassword" required placeholder="••••••••">
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">Sign In</button>
+                    </div>
+                    <div id="loginError" class="error-message" style="display: none; margin-top: 15px;"></div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Main App (hidden until authenticated) -->
+        <div id="mainApp" style="display: none;">
         <header>
-            <h1>Sanctuary HOA Architectural Review Generator</h1>
-            <p class="subtitle">Generate professional approval letters for architectural reviews</p>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <div>
+                    <h1>Sanctuary HOA Architectural Review Generator</h1>
+                    <p class="subtitle">Generate professional approval letters for architectural reviews</p>
+                </div>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <span id="userEmail" style="color: var(--text-light); font-size: 0.9rem;"></span>
+                    <button type="button" id="logoutBtn" class="btn-secondary" style="padding: 8px 16px; font-size: 0.9rem;">Sign Out</button>
+                </div>
+            </div>
             <button type="button" id="standardsButton" class="standards-button">Refresher on SHOA Arch Standards</button>
         </header>
 
@@ -441,6 +474,7 @@
         <footer>
             <p>Sanctuary Homeowners Association Architectural Review Committee</p>
         </footer>
+        </div>
     </div>
 
     <!-- Loading Overlay -->
@@ -795,6 +829,9 @@
     
     <!-- Firebase Config (user needs to add their config) -->
     <script src="js/firebase-config.js"></script>
+    
+    <!-- Authentication Handler (must load before project-manager) -->
+    <script src="js/auth-handler.js"></script>
     
     <script src="js/logo-data.js"></script>
     <script src="js/builders-rules-data.js"></script>
