@@ -212,6 +212,7 @@ class ProjectManager {
             approvalLetterBlob: approvalLetterBlob,
             approvalLetterFilename: data.approvalLetterFilename || '',
             hasApprovalLetter: data.hasApprovalLetter !== undefined ? data.hasApprovalLetter : !!approvalLetterBlob,
+            noApprovalOnRecord: data.noApprovalOnRecord || false,
             depositAmountReceived: data.depositAmountReceived || null,
             dateDepositReceived: data.dateDepositReceived || '',
             depositAmountReturned: data.depositAmountReturned || null,
@@ -259,6 +260,7 @@ class ProjectManager {
             approvalLetterFilename: project.approvalLetterFilename || '',
             approvalLetterSize: approvalLetterSize,
             hasApprovalLetter: project.hasApprovalLetter !== undefined ? project.hasApprovalLetter : !!approvalLetterBlobBase64,
+            noApprovalOnRecord: project.noApprovalOnRecord || false,
             depositAmountReceived: project.depositAmountReceived || null,
             dateDepositReceived: project.dateDepositReceived || '',
             depositAmountReturned: project.depositAmountReturned || null,
@@ -346,6 +348,24 @@ class ProjectManager {
                 }
             });
         }
+
+        // Handle "No Approval on Record" checkbox
+        const noApprovalCheckbox = document.getElementById('noApprovalOnRecord');
+        const dateApprovedInput = document.getElementById('addDateApproved');
+        if (noApprovalCheckbox && dateApprovedInput) {
+            noApprovalCheckbox.addEventListener('change', () => {
+                if (noApprovalCheckbox.checked) {
+                    dateApprovedInput.disabled = true;
+                    dateApprovedInput.value = '';
+                } else {
+                    dateApprovedInput.disabled = false;
+                }
+            });
+            // Also disable date input when checkbox is checked on load
+            if (noApprovalCheckbox.checked) {
+                dateApprovedInput.disabled = true;
+            }
+        }
     }
 
     clearError(fieldId) {
@@ -371,6 +391,16 @@ class ProjectManager {
         this.clearError('addDateApproved');
         this.clearError('addHomeownerName');
         
+        // Reset "No Approval on Record" checkbox and enable date input
+        const noApprovalCheckbox = document.getElementById('noApprovalOnRecord');
+        const dateApprovedInput = document.getElementById('addDateApproved');
+        if (noApprovalCheckbox) {
+            noApprovalCheckbox.checked = false;
+        }
+        if (dateApprovedInput) {
+            dateApprovedInput.disabled = false;
+        }
+        
         if (form && typeof form.reset === 'function') {
             form.reset();
             // Hide "Other" project type field
@@ -378,12 +408,18 @@ class ProjectManager {
             if (otherProjectTypeGroup) {
                 otherProjectTypeGroup.style.display = 'none';
             }
+            // Re-enable date input after reset
+            if (dateApprovedInput) {
+                dateApprovedInput.disabled = false;
+            }
         } else {
             // Manual reset if form.reset() doesn't work
             const inputs = document.querySelectorAll('#addProjectForm input, #addProjectForm select, #addProjectForm textarea');
             inputs.forEach(input => {
                 if (input.type === 'file') {
                     input.value = '';
+                } else if (input.type === 'checkbox') {
+                    input.checked = false;
                 } else {
                     input.value = '';
                 }
@@ -392,6 +428,10 @@ class ProjectManager {
             const otherProjectTypeGroup = document.getElementById('addOtherProjectTypeGroup');
             if (otherProjectTypeGroup) {
                 otherProjectTypeGroup.style.display = 'none';
+            }
+            // Re-enable date input after reset
+            if (dateApprovedInput) {
+                dateApprovedInput.disabled = false;
             }
         }
     }
@@ -408,7 +448,8 @@ class ProjectManager {
         const projectTypeSelect = document.getElementById('addProjectType')?.value;
         const otherProjectType = document.getElementById('addOtherProjectType')?.value.trim();
         const projectType = projectTypeSelect === 'Other' ? otherProjectType : projectTypeSelect;
-        const dateApproved = document.getElementById('addDateApproved')?.value;
+        const noApprovalOnRecord = document.getElementById('noApprovalOnRecord')?.checked;
+        const dateApproved = noApprovalOnRecord ? null : document.getElementById('addDateApproved')?.value;
         const dateConstructionStarted = document.getElementById('addDateConstructionStarted')?.value;
         const status = document.getElementById('addProjectStatus')?.value;
         const approvalLetterFile = document.getElementById('addApprovalLetter')?.files[0];
@@ -423,10 +464,16 @@ class ProjectManager {
             return;
         }
 
-        // Date approved is optional - use today's date if not provided
-        if (!dateApproved) {
+        // Date approved handling
+        let formattedDateApproved = '';
+        if (noApprovalOnRecord) {
+            formattedDateApproved = 'No Approval on Record';
+        } else if (dateApproved) {
+            formattedDateApproved = this.formatDate(dateApproved);
+        } else {
+            // Use today's date if not provided and not marked as "No Approval on Record"
             const today = new Date();
-            dateApproved = today.toISOString().split('T')[0];
+            formattedDateApproved = this.formatDate(today.toISOString().split('T')[0]);
         }
 
         // Validate project type if "Other" is selected
@@ -452,7 +499,6 @@ class ProjectManager {
             }
             
             // Format dates for display
-            const formattedDateApproved = this.formatDate(dateApproved);
             const formattedDateStarted = dateConstructionStarted ? this.formatDate(dateConstructionStarted) : '';
             const formattedDateDepositReceived = dateDepositReceived ? this.formatDate(dateDepositReceived) : '';
             const formattedDateDepositReturned = dateDepositReturned ? this.formatDate(dateDepositReturned) : '';
@@ -465,6 +511,7 @@ class ProjectManager {
                 lot: lot || '',
                 projectType: projectType || '',
                 dateApproved: formattedDateApproved,
+                noApprovalOnRecord: noApprovalOnRecord || false,
                 dateConstructionStarted: formattedDateStarted,
                 status: status || 'open',
                 approvalLetterBlob: arrayBuffer,
@@ -788,7 +835,7 @@ class ProjectManager {
                     Download Letter
                 </button>
             ` : `
-                <span style="color: var(--text-light); font-size: 0.9rem; font-style: italic; padding: 8px 0;">Approval not on file</span>
+                <span style="color: #d32f2f; font-size: 0.9rem; font-weight: bold; padding: 8px 0;">Approval not on file</span>
             `;
             
             return `
@@ -809,7 +856,9 @@ class ProjectManager {
                         </div>
                         <div class="info-item">
                             <span class="info-label">Date Approved:</span>
-                            <span class="info-value">${project.dateApproved || 'N/A'}</span>
+                            <span class="info-value" ${project.noApprovalOnRecord || (!project.dateApproved && !project.approvalLetterBlob && project.hasApprovalLetter === false) ? 'style="color: #d32f2f; font-weight: bold;"' : ''}>
+                                ${project.noApprovalOnRecord ? 'No Approval on Record' : (project.dateApproved || 'N/A')}
+                            </span>
                         </div>
                         <div class="info-item">
                             <span class="info-label">Construction Started:</span>
