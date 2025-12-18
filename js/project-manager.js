@@ -211,6 +211,7 @@ class ProjectManager {
             status: data.status || 'open',
             approvalLetterBlob: approvalLetterBlob,
             approvalLetterFilename: data.approvalLetterFilename || '',
+            hasApprovalLetter: data.hasApprovalLetter !== undefined ? data.hasApprovalLetter : !!approvalLetterBlob,
             depositAmountReceived: data.depositAmountReceived || null,
             dateDepositReceived: data.dateDepositReceived || '',
             depositAmountReturned: data.depositAmountReturned || null,
@@ -257,6 +258,7 @@ class ProjectManager {
             approvalLetterBlobBase64: approvalLetterBlobBase64,
             approvalLetterFilename: project.approvalLetterFilename || '',
             approvalLetterSize: approvalLetterSize,
+            hasApprovalLetter: project.hasApprovalLetter !== undefined ? project.hasApprovalLetter : !!approvalLetterBlobBase64,
             depositAmountReceived: project.depositAmountReceived || null,
             dateDepositReceived: project.dateDepositReceived || '',
             depositAmountReturned: project.depositAmountReturned || null,
@@ -314,6 +316,21 @@ class ProjectManager {
                 this.clearError(field.id);
             });
         });
+
+        // Handle project type dropdown change (show/hide "Other" input)
+        const addProjectType = document.getElementById('addProjectType');
+        const addOtherProjectTypeGroup = document.getElementById('addOtherProjectTypeGroup');
+        if (addProjectType && addOtherProjectTypeGroup) {
+            addProjectType.addEventListener('change', () => {
+                if (addProjectType.value === 'Other') {
+                    addOtherProjectTypeGroup.style.display = 'block';
+                } else {
+                    addOtherProjectTypeGroup.style.display = 'none';
+                    const otherInput = document.getElementById('addOtherProjectType');
+                    if (otherInput) otherInput.value = '';
+                }
+            });
+        }
     }
 
     clearError(fieldId) {
@@ -334,6 +351,11 @@ class ProjectManager {
             // Clear error messages
             const errorMessages = form.querySelectorAll('.error-message');
             errorMessages.forEach(msg => msg.textContent = '');
+            // Hide "Other" project type field
+            const otherProjectTypeGroup = document.getElementById('addOtherProjectTypeGroup');
+            if (otherProjectTypeGroup) {
+                otherProjectTypeGroup.style.display = 'none';
+            }
         } else {
             // Manual reset if form.reset() doesn't work
             const inputs = document.querySelectorAll('#addProjectForm input, #addProjectForm select, #addProjectForm textarea');
@@ -346,6 +368,11 @@ class ProjectManager {
             });
             const errorMessages = document.querySelectorAll('#addProjectForm .error-message');
             errorMessages.forEach(msg => msg.textContent = '');
+            // Hide "Other" project type field
+            const otherProjectTypeGroup = document.getElementById('addOtherProjectTypeGroup');
+            if (otherProjectTypeGroup) {
+                otherProjectTypeGroup.style.display = 'none';
+            }
         }
     }
 
@@ -358,7 +385,9 @@ class ProjectManager {
         const homeownerName = document.getElementById('addHomeownerName')?.value.trim();
         const address = document.getElementById('addAddress')?.value.trim();
         const lot = document.getElementById('addLot')?.value.trim();
-        const projectType = document.getElementById('addProjectType')?.value.trim();
+        const projectTypeSelect = document.getElementById('addProjectType')?.value;
+        const otherProjectType = document.getElementById('addOtherProjectType')?.value.trim();
+        const projectType = projectTypeSelect === 'Other' ? otherProjectType : projectTypeSelect;
         const dateApproved = document.getElementById('addDateApproved')?.value;
         const dateConstructionStarted = document.getElementById('addDateConstructionStarted')?.value;
         const status = document.getElementById('addProjectStatus')?.value;
@@ -379,19 +408,27 @@ class ProjectManager {
             return;
         }
 
-        if (!approvalLetterFile) {
-            this.showError('addApprovalLetter', 'Approval letter PDF is required');
+        // Validate project type if "Other" is selected
+        if (projectTypeSelect === 'Other' && !otherProjectType) {
+            this.showError('addOtherProjectType', 'Please specify the project type');
             return;
         }
 
-        if (approvalLetterFile.type !== 'application/pdf') {
+        // Validate PDF if provided
+        if (approvalLetterFile && approvalLetterFile.type !== 'application/pdf') {
             this.showError('addApprovalLetter', 'Please upload a PDF file');
             return;
         }
 
         try {
-            // Read the PDF file as ArrayBuffer
-            const arrayBuffer = await this.readFileAsArrayBuffer(approvalLetterFile);
+            // Read the PDF file as ArrayBuffer (if provided)
+            let arrayBuffer = null;
+            let approvalLetterFilename = '';
+            
+            if (approvalLetterFile) {
+                arrayBuffer = await this.readFileAsArrayBuffer(approvalLetterFile);
+                approvalLetterFilename = approvalLetterFile.name;
+            }
             
             // Format dates for display
             const formattedDateApproved = this.formatDate(dateApproved);
@@ -410,7 +447,8 @@ class ProjectManager {
                 dateConstructionStarted: formattedDateStarted,
                 status: status || 'open',
                 approvalLetterBlob: arrayBuffer,
-                approvalLetterFilename: approvalLetterFile.name,
+                approvalLetterFilename: approvalLetterFilename,
+                hasApprovalLetter: !!arrayBuffer, // Flag to track if letter exists
                 depositAmountReceived: depositAmountReceived ? parseFloat(depositAmountReceived) : null,
                 dateDepositReceived: formattedDateDepositReceived,
                 depositAmountReturned: depositAmountReturned ? parseFloat(depositAmountReturned) : null,
@@ -722,6 +760,16 @@ class ProjectManager {
                 <span style="color: var(--text-light); font-size: 0.85rem; font-style: italic; padding: 8px 0;">Sign in to edit or delete</span>
             `;
             
+            // Check if approval letter exists
+            const hasLetter = project.approvalLetterBlob || (project.hasApprovalLetter !== false && project.approvalLetterFilename);
+            const downloadButton = hasLetter ? `
+                <button type="button" class="btn-small btn-primary" onclick="window.projectManager.downloadLetter('${project.id}')" title="${isAuthenticated ? 'Download approval letter' : 'Sign in to download'}">
+                    Download Letter
+                </button>
+            ` : `
+                <span style="color: var(--text-light); font-size: 0.9rem; font-style: italic; padding: 8px 0;">Approval not on file</span>
+            `;
+            
             return `
             <div class="project-card" data-project-id="${project.id}">
                 <div class="project-card-header">
@@ -772,9 +820,7 @@ class ProjectManager {
                     </div>
                 </div>
                 <div class="project-card-actions">
-                    <button type="button" class="btn-small btn-primary" onclick="window.projectManager.downloadLetter('${project.id}')" title="${isAuthenticated ? 'Download approval letter' : 'Sign in to download'}">
-                        Download Letter
-                    </button>
+                    ${downloadButton}
                     ${editDeleteButtons}
                 </div>
             </div>
@@ -789,8 +835,18 @@ class ProjectManager {
         }
 
         const project = this.projects.find(p => p.id === projectId);
-        if (!project || !project.approvalLetterBlob) {
-            alert('Approval letter not available for this project.');
+        if (!project) {
+            alert('Project not found.');
+            return;
+        }
+
+        // Check if approval letter exists
+        if (!project.approvalLetterBlob) {
+            if (project.hasApprovalLetter === false) {
+                alert('Approval not on file for this project.');
+            } else {
+                alert('Approval letter not available for this project.');
+            }
             return;
         }
 

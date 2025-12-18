@@ -343,11 +343,25 @@
                                 <label for="addProjectType">
                                     Project Type
                                 </label>
+                                <select id="addProjectType" name="addProjectType">
+                                    <option value="">Select a project type...</option>
+                                    <option value="New Home">New Home</option>
+                                    <option value="Renovation/Extension">Renovation/Extension</option>
+                                    <option value="Accessory Structure">Accessory Structure</option>
+                                    <option value="Pool">Pool</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group" id="addOtherProjectTypeGroup" style="display: none;">
+                                <label for="addOtherProjectType">
+                                    Specify Project Type
+                                </label>
                                 <input 
                                     type="text" 
-                                    id="addProjectType" 
-                                    name="addProjectType" 
-                                    placeholder="e.g., Pool, New Home"
+                                    id="addOtherProjectType" 
+                                    name="addOtherProjectType" 
+                                    placeholder="Enter project type"
                                 >
                             </div>
 
@@ -387,17 +401,16 @@
 
                             <div class="form-group">
                                 <label for="addApprovalLetter">
-                                    Upload Approval Letter PDF <span class="required">*</span>
+                                    Upload Approval Letter PDF (Optional)
                                 </label>
                                 <input 
                                     type="file" 
                                     id="addApprovalLetter" 
                                     name="addApprovalLetter" 
                                     accept=".pdf"
-                                    required
                                 >
                                 <span class="error-message" id="addApprovalLetter-error"></span>
-                                <small class="form-hint">Upload the previously issued architectural approval letter</small>
+                                <small class="form-hint">Upload the previously issued architectural approval letter. If not provided, will show "Approval not on file".</small>
                             </div>
 
                             <div class="form-section-divider">
