@@ -245,6 +245,15 @@ class FormHandler {
     }
 
     handleSubmit() {
+        // Require authentication for generating approval letters
+        if (!window.authHandler || !window.authHandler.isAuthenticated()) {
+            alert('Please sign in to generate approval letters.');
+            if (window.authHandler) {
+                window.authHandler.showLogin();
+            }
+            return;
+        }
+
         const formData = this.getFormData();
         const siteConditionsFiles = window.fileHandler ? window.fileHandler.getSiteConditionsFiles() : [];
         const projectFiles = window.fileHandler ? window.fileHandler.getProjectFiles() : [];

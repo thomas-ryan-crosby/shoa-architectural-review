@@ -10,55 +10,73 @@ class ProjectManager {
     }
 
     async init() {
-        // Wait for authentication
-        if (window.authHandler) {
-            // Wait for auth state to be determined
-            await new Promise((resolve) => {
-                if (window.authHandler.isAuthenticated()) {
-                    resolve();
-                } else {
-                    // Wait for auth state change
-                    const checkAuth = setInterval(() => {
-                        if (window.authHandler && window.authHandler.isAuthenticated()) {
-                            clearInterval(checkAuth);
-                            resolve();
-                        }
-                    }, 100);
-                    // Timeout after 5 seconds
-                    setTimeout(() => {
-                        clearInterval(checkAuth);
-                        resolve();
-                    }, 5000);
-                }
-            });
-        }
-
-        // Only initialize if authenticated
-        if (!window.authHandler || !window.authHandler.isAuthenticated()) {
-            console.log('Not authenticated, skipping project manager initialization');
-            return;
-        }
-
-        // Setup tab switching
+        // Initialize UI components (no auth required for viewing)
         this.setupTabs();
-        
-        // Setup filters
         this.setupFilters();
-        
-        // Setup add project form
         this.setupAddProjectForm();
         
-        // Initialize Firebase/Firestore
+        // Initialize Firebase/Firestore (works without auth for reads)
         await this.initializeFirestore();
         
         // Update storage status indicator
         this.updateStorageStatus();
         
-        // Load projects from Firestore
+        // Load projects from Firestore (read-only, no auth required)
         await this.loadProjects();
         
         // Render projects
         this.renderProjects();
+        
+        // Check auth status for write operations
+        this.checkAuthForWrites();
+    }
+
+    checkAuthForWrites() {
+        // Update UI based on auth status
+        const isAuthenticated = window.authHandler && window.authHandler.isAuthenticated();
+        
+        // Update "Add Project" button
+        const addProjectBtn = document.getElementById('toggleAddProjectBtn');
+        if (addProjectBtn) {
+            if (!isAuthenticated) {
+                addProjectBtn.textContent = 'Sign In to Add Project';
+                // Remove existing listeners and add new one
+                const newBtn = addProjectBtn.cloneNode(true);
+                addProjectBtn.parentNode.replaceChild(newBtn, addProjectBtn);
+                newBtn.addEventListener('click', () => this.promptLogin('add project'));
+            } else {
+                const toggleText = document.getElementById('toggleAddProjectText');
+                if (toggleText) {
+                    toggleText.textContent = '+ Add Existing Project';
+                }
+            }
+        }
+        
+        // Update generate button (handled in form-handler.js, but update tooltip)
+        const generateBtn = document.getElementById('generateBtn');
+        if (generateBtn) {
+            if (!isAuthenticated) {
+                generateBtn.title = 'Sign in to generate approval letters';
+            } else {
+                generateBtn.title = '';
+            }
+        }
+    }
+
+    promptLogin(action) {
+        alert(`Please sign in to ${action}.`);
+        // Show login screen
+        if (window.authHandler) {
+            window.authHandler.showLogin();
+        }
+    }
+
+    requireAuth() {
+        if (!window.authHandler || !window.authHandler.isAuthenticated()) {
+            this.promptLogin('perform this action');
+            return false;
+        }
+        return true;
     }
 
     async initializeFirestore() {
@@ -75,7 +93,7 @@ class ProjectManager {
             this.firestoreEnabled = true;
             console.log('Firestore initialized successfully');
             
-            // Set up real-time listener for projects
+            // Set up real-time listener for projects (read-only, no auth required)
             this.setupRealtimeListener();
         } catch (error) {
             console.error('Error initializing Firestore:', error);
@@ -332,6 +350,11 @@ class ProjectManager {
     }
 
     async handleAddProject() {
+        // Require authentication for write operations
+        if (!this.requireAuth()) {
+            return;
+        }
+
         const homeownerName = document.getElementById('addHomeownerName')?.value.trim();
         const address = document.getElementById('addAddress')?.value.trim();
         const lot = document.getElementById('addLot')?.value.trim();
@@ -562,6 +585,11 @@ class ProjectManager {
     }
 
     async addProject(projectData) {
+        // Require authentication for write operations
+        if (!this.requireAuth()) {
+            throw new Error('Authentication required');
+        }
+
         if (!this.firestoreEnabled || !this.db) {
             throw new Error('Firestore not initialized. Cannot add project.');
         }
@@ -598,6 +626,11 @@ class ProjectManager {
     }
 
     async updateProject(projectId, updates) {
+        // Require authentication for write operations
+        if (!this.requireAuth()) {
+            throw new Error('Authentication required');
+        }
+
         if (!this.firestoreEnabled || !this.db) {
             throw new Error('Firestore not initialized. Cannot update project.');
         }
@@ -621,6 +654,11 @@ class ProjectManager {
     }
 
     async deleteProject(projectId) {
+        // Require authentication for write operations
+        if (!this.requireAuth()) {
+            return;
+        }
+
         if (!this.firestoreEnabled || !this.db) {
             alert('Firestore not initialized. Cannot delete project.');
             return;
@@ -670,7 +708,21 @@ class ProjectManager {
             noProjects.style.display = 'none';
         }
 
-        projectList.innerHTML = filteredProjects.map(project => `
+        const isAuthenticated = window.authHandler && window.authHandler.isAuthenticated();
+        
+        projectList.innerHTML = filteredProjects.map(project => {
+            const editDeleteButtons = isAuthenticated ? `
+                <button type="button" class="btn-small btn-secondary" onclick="window.projectManager.editProject('${project.id}')">
+                    Edit
+                </button>
+                <button type="button" class="btn-small btn-danger" onclick="window.projectManager.deleteProject('${project.id}')">
+                    Delete
+                </button>
+            ` : `
+                <span style="color: var(--text-light); font-size: 0.85rem; font-style: italic; padding: 8px 0;">Sign in to edit or delete</span>
+            `;
+            
+            return `
             <div class="project-card" data-project-id="${project.id}">
                 <div class="project-card-header">
                     <h3>${project.homeownerName}${project.address ? ' - ' + project.address : ''}</h3>
@@ -720,21 +772,22 @@ class ProjectManager {
                     </div>
                 </div>
                 <div class="project-card-actions">
-                    <button type="button" class="btn-small btn-primary" onclick="window.projectManager.downloadLetter('${project.id}')">
+                    <button type="button" class="btn-small btn-primary" onclick="window.projectManager.downloadLetter('${project.id}')" title="${isAuthenticated ? 'Download approval letter' : 'Sign in to download'}">
                         Download Letter
                     </button>
-                    <button type="button" class="btn-small btn-secondary" onclick="window.projectManager.editProject('${project.id}')">
-                        Edit
-                    </button>
-                    <button type="button" class="btn-small btn-danger" onclick="window.projectManager.deleteProject('${project.id}')">
-                        Delete
-                    </button>
+                    ${editDeleteButtons}
                 </div>
             </div>
-        `).join('');
+        `;
+        }).join('');
     }
 
     downloadLetter(projectId) {
+        // Require authentication for downloading letters
+        if (!this.requireAuth()) {
+            return;
+        }
+
         const project = this.projects.find(p => p.id === projectId);
         if (!project || !project.approvalLetterBlob) {
             alert('Approval letter not available for this project.');

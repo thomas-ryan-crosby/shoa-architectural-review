@@ -12,6 +12,12 @@ class AuthHandler {
             return;
         }
 
+        // Show main app immediately (no login required for viewing)
+        const mainApp = document.getElementById('mainApp');
+        if (mainApp) mainApp.style.display = 'block';
+        const loginScreen = document.getElementById('loginScreen');
+        if (loginScreen) loginScreen.style.display = 'none';
+
         // Listen for auth state changes
         window.firebaseAuth.onAuthStateChanged((user) => {
             if (user) {
@@ -20,7 +26,11 @@ class AuthHandler {
                 console.log('User signed in:', user.email);
             } else {
                 this.user = null;
-                this.showLogin();
+                // Don't hide app, just update UI for write operations
+                if (window.projectManager) {
+                    window.projectManager.checkAuthForWrites();
+                    window.projectManager.renderProjects();
+                }
                 console.log('User signed out');
             }
         });
@@ -30,7 +40,7 @@ class AuthHandler {
         const loginScreen = document.getElementById('loginScreen');
         const mainApp = document.getElementById('mainApp');
         if (loginScreen) loginScreen.style.display = 'flex';
-        if (mainApp) mainApp.style.display = 'none';
+        // Don't hide main app - allow viewing without login
     }
 
     showApp() {
@@ -39,10 +49,25 @@ class AuthHandler {
         if (loginScreen) loginScreen.style.display = 'none';
         if (mainApp) mainApp.style.display = 'block';
         
-        // Update user email display
+        // Update user email display and login/logout buttons
         const userEmail = document.getElementById('userEmail');
-        if (userEmail && this.user) {
-            userEmail.textContent = this.user.email;
+        const loginBtn = document.getElementById('loginBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        
+        if (this.user) {
+            if (userEmail) userEmail.textContent = this.user.email;
+            if (loginBtn) loginBtn.style.display = 'none';
+            if (logoutBtn) logoutBtn.style.display = 'block';
+        } else {
+            if (userEmail) userEmail.textContent = '';
+            if (loginBtn) loginBtn.style.display = 'block';
+            if (logoutBtn) logoutBtn.style.display = 'none';
+        }
+
+        // Update project manager UI for write operations
+        if (window.projectManager) {
+            window.projectManager.checkAuthForWrites();
+            window.projectManager.renderProjects(); // Re-render to update button states
         }
     }
 
@@ -94,10 +119,11 @@ class AuthHandler {
 // Initialize auth handler
 window.authHandler = new AuthHandler();
 
-// Setup login form
+// Setup login form and buttons
 document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('loginForm');
     const logoutBtn = document.getElementById('logoutBtn');
+    const loginBtn = document.getElementById('loginBtn');
     const loginError = document.getElementById('loginError');
 
     if (loginForm) {
@@ -127,6 +153,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     loginError.textContent = result.error;
                     loginError.style.display = 'block';
                 }
+            }
+        });
+    }
+
+    if (loginBtn) {
+        loginBtn.addEventListener('click', () => {
+            if (window.authHandler) {
+                window.authHandler.showLogin();
             }
         });
     }

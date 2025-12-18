@@ -48,9 +48,11 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Require authentication for all operations
+    // Allow read access to all (viewing projects)
+    // Require authentication for write operations (creating/editing/deleting)
     match /projects/{projectId} {
-      allow read, write: if request.auth != null;
+      allow read: if true; // Anyone can view projects
+      allow write: if request.auth != null; // Only authenticated users can modify
     }
   }
 }
@@ -58,7 +60,10 @@ service cloud.firestore {
 
 3. Click "Publish" to save the rules
 
-**Important:** These rules require users to be authenticated. Only signed-in users can read or write projects.
+**Important:** 
+- **Read access:** Anyone can view projects (no login required)
+- **Write access:** Only authenticated users can create, edit, or delete projects
+- This allows public viewing while protecting data modification
 
 ## Step 6: Update firebase-config.js
 
