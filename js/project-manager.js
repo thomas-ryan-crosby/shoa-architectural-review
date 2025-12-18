@@ -281,13 +281,16 @@ class ProjectManager {
                 if (toggleText) {
                     toggleText.textContent = isVisible ? '+ Add Existing Project' : '− Hide Form';
                 }
-                // Set default date to today when opening
+                // Set default date to today when opening and clear errors
                 if (!isVisible) {
                     const dateApproved = document.getElementById('addDateApproved');
                     if (dateApproved && !dateApproved.value) {
                         const today = new Date().toISOString().split('T')[0];
                         dateApproved.value = today;
                     }
+                    // Clear any existing error messages (especially for optional fields)
+                    this.clearError('addApprovalLetter');
+                    this.clearError('addDateApproved');
                 }
             });
         }
@@ -315,7 +318,19 @@ class ProjectManager {
             field.addEventListener('input', () => {
                 this.clearError(field.id);
             });
+            // Also clear on change for file inputs
+            if (field.type === 'file') {
+                field.addEventListener('change', () => {
+                    this.clearError(field.id);
+                });
+            }
         });
+        
+        // Clear approval letter error on form open (since it's optional)
+        const approvalLetterInput = document.getElementById('addApprovalLetter');
+        if (approvalLetterInput) {
+            this.clearError('addApprovalLetter');
+        }
 
         // Handle project type dropdown change (show/hide "Other" input)
         const addProjectType = document.getElementById('addProjectType');
@@ -346,11 +361,18 @@ class ProjectManager {
 
     resetAddProjectForm() {
         const form = document.getElementById('addProjectForm');
+        
+        // Clear all error messages first
+        const errorMessages = document.querySelectorAll('#addProjectForm .error-message');
+        errorMessages.forEach(msg => msg.textContent = '');
+        
+        // Clear specific error fields that might have been set
+        this.clearError('addApprovalLetter');
+        this.clearError('addDateApproved');
+        this.clearError('addHomeownerName');
+        
         if (form && typeof form.reset === 'function') {
             form.reset();
-            // Clear error messages
-            const errorMessages = form.querySelectorAll('.error-message');
-            errorMessages.forEach(msg => msg.textContent = '');
             // Hide "Other" project type field
             const otherProjectTypeGroup = document.getElementById('addOtherProjectTypeGroup');
             if (otherProjectTypeGroup) {
@@ -366,8 +388,6 @@ class ProjectManager {
                     input.value = '';
                 }
             });
-            const errorMessages = document.querySelectorAll('#addProjectForm .error-message');
-            errorMessages.forEach(msg => msg.textContent = '');
             // Hide "Other" project type field
             const otherProjectTypeGroup = document.getElementById('addOtherProjectTypeGroup');
             if (otherProjectTypeGroup) {
@@ -403,9 +423,10 @@ class ProjectManager {
             return;
         }
 
+        // Date approved is optional - use today's date if not provided
         if (!dateApproved) {
-            this.showError('addDateApproved', 'Date approved is required');
-            return;
+            const today = new Date();
+            dateApproved = today.toISOString().split('T')[0];
         }
 
         // Validate project type if "Other" is selected
