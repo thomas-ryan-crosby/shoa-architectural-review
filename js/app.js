@@ -17,16 +17,18 @@ class App {
     }
 
     setupApp() {
-        // Verify all components are loaded
-        if (!window.formHandler) {
-            console.error('FormHandler not initialized');
-        }
-        if (!window.fileHandler) {
-            console.error('FileHandler not initialized');
-        }
-        if (!window.pdfGenerator) {
-            console.error('PDFGenerator not initialized');
-        }
+        // Verify all components are loaded (with delay to allow async initialization)
+        setTimeout(() => {
+            if (!window.formHandler) {
+                console.warn('FormHandler not initialized');
+            }
+            if (!window.fileHandler) {
+                console.warn('FileHandler not initialized - this may be normal if elements are in hidden tabs');
+            }
+            if (!window.pdfGenerator) {
+                console.warn('PDFGenerator not initialized');
+            }
+        }, 500);
 
         // Check for required libraries
         if (typeof window.jspdf === 'undefined') {

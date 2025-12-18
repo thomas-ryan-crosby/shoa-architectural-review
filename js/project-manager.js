@@ -2,7 +2,6 @@
 
 class ProjectManager {
     constructor() {
-        this.storageKey = 'shoa_projects';
         this.projects = [];
         this.currentFilter = 'all';
         this.firestoreEnabled = false;
@@ -23,7 +22,7 @@ class ProjectManager {
         // Initialize Firebase/Firestore
         await this.initializeFirestore();
         
-        // Load projects (from Firestore or localStorage fallback)
+        // Load projects from Firestore
         await this.loadProjects();
         
         // Render projects
@@ -31,10 +30,11 @@ class ProjectManager {
     }
 
     async initializeFirestore() {
-        // Check if Firebase is available
+        // Check if Firebase is available - REQUIRED
         if (typeof firebase === 'undefined' || !window.firestore) {
-            console.warn('Firebase not available, using localStorage fallback');
+            console.error('Firebase is required but not available. Please configure Firebase.');
             this.firestoreEnabled = false;
+            this.showFirebaseError();
             return;
         }
 
@@ -48,6 +48,32 @@ class ProjectManager {
         } catch (error) {
             console.error('Error initializing Firestore:', error);
             this.firestoreEnabled = false;
+            this.showFirebaseError();
+        }
+    }
+
+    showFirebaseError() {
+        const statusElement = document.getElementById('storageStatusText');
+        if (statusElement) {
+            statusElement.textContent = '✗ Firebase Required';
+            statusElement.style.color = 'var(--error-color)';
+        }
+        
+        // Show error message in project list
+        const projectList = document.getElementById('projectList');
+        if (projectList) {
+            projectList.innerHTML = `
+                <div style="padding: 40px; text-align: center; background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; color: #856404;">
+                    <h3 style="margin-top: 0; color: #856404;">Firebase Configuration Required</h3>
+                    <p>This application requires Firebase to be configured. Please:</p>
+                    <ol style="text-align: left; display: inline-block;">
+                        <li>Set up a Firebase project (see FIREBASE_SETUP.md)</li>
+                        <li>Add your Firebase configuration to js/firebase-config.js</li>
+                        <li>Enable Firestore Database in Firebase Console</li>
+                        <li>Refresh this page</li>
+                    </ol>
+                </div>
+            `;
         }
     }
 
@@ -55,86 +81,58 @@ class ProjectManager {
         if (!this.firestoreEnabled || !this.db) return;
 
         try {
-            // Try with orderBy, fallback to without if index doesn't exist
-            let query = this.db.collection(this.collectionName);
-            
-            try {
-                query = query.orderBy('dateApproved', 'desc');
-            } catch (error) {
-                console.warn('OrderBy not available, using basic query:', error);
-            }
-
-            this.unsubscribe = query.onSnapshot((snapshot) => {
-                const changes = snapshot.docChanges();
-                changes.forEach((change) => {
-                    if (change.type === 'added' || change.type === 'modified') {
-                        const project = this.convertFirestoreToProject(change.doc.data(), change.doc.id);
-                        const index = this.projects.findIndex(p => p.id === change.doc.id);
-                        if (index >= 0) {
-                            this.projects[index] = project;
-                        } else {
-                            this.projects.push(project);
-                        }
-                    } else if (change.type === 'removed') {
-                        this.projects = this.projects.filter(p => p.id !== change.doc.id);
-                    }
-                });
-                // Sort by date approved (newest first)
-                this.projects.sort((a, b) => {
-                    const dateA = this.parseDate(a.dateApproved);
-                    const dateB = this.parseDate(b.dateApproved);
-                    return dateB - dateA;
-                });
-                this.renderProjects();
-            }, (error) => {
-                console.error('Error in real-time listener:', error);
-                // If orderBy fails, try without it
-                if (error.code === 'failed-precondition') {
-                    console.log('Retrying without orderBy...');
-                    this.setupRealtimeListenerWithoutOrderBy();
-                }
-            });
-        } catch (error) {
-            console.error('Error setting up real-time listener:', error);
-            // Fallback to listener without orderBy
-            this.setupRealtimeListenerWithoutOrderBy();
-        }
-    }
-
-    setupRealtimeListenerWithoutOrderBy() {
-        if (!this.firestoreEnabled || !this.db) return;
-
-        try {
+            // Start with basic query (no orderBy) to avoid index issues
+            // We'll sort in memory instead
             this.unsubscribe = this.db.collection(this.collectionName)
                 .onSnapshot((snapshot) => {
+                    if (!snapshot || !snapshot.docChanges) {
+                        console.warn('Invalid snapshot in real-time listener');
+                        return;
+                    }
+
                     const changes = snapshot.docChanges();
+                    let hasChanges = false;
+
                     changes.forEach((change) => {
                         if (change.type === 'added' || change.type === 'modified') {
-                            const project = this.convertFirestoreToProject(change.doc.data(), change.doc.id);
-                            const index = this.projects.findIndex(p => p.id === change.doc.id);
-                            if (index >= 0) {
-                                this.projects[index] = project;
-                            } else {
-                                this.projects.push(project);
+                            try {
+                                const project = this.convertFirestoreToProject(change.doc.data(), change.doc.id);
+                                const index = this.projects.findIndex(p => p.id === change.doc.id);
+                                if (index >= 0) {
+                                    this.projects[index] = project;
+                                } else {
+                                    this.projects.push(project);
+                                }
+                                hasChanges = true;
+                            } catch (error) {
+                                console.error(`Error processing project ${change.doc.id}:`, error);
                             }
                         } else if (change.type === 'removed') {
                             this.projects = this.projects.filter(p => p.id !== change.doc.id);
+                            hasChanges = true;
                         }
                     });
-                    // Sort by date approved (newest first)
-                    this.projects.sort((a, b) => {
-                        const dateA = this.parseDate(a.dateApproved);
-                        const dateB = this.parseDate(b.dateApproved);
-                        return dateB - dateA;
-                    });
-                    this.renderProjects();
+
+                    if (hasChanges || changes.length === 0) {
+                        // Sort by date approved (newest first)
+                        this.projects.sort((a, b) => {
+                            const dateA = this.parseDate(a.dateApproved);
+                            const dateB = this.parseDate(b.dateApproved);
+                            return dateB - dateA;
+                        });
+                        this.renderProjects();
+                    }
                 }, (error) => {
-                    console.error('Error in real-time listener (fallback):', error);
+                    console.error('Error in real-time listener:', error);
+                    // Listener will continue to work, just log the error
                 });
+            
+            console.log('Real-time listener set up successfully');
         } catch (error) {
-            console.error('Error setting up fallback real-time listener:', error);
+            console.error('Error setting up real-time listener:', error);
         }
     }
+
 
     convertFirestoreToProject(data, id) {
         // Convert base64 back to ArrayBuffer for approval letter
@@ -149,25 +147,6 @@ class ProjectManager {
                 approvalLetterBlob = bytes.buffer;
             } catch (error) {
                 console.error('Error converting base64 to ArrayBuffer:', error);
-            }
-        } else if (data.hasLargePdf) {
-            // For large PDFs, try to get from localStorage as fallback
-            const localStorageKey = `project_pdf_${id}`;
-            const storedBase64 = localStorage.getItem(localStorageKey);
-            if (storedBase64) {
-                try {
-                    const binaryString = atob(storedBase64);
-                    const bytes = new Uint8Array(binaryString.length);
-                    for (let i = 0; i < binaryString.length; i++) {
-                        bytes[i] = binaryString.charCodeAt(i);
-                    }
-                    approvalLetterBlob = bytes.buffer;
-                    console.log('Large PDF loaded from localStorage');
-                } catch (error) {
-                    console.error('Error loading large PDF from localStorage:', error);
-                }
-            } else {
-                console.warn('Large PDF detected but not found in localStorage for project:', id);
             }
         }
 
@@ -191,7 +170,7 @@ class ProjectManager {
 
     convertProjectToFirestore(project) {
         // Check PDF size - Firestore has 1MB limit per field
-        // For large PDFs, we'll store a reference and keep the blob in localStorage
+        // For large PDFs, we'll need to use Firebase Storage (not implemented yet)
         let approvalLetterBlobBase64 = null;
         let approvalLetterSize = 0;
         
@@ -211,7 +190,9 @@ class ProjectManager {
                     console.error('Error converting ArrayBuffer to base64:', error);
                 }
             } else {
-                console.warn(`PDF too large for Firestore (${approvalLetterSize} bytes). Storing reference only.`);
+                console.warn(`PDF too large for Firestore (${approvalLetterSize} bytes). Maximum size is ~800KB.`);
+                alert(`Warning: PDF is too large (${(approvalLetterSize / 1024).toFixed(0)}KB). Maximum size is 800KB. Please use a smaller PDF or compress it.`);
+                throw new Error('PDF too large for Firestore');
             }
         }
 
@@ -223,10 +204,9 @@ class ProjectManager {
             dateApproved: project.dateApproved || '',
             dateConstructionStarted: project.dateConstructionStarted || '',
             status: project.status || 'open',
-            approvalLetterBlobBase64: approvalLetterBlobBase64, // null if too large
+            approvalLetterBlobBase64: approvalLetterBlobBase64,
             approvalLetterFilename: project.approvalLetterFilename || '',
             approvalLetterSize: approvalLetterSize,
-            hasLargePdf: approvalLetterSize > 800000, // Flag for large PDFs
             depositAmountReceived: project.depositAmountReceived || null,
             dateDepositReceived: project.dateDepositReceived || '',
             depositAmountReturned: project.depositAmountReturned || null,
@@ -382,41 +362,21 @@ class ProjectManager {
                 dateDepositReturned: formattedDateDepositReturned
             };
 
-            if (this.firestoreEnabled && this.db) {
-                try {
-                    const firestoreData = this.convertProjectToFirestore(project);
-                    const docRef = await this.db.collection(this.collectionName).add(firestoreData);
-                    project.id = docRef.id; // Use Firestore document ID
-                    
-                    // If PDF is too large for Firestore, store it in localStorage as fallback
-                    if (project.approvalLetterBlob && project.approvalLetterBlob.byteLength > 800000) {
-                        const localStorageKey = `project_pdf_${project.id}`;
-                        try {
-                            // Convert ArrayBuffer to base64 for localStorage
-                            const bytes = new Uint8Array(project.approvalLetterBlob);
-                            let binary = '';
-                            for (let i = 0; i < bytes.length; i++) {
-                                binary += String.fromCharCode(bytes[i]);
-                            }
-                            const base64 = btoa(binary);
-                            localStorage.setItem(localStorageKey, base64);
-                            console.log('Large PDF stored in localStorage as fallback');
-                        } catch (storageError) {
-                            console.error('Error storing large PDF in localStorage:', storageError);
-                        }
-                    }
-                    
-                    this.projects.unshift(project);
-                    console.log('Project added to Firestore:', docRef.id);
-                } catch (error) {
-                    console.error('Error adding project to Firestore:', error);
-                    // Fallback to localStorage
-                    this.projects.unshift(project);
-                    this.saveProjects();
-                }
-            } else {
+            if (!this.firestoreEnabled || !this.db) {
+                alert('Firestore not initialized. Cannot add project. Please configure Firebase.');
+                return;
+            }
+
+            try {
+                const firestoreData = this.convertProjectToFirestore(project);
+                const docRef = await this.db.collection(this.collectionName).add(firestoreData);
+                project.id = docRef.id; // Use Firestore document ID
                 this.projects.unshift(project);
-                this.saveProjects();
+                console.log('Project added to Firestore:', docRef.id);
+            } catch (error) {
+                console.error('Error adding project to Firestore:', error);
+                alert('Error adding project: ' + (error.message || 'Unknown error'));
+                throw error;
             }
             
             this.renderProjects();
@@ -509,40 +469,53 @@ class ProjectManager {
     }
 
     async loadProjects() {
-        if (this.firestoreEnabled && this.db) {
+        if (!this.firestoreEnabled || !this.db) {
+            console.error('Cannot load projects: Firestore not initialized');
+            this.projects = [];
+            return;
+        }
+
+        try {
+            // Try to get projects ordered by dateApproved
+            let snapshot;
             try {
-                // Try to get projects ordered by dateApproved
-                let snapshot;
-                try {
-                    snapshot = await this.db.collection(this.collectionName)
-                        .orderBy('dateApproved', 'desc')
-                        .get();
-                } catch (orderError) {
-                    // If ordering fails (no index), get all and sort in memory
-                    console.warn('OrderBy failed, fetching all and sorting:', orderError);
-                    snapshot = await this.db.collection(this.collectionName).get();
-                }
-                
-                this.projects = snapshot.docs.map(doc => 
-                    this.convertFirestoreToProject(doc.data(), doc.id)
-                );
+                snapshot = await this.db.collection(this.collectionName)
+                    .orderBy('dateApproved', 'desc')
+                    .get();
+            } catch (orderError) {
+                // If ordering fails (no index), get all and sort in memory
+                console.warn('OrderBy failed (index may be needed), fetching all and sorting:', orderError.message);
+                snapshot = await this.db.collection(this.collectionName).get();
+            }
+            
+            if (snapshot && snapshot.docs) {
+                this.projects = snapshot.docs.map(doc => {
+                    try {
+                        return this.convertFirestoreToProject(doc.data(), doc.id);
+                    } catch (error) {
+                        console.error(`Error converting project ${doc.id}:`, error);
+                        return null;
+                    }
+                }).filter(p => p !== null); // Remove any failed conversions
                 
                 // Sort by dateApproved if we couldn't use orderBy
-                this.projects.sort((a, b) => {
-                    const dateA = this.parseDate(a.dateApproved);
-                    const dateB = this.parseDate(b.dateApproved);
-                    return dateB - dateA; // Descending order
-                });
+                if (this.projects.length > 0) {
+                    this.projects.sort((a, b) => {
+                        const dateA = this.parseDate(a.dateApproved);
+                        const dateB = this.parseDate(b.dateApproved);
+                        return dateB - dateA; // Descending order
+                    });
+                }
                 
                 console.log(`Loaded ${this.projects.length} projects from Firestore`);
-            } catch (error) {
-                console.error('Error loading projects from Firestore:', error);
-                // Fallback to localStorage
-                this.loadProjectsFromLocalStorage();
+            } else {
+                console.warn('No snapshot or docs returned from Firestore');
+                this.projects = [];
             }
-        } else {
-            // Fallback to localStorage
-            this.loadProjectsFromLocalStorage();
+        } catch (error) {
+            console.error('Error loading projects from Firestore:', error);
+            this.projects = [];
+            alert('Error loading projects from Firestore. Please check your Firebase configuration.');
         }
     }
 
@@ -556,34 +529,11 @@ class ProjectManager {
         return new Date(dateString);
     }
 
-    loadProjectsFromLocalStorage() {
-        try {
-            const stored = localStorage.getItem(this.storageKey);
-            this.projects = stored ? JSON.parse(stored) : [];
-            console.log(`Loaded ${this.projects.length} projects from localStorage`);
-        } catch (error) {
-            console.error('Error loading projects from localStorage:', error);
-            this.projects = [];
-        }
-    }
-
-    async saveProjects() {
-        // Save to Firestore if enabled
-        if (this.firestoreEnabled && this.db) {
-            // Note: Individual project saves are handled in addProject/updateProject/deleteProject
-            // This method is kept for backward compatibility
-            return;
-        }
-        
-        // Fallback to localStorage
-        try {
-            localStorage.setItem(this.storageKey, JSON.stringify(this.projects));
-        } catch (error) {
-            console.error('Error saving projects to localStorage:', error);
-        }
-    }
-
     async addProject(projectData) {
+        if (!this.firestoreEnabled || !this.db) {
+            throw new Error('Firestore not initialized. Cannot add project.');
+        }
+
         const project = {
             id: Date.now().toString(),
             homeownerName: projectData.ownerLastName || 'Unknown',
@@ -601,69 +551,59 @@ class ProjectManager {
             dateDepositReturned: ''
         };
 
-        if (this.firestoreEnabled && this.db) {
-            try {
-                const firestoreData = this.convertProjectToFirestore(project);
-                const docRef = await this.db.collection(this.collectionName).add(firestoreData);
-                project.id = docRef.id; // Use Firestore document ID
-                this.projects.unshift(project);
-                console.log('Project added to Firestore:', docRef.id);
-            } catch (error) {
-                console.error('Error adding project to Firestore:', error);
-                // Fallback to localStorage
-                this.projects.unshift(project);
-                this.saveProjects();
-            }
-        } else {
+        try {
+            const firestoreData = this.convertProjectToFirestore(project);
+            const docRef = await this.db.collection(this.collectionName).add(firestoreData);
+            project.id = docRef.id; // Use Firestore document ID
             this.projects.unshift(project);
-            this.saveProjects();
+            console.log('Project added to Firestore:', docRef.id);
+            this.renderProjects();
+            return project;
+        } catch (error) {
+            console.error('Error adding project to Firestore:', error);
+            throw error; // Re-throw to let caller handle
         }
-        
-        this.renderProjects();
-        return project;
     }
 
     async updateProject(projectId, updates) {
+        if (!this.firestoreEnabled || !this.db) {
+            throw new Error('Firestore not initialized. Cannot update project.');
+        }
+
         const project = this.projects.find(p => p.id === projectId);
-        if (!project) return;
+        if (!project) {
+            throw new Error('Project not found');
+        }
 
         Object.assign(project, updates);
 
-        if (this.firestoreEnabled && this.db) {
-            try {
-                const firestoreData = this.convertProjectToFirestore(project);
-                await this.db.collection(this.collectionName).doc(projectId).update(firestoreData);
-                console.log('Project updated in Firestore:', projectId);
-            } catch (error) {
-                console.error('Error updating project in Firestore:', error);
-                // Fallback to localStorage
-                this.saveProjects();
-            }
-        } else {
-            this.saveProjects();
+        try {
+            const firestoreData = this.convertProjectToFirestore(project);
+            await this.db.collection(this.collectionName).doc(projectId).update(firestoreData);
+            console.log('Project updated in Firestore:', projectId);
+            this.renderProjects();
+        } catch (error) {
+            console.error('Error updating project in Firestore:', error);
+            throw error; // Re-throw to let caller handle
         }
-        
-        this.renderProjects();
     }
 
     async deleteProject(projectId) {
+        if (!this.firestoreEnabled || !this.db) {
+            alert('Firestore not initialized. Cannot delete project.');
+            return;
+        }
+
         if (confirm('Are you sure you want to delete this project?')) {
-            if (this.firestoreEnabled && this.db) {
-                try {
-                    await this.db.collection(this.collectionName).doc(projectId).delete();
-                    console.log('Project deleted from Firestore:', projectId);
-                } catch (error) {
-                    console.error('Error deleting project from Firestore:', error);
-                    // Fallback to localStorage
-                    this.projects = this.projects.filter(p => p.id !== projectId);
-                    this.saveProjects();
-                }
-            } else {
+            try {
+                await this.db.collection(this.collectionName).doc(projectId).delete();
+                console.log('Project deleted from Firestore:', projectId);
                 this.projects = this.projects.filter(p => p.id !== projectId);
-                this.saveProjects();
+                this.renderProjects();
+            } catch (error) {
+                console.error('Error deleting project from Firestore:', error);
+                alert('Error deleting project. Please try again.');
             }
-            
-            this.renderProjects();
         }
     }
 

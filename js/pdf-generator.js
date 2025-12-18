@@ -97,11 +97,16 @@ class PDFGenerator {
                 
                 // Save project if project manager is available
                 if (window.projectManager && result.blob) {
-                    await window.projectManager.addProject({
-                        ...formData,
-                        approvalLetterBlob: result.blob,
-                        approvalLetterFilename: result.filename
-                    });
+                    try {
+                        await window.projectManager.addProject({
+                            ...formData,
+                            approvalLetterBlob: result.blob,
+                            approvalLetterFilename: result.filename
+                        });
+                    } catch (error) {
+                        console.error('Error saving project to Firestore:', error);
+                        alert('Project saved locally, but could not sync to Firestore. Please check your Firebase configuration.');
+                    }
                 }
                 
                 setTimeout(() => {
@@ -120,11 +125,16 @@ class PDFGenerator {
             if (window.projectManager) {
                 // Convert blob to array buffer for storage
                 const arrayBuffer = await pdfBlob.arrayBuffer();
-                await window.projectManager.addProject({
-                    ...formData,
-                    approvalLetterBlob: arrayBuffer,
-                    approvalLetterFilename: filename
-                });
+                try {
+                    await window.projectManager.addProject({
+                        ...formData,
+                        approvalLetterBlob: arrayBuffer,
+                        approvalLetterFilename: filename
+                    });
+                } catch (error) {
+                    console.error('Error saving project to Firestore:', error);
+                    alert('Project saved locally, but could not sync to Firestore. Please check your Firebase configuration.');
+                }
             }
             
             this.showLoading(false);
