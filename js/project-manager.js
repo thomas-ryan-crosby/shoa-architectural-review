@@ -42,9 +42,17 @@ class ProjectManager {
                 addProjectBtn.parentNode.replaceChild(newBtn, addProjectBtn);
                 newBtn.addEventListener('click', () => this.promptLogin('add project'));
             } else {
-                const toggleText = document.getElementById('toggleAddProjectText');
-                if (toggleText) {
-                    toggleText.textContent = '+ Add Existing Project';
+                // User is authenticated - restore button functionality
+                addProjectBtn.textContent = '+ Add Existing Project';
+                // Remove existing listeners and restore toggle functionality
+                const newBtn = addProjectBtn.cloneNode(true);
+                addProjectBtn.parentNode.replaceChild(newBtn, addProjectBtn);
+                const form = document.getElementById('addProjectForm');
+                if (form) {
+                    newBtn.addEventListener('click', () => {
+                        const isVisible = form.style.display !== 'none';
+                        form.style.display = isVisible ? 'none' : 'block';
+                    });
                 }
             }
         }
