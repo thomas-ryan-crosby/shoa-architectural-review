@@ -1099,15 +1099,12 @@ class ProjectManager {
                         const storageRef = storage.ref(decodedPath);
                         
                         // Get a fresh download URL with authentication token
+                        // This URL already includes the token, so no Authorization header needed
                         const downloadURL = await storageRef.getDownloadURL();
                         
-                        // Fetch the file using the authenticated URL
-                        const response = await fetch(downloadURL, {
-                            method: 'GET',
-                            headers: {
-                                'Authorization': `Bearer ${await window.firebaseAuth.currentUser.getIdToken()}`
-                            }
-                        });
+                        // Fetch the file - the URL token handles authentication
+                        // Note: CORS must be configured in Firebase Storage for this to work
+                        const response = await fetch(downloadURL);
                         
                         if (!response.ok) {
                             throw new Error(`Failed to download: ${response.statusText} (${response.status})`);
@@ -1123,25 +1120,19 @@ class ProjectManager {
                     }
                 } catch (storageError) {
                     console.error('Error downloading from Storage:', storageError);
-                    // Fallback: try direct fetch with authentication header
+                    // If CORS error, provide helpful message
+                    if (storageError.message && storageError.message.includes('CORS')) {
+                        throw new Error('CORS error: Firebase Storage needs CORS configuration. See FIREBASE_SETUP.md for instructions.');
+                    }
+                    // Fallback: try direct fetch
                     try {
-                        const user = window.firebaseAuth.currentUser;
-                        if (!user) {
-                            throw new Error('User not authenticated');
-                        }
-                        const token = await user.getIdToken();
-                        const response = await fetch(project.approvalLetterStorageUrl, {
-                            method: 'GET',
-                            headers: {
-                                'Authorization': `Bearer ${token}`
-                            }
-                        });
+                        const response = await fetch(project.approvalLetterStorageUrl);
                         if (!response.ok) {
                             throw new Error(`Failed to download: ${response.statusText} (${response.status}). Make sure you are signed in.`);
                         }
                         blob = await response.blob();
                     } catch (fetchError) {
-                        throw new Error(`Failed to download approval letter: ${storageError.message || fetchError.message}. Please ensure you are signed in and the file exists.`);
+                        throw new Error(`Failed to download approval letter: ${storageError.message || fetchError.message}. Please ensure you are signed in and CORS is configured in Firebase Storage.`);
                     }
                 }
             } else {
