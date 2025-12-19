@@ -125,40 +125,69 @@ class ProjectManager {
     }
 
     setupRealtimeListener() {
-        if (!this.firestoreEnabled || !this.db) return;
+        if (!this.firestoreEnabled || !this.db) {
+            console.error('Cannot set up real-time listener: Firestore not enabled or db not available');
+            return;
+        }
 
         try {
+            console.log('Setting up real-time listener for collection:', this.collectionName);
+            
             // Start with basic query (no orderBy) to avoid index issues
             // We'll sort in memory instead
             this.unsubscribe = this.db.collection(this.collectionName)
                 .onSnapshot(async (snapshot) => {
+                    console.log('Real-time listener snapshot received');
+                    
                     if (!snapshot) {
                         console.warn('Invalid snapshot in real-time listener');
                         return;
                     }
 
-                    const changes = snapshot.docChanges();
-                    let hasChanges = false;
+                    // Check if this is the initial snapshot (all docs will be "added")
                     const isInitialLoad = this.projects.length === 0;
+                    const changes = snapshot.docChanges();
+                    const allDocs = snapshot.docs || [];
+                    
+                    console.log(`Snapshot: ${allDocs.length} total docs, ${changes.length} changes, isInitialLoad: ${isInitialLoad}`);
+                    
+                    let hasChanges = false;
 
-                    // Process changes asynchronously
-                    for (const change of changes) {
-                        if (change.type === 'added' || change.type === 'modified') {
-                            try {
-                                const project = await this.convertFirestoreToProject(change.doc.data(), change.doc.id);
-                                const index = this.projects.findIndex(p => p.id === change.doc.id);
-                                if (index >= 0) {
-                                    this.projects[index] = project;
-                                } else {
-                                    this.projects.push(project);
-                                }
-                                hasChanges = true;
-                            } catch (error) {
-                                console.error(`Error processing project ${change.doc.id}:`, error);
+                    // On initial load, process all documents from snapshot.docs
+                    // For subsequent updates, use docChanges()
+                    const docsToProcess = isInitialLoad ? allDocs : changes.map(c => c.doc);
+                    
+                    if (isInitialLoad && allDocs.length > 0) {
+                        console.log(`Processing ${allDocs.length} documents on initial load`);
+                    }
+
+                    // Process documents asynchronously
+                    for (const doc of docsToProcess) {
+                        try {
+                            const data = doc.data();
+                            const docId = doc.id;
+                            const project = await this.convertFirestoreToProject(data, docId);
+                            
+                            const index = this.projects.findIndex(p => p.id === docId);
+                            if (index >= 0) {
+                                this.projects[index] = project;
+                                console.log(`Updated project: ${project.homeownerName} (${docId})`);
+                            } else {
+                                this.projects.push(project);
+                                console.log(`Added project: ${project.homeownerName} (${docId})`);
                             }
-                        } else if (change.type === 'removed') {
+                            hasChanges = true;
+                        } catch (error) {
+                            console.error(`Error processing project ${doc.id}:`, error);
+                        }
+                    }
+                    
+                    // Process removals from changes
+                    for (const change of changes) {
+                        if (change.type === 'removed') {
                             this.projects = this.projects.filter(p => p.id !== change.doc.id);
                             hasChanges = true;
+                            console.log(`Removed project: ${change.doc.id}`);
                         }
                     }
                     
@@ -171,17 +200,20 @@ class ProjectManager {
                             return dateB - dateA; // Descending order
                         });
                         
-                        console.log(`Rendering ${this.projects.length} projects (initial load: ${isInitialLoad})`);
+                        console.log(`Rendering ${this.projects.length} projects (initial load: ${isInitialLoad}, hasChanges: ${hasChanges})`);
                         this.renderProjects();
+                        this.updateStorageStatus();
                     }
                 }, (error) => {
                     console.error('Error in real-time listener:', error);
+                    this.updateStorageStatus();
                     // Listener will continue to work, just log the error
                 });
             
             console.log('Real-time listener set up successfully');
         } catch (error) {
             console.error('Error setting up real-time listener:', error);
+            this.updateStorageStatus();
         }
     }
 
