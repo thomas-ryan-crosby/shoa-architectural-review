@@ -875,7 +875,7 @@ class ProjectManager {
         Object.assign(project, updates);
 
         try {
-            const firestoreData = this.convertProjectToFirestore(project);
+            const firestoreData = await this.convertProjectToFirestore(project);
             await this.db.collection(this.collectionName).doc(projectId).update(firestoreData);
             console.log('Project updated in Firestore:', projectId);
             this.renderProjects();
@@ -1138,16 +1138,20 @@ class ProjectManager {
             const depositReturned = document.getElementById('editDepositReturned').value.trim();
             const dateDepositReturned = document.getElementById('editDateDepositReturned').value.trim();
 
-            this.updateProject(projectId, {
-                dateConstructionStarted: dateStarted,
-                status: status,
-                depositAmountReceived: depositReceived ? parseFloat(depositReceived) : null,
-                dateDepositReceived: dateDepositReceived,
-                depositAmountReturned: depositReturned ? parseFloat(depositReturned) : null,
-                dateDepositReturned: dateDepositReturned
-            });
-
-            document.body.removeChild(dialog);
+            try {
+                await this.updateProject(projectId, {
+                    dateConstructionStarted: dateStarted,
+                    status: status,
+                    depositAmountReceived: depositReceived ? parseFloat(depositReceived) : null,
+                    dateDepositReceived: dateDepositReceived,
+                    depositAmountReturned: depositReturned ? parseFloat(depositReturned) : null,
+                    dateDepositReturned: dateDepositReturned
+                });
+                document.body.removeChild(dialog);
+            } catch (error) {
+                console.error('Error updating project:', error);
+                alert('Failed to update project: ' + error.message);
+            }
         });
 
         // Handle cancel
