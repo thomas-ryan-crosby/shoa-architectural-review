@@ -267,6 +267,8 @@ class ProjectManager {
             address: data.address || '',
             lot: data.lot || '',
             projectType: data.projectType || '',
+            contractorName: data.contractorName || '',
+            approvedBy: data.approvedBy || '',
             dateApproved: data.dateApproved || '',
             dateConstructionStarted: data.dateConstructionStarted || '',
             status: data.status || 'open',
@@ -343,6 +345,8 @@ class ProjectManager {
             address: project.address || '',
             lot: project.lot || '',
             projectType: project.projectType || '',
+            contractorName: project.contractorName || '',
+            approvedBy: project.approvedBy || '',
             dateApproved: project.dateApproved || '',
             dateConstructionStarted: project.dateConstructionStarted || '',
             status: project.status || 'open',
@@ -1081,36 +1085,113 @@ class ProjectManager {
         const project = this.projects.find(p => p.id === projectId);
         if (!project) return;
 
-        // Create edit form HTML
+        // Format date for input (YYYY-MM-DD from MM/DD/YYYY)
+        const formatDateForInput = (dateStr) => {
+            if (!dateStr) return '';
+            const parts = dateStr.split('/');
+            if (parts.length === 3) {
+                return `${parts[2]}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
+            }
+            return dateStr;
+        };
+
+        // Create edit form HTML with all fields
         const editForm = `
             <div style="padding: 20px;">
                 <h3>Edit Project: ${project.homeownerName}</h3>
+                
                 <div style="margin-bottom: 15px;">
-                    <label>Construction Start Date (MM/DD/YYYY):</label><br>
-                    <input type="text" id="editDateStarted" value="${project.dateConstructionStarted || ''}" style="width: 100%; padding: 8px; margin-top: 5px;">
+                    <label><strong>Homeowner Name:</strong></label><br>
+                    <input type="text" id="editHomeownerName" value="${project.homeownerName || ''}" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px;">
                 </div>
+                
                 <div style="margin-bottom: 15px;">
-                    <label>Status:</label><br>
-                    <select id="editStatus" style="width: 100%; padding: 8px; margin-top: 5px;">
+                    <label><strong>Property Address:</strong></label><br>
+                    <input type="text" id="editAddress" value="${project.address || ''}" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+                
+                <div style="margin-bottom: 15px;">
+                    <label><strong>Lot Number:</strong></label><br>
+                    <input type="text" id="editLot" value="${project.lot || ''}" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+                
+                <div style="margin-bottom: 15px;">
+                    <label><strong>Project Type:</strong></label><br>
+                    <select id="editProjectType" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px;">
+                        <option value="">Select a project type...</option>
+                        <option value="New Home" ${project.projectType === 'New Home' ? 'selected' : ''}>New Home</option>
+                        <option value="Renovation/Extension" ${project.projectType === 'Renovation/Extension' ? 'selected' : ''}>Renovation/Extension</option>
+                        <option value="Accessory Structure" ${project.projectType === 'Accessory Structure' ? 'selected' : ''}>Accessory Structure</option>
+                        <option value="Pool" ${project.projectType === 'Pool' ? 'selected' : ''}>Pool</option>
+                        <option value="Other" ${project.projectType && !['New Home', 'Renovation/Extension', 'Accessory Structure', 'Pool'].includes(project.projectType) ? 'selected' : ''}>Other</option>
+                    </select>
+                </div>
+                
+                <div style="margin-bottom: 15px; display: ${project.projectType && !['New Home', 'Renovation/Extension', 'Accessory Structure', 'Pool'].includes(project.projectType) ? 'block' : 'none'};" id="editOtherProjectTypeGroup">
+                    <label><strong>Specify Project Type:</strong></label><br>
+                    <input type="text" id="editOtherProjectType" value="${project.projectType && !['New Home', 'Renovation/Extension', 'Accessory Structure', 'Pool'].includes(project.projectType) ? project.projectType : ''}" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+                
+                <div style="margin-bottom: 15px;">
+                    <label><strong>Contractor Name:</strong></label><br>
+                    <input type="text" id="editContractorName" value="${project.contractorName || ''}" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+                
+                <div style="margin-bottom: 15px;">
+                    <label><strong>Approved By:</strong></label><br>
+                    <input type="text" id="editApprovedBy" value="${project.approvedBy || ''}" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+                
+                <div style="margin-bottom: 15px;">
+                    <label><strong>Date Approved:</strong></label><br>
+                    <input type="date" id="editDateApproved" value="${formatDateForInput(project.dateApproved)}" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px;">
+                    <div style="margin-top: 8px;">
+                        <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; cursor: pointer;">
+                            <input type="checkbox" id="editNoApprovalOnRecord" ${project.noApprovalOnRecord ? 'checked' : ''}>
+                            <span>No Approval on Record</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 15px;">
+                    <label><strong>Construction Start Date:</strong></label><br>
+                    <input type="text" id="editDateStarted" value="${project.dateConstructionStarted || ''}" placeholder="MM/DD/YYYY" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+                
+                <div style="margin-bottom: 15px;">
+                    <label><strong>Status:</strong></label><br>
+                    <select id="editStatus" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px;">
                         <option value="open" ${project.status === 'open' ? 'selected' : ''}>Open</option>
                         <option value="previous" ${project.status === 'previous' ? 'selected' : ''}>Previous</option>
                     </select>
                 </div>
+                
                 <div style="margin-bottom: 15px;">
-                    <label>Deposit Amount Received ($):</label><br>
-                    <input type="number" id="editDepositReceived" value="${project.depositAmountReceived || ''}" step="0.01" min="0" style="width: 100%; padding: 8px; margin-top: 5px;">
+                    <label><strong>Deposit Amount Received ($):</strong></label><br>
+                    <input type="number" id="editDepositReceived" value="${project.depositAmountReceived || ''}" step="0.01" min="0" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px;">
                 </div>
+                
                 <div style="margin-bottom: 15px;">
-                    <label>Date Deposit Received (MM/DD/YYYY):</label><br>
-                    <input type="text" id="editDateDepositReceived" value="${project.dateDepositReceived || ''}" style="width: 100%; padding: 8px; margin-top: 5px;">
+                    <label><strong>Date Deposit Received:</strong></label><br>
+                    <input type="text" id="editDateDepositReceived" value="${project.dateDepositReceived || ''}" placeholder="MM/DD/YYYY" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px;">
                 </div>
+                
                 <div style="margin-bottom: 15px;">
-                    <label>Deposit Amount Returned ($):</label><br>
-                    <input type="number" id="editDepositReturned" value="${project.depositAmountReturned !== null ? project.depositAmountReturned : ''}" step="0.01" min="0" style="width: 100%; padding: 8px; margin-top: 5px;">
+                    <label><strong>Deposit Amount Returned ($):</strong></label><br>
+                    <input type="number" id="editDepositReturned" value="${project.depositAmountReturned !== null ? project.depositAmountReturned : ''}" step="0.01" min="0" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px;">
                 </div>
+                
                 <div style="margin-bottom: 15px;">
-                    <label>Date Deposit Returned (MM/DD/YYYY):</label><br>
-                    <input type="text" id="editDateDepositReturned" value="${project.dateDepositReturned || ''}" style="width: 100%; padding: 8px; margin-top: 5px;">
+                    <label><strong>Date Deposit Returned:</strong></label><br>
+                    <input type="text" id="editDateDepositReturned" value="${project.dateDepositReturned || ''}" placeholder="MM/DD/YYYY" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+                
+                <div style="margin-bottom: 15px;">
+                    <label><strong>Upload Approval Letter PDF:</strong></label><br>
+                    <input type="file" id="editApprovalLetter" accept=".pdf" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px;">
+                    <div style="margin-top: 5px; font-size: 0.9rem; color: #666;">
+                        ${project.approvalLetterFilename ? `Current file: ${project.approvalLetterFilename}` : 'No approval letter on file'}
+                    </div>
                 </div>
             </div>
         `;
@@ -1119,7 +1200,7 @@ class ProjectManager {
         const dialog = document.createElement('div');
         dialog.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; display: flex; align-items: center; justify-content: center;';
         dialog.innerHTML = `
-            <div style="background: white; padding: 0; border-radius: 8px; max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto;">
+            <div style="background: white; padding: 0; border-radius: 8px; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto;">
                 ${editForm}
                 <div style="padding: 20px; border-top: 1px solid #ddd; display: flex; gap: 10px; justify-content: flex-end;">
                     <button id="editCancelBtn" style="padding: 10px 20px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 6px; cursor: pointer;">Cancel</button>
@@ -1129,24 +1210,73 @@ class ProjectManager {
         `;
         document.body.appendChild(dialog);
 
+        // Handle project type change to show/hide "Other" field
+        const projectTypeSelect = document.getElementById('editProjectType');
+        const otherProjectTypeGroup = document.getElementById('editOtherProjectTypeGroup');
+        if (projectTypeSelect && otherProjectTypeGroup) {
+            projectTypeSelect.addEventListener('change', () => {
+                if (projectTypeSelect.value === 'Other') {
+                    otherProjectTypeGroup.style.display = 'block';
+                } else {
+                    otherProjectTypeGroup.style.display = 'none';
+                }
+            });
+        }
+
         // Handle save
         document.getElementById('editSaveBtn').addEventListener('click', async () => {
+            const homeownerName = document.getElementById('editHomeownerName').value.trim();
+            const address = document.getElementById('editAddress').value.trim();
+            const lot = document.getElementById('editLot').value.trim();
+            const projectTypeSelect = document.getElementById('editProjectType');
+            const projectType = projectTypeSelect.value === 'Other' 
+                ? document.getElementById('editOtherProjectType').value.trim() 
+                : projectTypeSelect.value;
+            const contractorName = document.getElementById('editContractorName').value.trim();
+            const approvedBy = document.getElementById('editApprovedBy').value.trim();
+            const dateApprovedInput = document.getElementById('editDateApproved');
+            const dateApproved = dateApprovedInput.value ? this.formatDateFromInput(dateApprovedInput.value) : '';
+            const noApprovalOnRecord = document.getElementById('editNoApprovalOnRecord').checked;
             const dateStarted = document.getElementById('editDateStarted').value.trim();
             const status = document.getElementById('editStatus').value;
             const depositReceived = document.getElementById('editDepositReceived').value.trim();
             const dateDepositReceived = document.getElementById('editDateDepositReceived').value.trim();
             const depositReturned = document.getElementById('editDepositReturned').value.trim();
             const dateDepositReturned = document.getElementById('editDateDepositReturned').value.trim();
+            const approvalLetterFile = document.getElementById('editApprovalLetter').files[0];
+
+            const updates = {
+                homeownerName: homeownerName,
+                address: address,
+                lot: lot,
+                projectType: projectType,
+                contractorName: contractorName,
+                approvedBy: approvedBy,
+                dateApproved: noApprovalOnRecord ? '' : dateApproved,
+                noApprovalOnRecord: noApprovalOnRecord,
+                dateConstructionStarted: dateStarted,
+                status: status,
+                depositAmountReceived: depositReceived ? parseFloat(depositReceived) : null,
+                dateDepositReceived: dateDepositReceived,
+                depositAmountReturned: depositReturned ? parseFloat(depositReturned) : null,
+                dateDepositReturned: dateDepositReturned
+            };
+
+            // Handle file upload if provided
+            if (approvalLetterFile) {
+                try {
+                    const arrayBuffer = await approvalLetterFile.arrayBuffer();
+                    updates.approvalLetterBlob = arrayBuffer;
+                    updates.approvalLetterFilename = approvalLetterFile.name;
+                } catch (error) {
+                    console.error('Error reading file:', error);
+                    alert('Error reading approval letter file: ' + error.message);
+                    return;
+                }
+            }
 
             try {
-                await this.updateProject(projectId, {
-                    dateConstructionStarted: dateStarted,
-                    status: status,
-                    depositAmountReceived: depositReceived ? parseFloat(depositReceived) : null,
-                    dateDepositReceived: dateDepositReceived,
-                    depositAmountReturned: depositReturned ? parseFloat(depositReturned) : null,
-                    dateDepositReturned: dateDepositReturned
-                });
+                await this.updateProject(projectId, updates);
                 document.body.removeChild(dialog);
             } catch (error) {
                 console.error('Error updating project:', error);
@@ -1158,6 +1288,16 @@ class ProjectManager {
         document.getElementById('editCancelBtn').addEventListener('click', () => {
             document.body.removeChild(dialog);
         });
+    }
+
+    formatDateFromInput(dateStr) {
+        // Convert YYYY-MM-DD to MM/DD/YYYY
+        if (!dateStr) return '';
+        const parts = dateStr.split('-');
+        if (parts.length === 3) {
+            return `${parts[1]}/${parts[2]}/${parts[0]}`;
+        }
+        return dateStr;
     }
 }
 
