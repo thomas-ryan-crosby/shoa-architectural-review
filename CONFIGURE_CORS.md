@@ -1,29 +1,27 @@
 # Configure CORS for Firebase Storage
 
-## Quick Setup via Google Cloud Console (No Installation Required)
+## Method 1: Via Firebase Console (Easiest - Recommended)
 
-1. **Go to Google Cloud Console:**
-   - Visit: https://console.cloud.google.com/
-   - Make sure you're signed in with the same Google account used for Firebase
+1. **Go to Firebase Console:**
+   - Visit: https://console.firebase.google.com/
+   - Make sure you're signed in with the same Google account
 
 2. **Select Your Project:**
-   - Click the project dropdown at the top
-   - Select: **sanctuary-hoa-arch-review**
+   - Click on: **sanctuary-hoa-arch-review**
 
-3. **Navigate to Cloud Storage:**
-   - In the left menu, click **"Cloud Storage"** (under "Storage")
-   - Click **"Buckets"**
+3. **Navigate to Storage:**
+   - In the left menu, click **"Storage"**
+   - You should see your storage bucket
 
-4. **Select Your Storage Bucket:**
-   - Click on the bucket: **sanctuary-hoa-arch-review.firebasestorage.app**
+4. **Open Google Cloud Console:**
+   - In the Storage page, look for a link or button that says **"Open in Google Cloud Console"** or **"Manage storage in Google Cloud Console"**
+   - Click it (this will open the bucket in Google Cloud Console)
 
 5. **Configure CORS:**
-   - Click the **"Configuration"** tab at the top
-   - Scroll down to **"CORS configuration"** section
+   - In Google Cloud Console, click the **"Configuration"** tab
+   - Scroll to **"CORS configuration"** section
    - Click **"Edit CORS configuration"** button
-
-6. **Add CORS Rules:**
-   - Paste this JSON configuration:
+   - Paste this JSON:
    ```json
    [
      {
@@ -34,15 +32,45 @@
      }
    ]
    ```
+   - Click **"Save"**
 
-7. **Save:**
-   - Click **"Save"** button
-   - Wait a few seconds for the configuration to apply
-
-8. **Test:**
+6. **Test:**
    - Go back to your app
    - Try downloading an approval letter
    - It should work now!
+
+## Method 2: Direct Google Cloud Console Access
+
+If Method 1 doesn't work, you may need to link your Firebase project to Google Cloud:
+
+1. **Go to Firebase Console:**
+   - Visit: https://console.firebase.google.com/
+   - Select: **sanctuary-hoa-arch-review**
+
+2. **Link to Google Cloud:**
+   - Click the gear icon ⚙️ next to "Project Overview"
+   - Click **"Project settings"**
+   - Scroll to **"Your project"** section
+   - If you see "Default GCP resource location", your project is already linked
+   - If not, you may need to upgrade to the Blaze plan (pay-as-you-go) to access Google Cloud features
+
+3. **Access Google Cloud Console:**
+   - In Firebase Console, click the gear icon ⚙️
+   - Click **"Project settings"**
+   - Scroll down and click **"Open in Google Cloud Console"** link
+   - This will open your project in Google Cloud Console
+
+4. **Navigate to Storage:**
+   - In Google Cloud Console, click **"Cloud Storage"** in the left menu
+   - Click **"Buckets"**
+   - Click on: **sanctuary-hoa-arch-review.firebasestorage.app**
+
+5. **Configure CORS:**
+   - Click the **"Configuration"** tab
+   - Scroll to **"CORS configuration"**
+   - Click **"Edit CORS configuration"**
+   - Paste the JSON from Method 1
+   - Click **"Save"**
 
 ## Alternative: Install Google Cloud SDK (If You Prefer Command Line)
 
