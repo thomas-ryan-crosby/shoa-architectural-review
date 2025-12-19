@@ -21,11 +21,8 @@ class ProjectManager {
         // Update storage status indicator
         this.updateStorageStatus();
         
-        // Load projects from Firestore (read-only, no auth required)
-        await this.loadProjects();
-        
-        // Render projects
-        this.renderProjects();
+        // Note: Real-time listener in initializeFirestore() will handle initial load
+        // No need to call loadProjects() separately - the listener will populate projects
         
         // Check auth status for write operations
         this.checkAuthForWrites();
@@ -134,50 +131,49 @@ class ProjectManager {
             // Start with basic query (no orderBy) to avoid index issues
             // We'll sort in memory instead
             this.unsubscribe = this.db.collection(this.collectionName)
-                .onSnapshot((snapshot) => {
-                    if (!snapshot || !snapshot.docChanges) {
+                .onSnapshot(async (snapshot) => {
+                    if (!snapshot) {
                         console.warn('Invalid snapshot in real-time listener');
                         return;
                     }
 
                     const changes = snapshot.docChanges();
                     let hasChanges = false;
+                    const isInitialLoad = this.projects.length === 0;
 
                     // Process changes asynchronously
-                    const processChanges = async () => {
-                        for (const change of changes) {
-                            if (change.type === 'added' || change.type === 'modified') {
-                                try {
-                                    const project = await this.convertFirestoreToProject(change.doc.data(), change.doc.id);
-                                    const index = this.projects.findIndex(p => p.id === change.doc.id);
-                                    if (index >= 0) {
-                                        this.projects[index] = project;
-                                    } else {
-                                        this.projects.push(project);
-                                    }
-                                    hasChanges = true;
-                                } catch (error) {
-                                    console.error(`Error processing project ${change.doc.id}:`, error);
+                    for (const change of changes) {
+                        if (change.type === 'added' || change.type === 'modified') {
+                            try {
+                                const project = await this.convertFirestoreToProject(change.doc.data(), change.doc.id);
+                                const index = this.projects.findIndex(p => p.id === change.doc.id);
+                                if (index >= 0) {
+                                    this.projects[index] = project;
+                                } else {
+                                    this.projects.push(project);
                                 }
-                            } else if (change.type === 'removed') {
-                                this.projects = this.projects.filter(p => p.id !== change.doc.id);
                                 hasChanges = true;
+                            } catch (error) {
+                                console.error(`Error processing project ${change.doc.id}:`, error);
                             }
+                        } else if (change.type === 'removed') {
+                            this.projects = this.projects.filter(p => p.id !== change.doc.id);
+                            hasChanges = true;
                         }
-                        
-                        if (hasChanges || changes.length === 0) {
-                            // Sort by date approved (newest first)
-                            this.projects.sort((a, b) => {
-                                const dateA = this.parseDate(a.dateApproved);
-                                const dateB = this.parseDate(b.dateApproved);
-                                return dateB - dateA; // Descending order
-                            });
-                            
-                            this.renderProjects();
-                        }
-                    };
+                    }
                     
-                    processChanges();
+                    // Always render on initial load (even if no projects) or if we have changes
+                    if (hasChanges || isInitialLoad) {
+                        // Sort by date approved (newest first)
+                        this.projects.sort((a, b) => {
+                            const dateA = this.parseDate(a.dateApproved);
+                            const dateB = this.parseDate(b.dateApproved);
+                            return dateB - dateA; // Descending order
+                        });
+                        
+                        console.log(`Rendering ${this.projects.length} projects (initial load: ${isInitialLoad})`);
+                        this.renderProjects();
+                    }
                 }, (error) => {
                     console.error('Error in real-time listener:', error);
                     // Listener will continue to work, just log the error
