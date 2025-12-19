@@ -84,38 +84,49 @@ service firebase.storage {
 
 ### Storage CORS Configuration (REQUIRED for Downloads)
 
-To allow downloads from your web app, you need to configure CORS for Firebase Storage:
+To allow downloads from your web app, you need to configure CORS for Firebase Storage. **The easiest way is through the Google Cloud Console (no installation required):**
 
-1. Install Google Cloud SDK (if not already installed): https://cloud.google.com/sdk/docs/install
-2. Run this command in your terminal (replace `sanctuary-hoa-arch-review` with your project ID):
+1. **Go to Google Cloud Console:**
+   - Visit: https://console.cloud.google.com/
+   - Sign in with the same Google account used for Firebase
 
+2. **Select Your Project:**
+   - Click the project dropdown at the top
+   - Select: **sanctuary-hoa-arch-review**
+
+3. **Navigate to Cloud Storage:**
+   - In the left menu, click **"Cloud Storage"** (under "Storage")
+   - Click **"Buckets"**
+
+4. **Select Your Storage Bucket:**
+   - Click on: **sanctuary-hoa-arch-review.firebasestorage.app**
+
+5. **Configure CORS:**
+   - Click the **"Configuration"** tab at the top
+   - Scroll to **"CORS configuration"** section
+   - Click **"Edit CORS configuration"** button
+   - Paste this JSON:
+   ```json
+   [
+     {
+       "origin": ["https://thomas-ryan-crosby.github.io"],
+       "method": ["GET", "POST", "PUT", "DELETE", "HEAD"],
+       "responseHeader": ["Content-Type", "Authorization"],
+       "maxAgeSeconds": 3600
+     }
+   ]
+   ```
+   - Click **"Save"**
+
+6. **Test:** Try downloading an approval letter - it should work now!
+
+**Alternative (Command Line):** If you have Google Cloud SDK installed, you can use:
 ```bash
 gsutil cors set cors.json gs://sanctuary-hoa-arch-review.firebasestorage.app
 ```
+(The `cors.json` file is already in your project directory)
 
-3. Create a file named `cors.json` with this content:
-
-```json
-[
-  {
-    "origin": ["https://thomas-ryan-crosby.github.io"],
-    "method": ["GET", "POST", "PUT", "DELETE", "HEAD"],
-    "responseHeader": ["Content-Type", "Authorization"],
-    "maxAgeSeconds": 3600
-  }
-]
-```
-
-**Note:** If you're testing locally, also add `http://localhost:8000` or your local development URL to the origin array.
-
-**Alternative:** If you can't use gsutil, you can configure CORS through the Google Cloud Console:
-1. Go to https://console.cloud.google.com/
-2. Select your Firebase project
-3. Navigate to Cloud Storage > Buckets
-4. Click on your storage bucket
-5. Go to the "Configuration" tab
-6. Click "Edit CORS configuration"
-7. Add the CORS configuration above
+**Note:** If testing locally, add `http://localhost:8000` to the origin array in the CORS config.
 
 **Important:** 
 - **Firestore Read access:** Anyone can view projects (no login required)

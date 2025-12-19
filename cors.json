@@ -1,0 +1,9 @@
+[
+  {
+    "origin": ["https://thomas-ryan-crosby.github.io"],
+    "method": ["GET", "POST", "PUT", "DELETE", "HEAD"],
+    "responseHeader": ["Content-Type", "Authorization"],
+    "maxAgeSeconds": 3600
+  }
+]
+
