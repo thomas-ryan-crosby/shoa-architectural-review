@@ -872,9 +872,13 @@ class ProjectManager {
         };
 
         try {
-            const firestoreData = this.convertProjectToFirestore(project);
+            const firestoreData = await this.convertProjectToFirestore(project);
             const docRef = await this.db.collection(this.collectionName).add(firestoreData);
             project.id = docRef.id; // Use Firestore document ID
+            // Update project with storage URL if PDF was uploaded
+            if (firestoreData.approvalLetterStorageUrl) {
+                project.approvalLetterStorageUrl = firestoreData.approvalLetterStorageUrl;
+            }
             this.projects.unshift(project);
             console.log('Project added to Firestore:', docRef.id);
             this.renderProjects();
