@@ -1188,7 +1188,16 @@ class ProjectManager {
                 
                 <div style="margin-bottom: 15px;">
                     <label><strong>Upload Approval Letter PDF:</strong></label><br>
-                    <input type="file" id="editApprovalLetter" accept=".pdf" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px;">
+                    <div id="editFileDropZone" style="border: 2px dashed #ddd; border-radius: 8px; padding: 30px; text-align: center; margin-top: 8px; background: #fafafa; cursor: pointer; transition: all 0.3s ease;">
+                        <div id="editFileDropZoneContent">
+                            <div style="font-size: 2rem; margin-bottom: 10px;">📄</div>
+                            <div style="font-weight: 500; margin-bottom: 5px;">Drag and drop PDF here</div>
+                            <div style="font-size: 0.9rem; color: #666; margin-bottom: 10px;">or</div>
+                            <div style="display: inline-block; padding: 8px 16px; background: #2c5530; color: white; border-radius: 4px; font-size: 0.9rem;">Click to browse</div>
+                        </div>
+                        <div id="editFileDropZoneFileName" style="display: none; margin-top: 10px; font-weight: 500; color: #2c5530;"></div>
+                    </div>
+                    <input type="file" id="editApprovalLetter" accept=".pdf" style="display: none;">
                     <div style="margin-top: 5px; font-size: 0.9rem; color: #666;">
                         ${project.approvalLetterFilename ? `Current file: ${project.approvalLetterFilename}` : 'No approval letter on file'}
                     </div>
