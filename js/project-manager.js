@@ -36,14 +36,15 @@ class ProjectManager {
         const addProjectBtn = document.getElementById('toggleAddProjectBtn');
         if (addProjectBtn) {
             if (!isAuthenticated) {
-                addProjectBtn.textContent = 'Sign In to Add Project';
+                // Not authenticated - show sign in prompt
+                addProjectBtn.innerHTML = 'Sign In to Add Project';
                 // Remove existing listeners and add new one
                 const newBtn = addProjectBtn.cloneNode(true);
                 addProjectBtn.parentNode.replaceChild(newBtn, addProjectBtn);
                 newBtn.addEventListener('click', () => this.promptLogin('add project'));
             } else {
-                // User is authenticated - restore button functionality
-                addProjectBtn.textContent = '+ Add Existing Project';
+                // User is authenticated - restore button with span and toggle functionality
+                addProjectBtn.innerHTML = '<span id="toggleAddProjectText">+ Add Existing Project</span>';
                 // Remove existing listeners and restore toggle functionality
                 const newBtn = addProjectBtn.cloneNode(true);
                 addProjectBtn.parentNode.replaceChild(newBtn, addProjectBtn);
@@ -52,6 +53,21 @@ class ProjectManager {
                     newBtn.addEventListener('click', () => {
                         const isVisible = form.style.display !== 'none';
                         form.style.display = isVisible ? 'none' : 'block';
+                        const toggleText = document.getElementById('toggleAddProjectText');
+                        if (toggleText) {
+                            toggleText.textContent = isVisible ? '+ Add Existing Project' : '− Hide Form';
+                        }
+                        // Set default date to today when opening and clear errors
+                        if (!isVisible) {
+                            const dateApproved = document.getElementById('addDateApproved');
+                            if (dateApproved && !dateApproved.value) {
+                                const today = new Date().toISOString().split('T')[0];
+                                dateApproved.value = today;
+                            }
+                            // Clear any existing error messages
+                            this.clearError('addApprovalLetter');
+                            this.clearError('addDateApproved');
+                        }
                     });
                 }
             }
