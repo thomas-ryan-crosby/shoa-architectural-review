@@ -1081,14 +1081,53 @@ class ProjectManager {
                 // Use in-memory blob (legacy base64)
                 blob = new Blob([project.approvalLetterBlob], { type: 'application/pdf' });
             } else if (project.approvalLetterStorageUrl) {
-                // Download from Firebase Storage
-                const response = await fetch(project.approvalLetterStorageUrl);
-                if (!response.ok) {
-                    throw new Error(`Failed to download: ${response.statusText}`);
+                // Download from Firebase Storage using Storage SDK
+                const storage = window.firebaseStorage;
+                if (!storage) {
+                    throw new Error('Firebase Storage not available');
                 }
-                blob = await response.blob();
+
+                try {
+                    // Extract storage path from the download URL
+                    // Firebase Storage download URLs have format: https://firebasestorage.googleapis.com/v0/b/{bucket}/o/{path}?alt=media&token={token}
+                    const url = new URL(project.approvalLetterStorageUrl);
+                    const pathMatch = url.pathname.match(/\/o\/(.+)/);
+                    
+                    if (pathMatch) {
+                        const encodedPath = pathMatch[1];
+                        const decodedPath = decodeURIComponent(encodedPath);
+                        const storageRef = storage.ref(decodedPath);
+                        
+                        // Use getBytes() to download with authentication
+                        const bytes = await storageRef.getBytes();
+                        blob = new Blob([bytes], { type: 'application/pdf' });
+                    } else {
+                        // Fallback: try fetching the URL directly (might work if token is still valid)
+                        const response = await fetch(project.approvalLetterStorageUrl);
+                        if (!response.ok) {
+                            throw new Error(`Failed to download: ${response.statusText} (${response.status})`);
+                        }
+                        blob = await response.blob();
+                    }
+                } catch (storageError) {
+                    console.error('Error downloading from Storage:', storageError);
+                    // Fallback: try direct fetch with error handling
+                    try {
+                        const response = await fetch(project.approvalLetterStorageUrl);
+                        if (!response.ok) {
+                            throw new Error(`Failed to download: ${response.statusText} (${response.status}). Make sure you are signed in.`);
+                        }
+                        blob = await response.blob();
+                    } catch (fetchError) {
+                        throw new Error(`Failed to download approval letter: ${storageError.message || fetchError.message}. Please ensure you are signed in and the file exists.`);
+                    }
+                }
             } else {
                 throw new Error('No approval letter available');
+            }
+            
+            if (!blob) {
+                throw new Error('Failed to retrieve approval letter');
             }
             
             const url = URL.createObjectURL(blob);
