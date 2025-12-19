@@ -232,6 +232,18 @@ class FormHandler {
             ? this.approvalReasonInput.value.trim()
             : 'The project meets Sanctuary Setback Requirements. No variances are required. Approved.';
 
+        // Get approved on date, or use today's date if not provided
+        const approvedOnInput = document.getElementById('approvedOn');
+        let approvedOn = '';
+        if (approvedOnInput && approvedOnInput.value) {
+            // Convert YYYY-MM-DD to Date object
+            const date = new Date(approvedOnInput.value);
+            approvedOn = date;
+        } else {
+            // Use today's date if not provided
+            approvedOn = new Date();
+        }
+
         return {
             address: document.getElementById('address').value.trim(),
             lot: document.getElementById('lot').value.trim(),
@@ -240,7 +252,8 @@ class FormHandler {
             projectType: projectType,
             reviewComments: reviewComments,
             approvalReason: approvalReason,
-            approvedBy: document.getElementById('approvedBy').value.trim()
+            approvedBy: document.getElementById('approvedBy').value.trim(),
+            approvedOn: approvedOn
         };
     }
 

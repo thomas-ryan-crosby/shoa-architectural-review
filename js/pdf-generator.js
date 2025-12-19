@@ -314,6 +314,15 @@ class PDFGenerator {
             yPos += 8;
         }
 
+        // Approved on date (use provided date or today's date)
+        const approvedDate = formData.approvedOn || new Date();
+        const approvedDateStr = this.formatDate(approvedDate);
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'italic');
+        doc.setTextColor(100, 100, 100);
+        doc.text(`Approved on: ${approvedDateStr}`, margin, yPos);
+        yPos += 8;
+
         // Add attachments note if there are files - modern, subtle styling
         if (window.fileHandler && window.fileHandler.getFiles().length > 0) {
             doc.setFontSize(9);
