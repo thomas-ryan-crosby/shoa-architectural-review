@@ -1261,7 +1261,10 @@ class ProjectManager {
                 if (files.length > 0) {
                     const file = files[0];
                     if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
-                        fileInput.files = files;
+                        // Create a new FileList using DataTransfer
+                        const dataTransfer = new DataTransfer();
+                        dataTransfer.items.add(file);
+                        fileInput.files = dataTransfer.files;
                         fileDropZoneFileName.textContent = `Selected: ${file.name}`;
                         fileDropZoneFileName.style.display = 'block';
                     } else {
