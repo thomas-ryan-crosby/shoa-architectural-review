@@ -1098,11 +1098,23 @@ class ProjectManager {
                         const decodedPath = decodeURIComponent(encodedPath);
                         const storageRef = storage.ref(decodedPath);
                         
-                        // Use getBytes() to download with authentication
-                        const bytes = await storageRef.getBytes();
-                        blob = new Blob([bytes], { type: 'application/pdf' });
+                        // Get a fresh download URL with authentication token
+                        const downloadURL = await storageRef.getDownloadURL();
+                        
+                        // Fetch the file using the authenticated URL
+                        const response = await fetch(downloadURL, {
+                            method: 'GET',
+                            headers: {
+                                'Authorization': `Bearer ${await window.firebaseAuth.currentUser.getIdToken()}`
+                            }
+                        });
+                        
+                        if (!response.ok) {
+                            throw new Error(`Failed to download: ${response.statusText} (${response.status})`);
+                        }
+                        blob = await response.blob();
                     } else {
-                        // Fallback: try fetching the URL directly (might work if token is still valid)
+                        // Fallback: try fetching the stored URL directly
                         const response = await fetch(project.approvalLetterStorageUrl);
                         if (!response.ok) {
                             throw new Error(`Failed to download: ${response.statusText} (${response.status})`);
@@ -1111,9 +1123,19 @@ class ProjectManager {
                     }
                 } catch (storageError) {
                     console.error('Error downloading from Storage:', storageError);
-                    // Fallback: try direct fetch with error handling
+                    // Fallback: try direct fetch with authentication header
                     try {
-                        const response = await fetch(project.approvalLetterStorageUrl);
+                        const user = window.firebaseAuth.currentUser;
+                        if (!user) {
+                            throw new Error('User not authenticated');
+                        }
+                        const token = await user.getIdToken();
+                        const response = await fetch(project.approvalLetterStorageUrl, {
+                            method: 'GET',
+                            headers: {
+                                'Authorization': `Bearer ${token}`
+                            }
+                        });
                         if (!response.ok) {
                             throw new Error(`Failed to download: ${response.statusText} (${response.status}). Make sure you are signed in.`);
                         }
