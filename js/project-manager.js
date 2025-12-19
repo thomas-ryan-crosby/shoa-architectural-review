@@ -99,6 +99,25 @@ class ProjectManager {
         }
     }
 
+    updateStorageStatus() {
+        const statusElement = document.getElementById('storageStatusText');
+        if (!statusElement) return;
+        
+        if (!this.firestoreEnabled) {
+            statusElement.textContent = '✗ Firebase Required';
+            statusElement.style.color = 'var(--error-color)';
+            return;
+        }
+        
+        if (this.projects.length === 0) {
+            statusElement.textContent = 'Loading...';
+            statusElement.style.color = 'var(--text-light)';
+        } else {
+            statusElement.textContent = `✓ ${this.projects.length} project${this.projects.length === 1 ? '' : 's'}`;
+            statusElement.style.color = 'var(--success-color, #4caf50)';
+        }
+    }
+
     showFirebaseError() {
         const statusElement = document.getElementById('storageStatusText');
         if (statusElement) {
