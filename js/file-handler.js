@@ -63,22 +63,31 @@ class FileHandler {
             }
         }, false);
 
-        // Drag and drop
-        uploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            uploadArea.classList.add('dragover');
+        // Drag and drop - prevent default on all drag events
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            });
         });
 
+        // Highlight drop zone when dragging over
+        ['dragenter', 'dragover'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, () => {
+                uploadArea.classList.add('dragover');
+            });
+        });
+
+        // Remove highlight when dragging leaves
         uploadArea.addEventListener('dragleave', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            uploadArea.classList.remove('dragover');
+            // Only remove if we're actually leaving the upload area (not just moving to a child element)
+            if (!uploadArea.contains(e.relatedTarget)) {
+                uploadArea.classList.remove('dragover');
+            }
         });
 
+        // Handle dropped files
         uploadArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
             uploadArea.classList.remove('dragover');
             if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
                 this.handleFiles(e.dataTransfer.files, areaName, allowedExtensions);
