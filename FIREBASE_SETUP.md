@@ -41,6 +41,8 @@
 
 ## Step 5: Production Security Rules (REQUIRED)
 
+### Firestore Rules
+
 1. In Firestore Database, click "Rules" tab
 2. Replace the rules with:
 
@@ -60,10 +62,31 @@ service cloud.firestore {
 
 3. Click "Publish" to save the rules
 
+### Storage Rules
+
+1. In Firebase Storage, click "Rules" tab
+2. Replace the rules with:
+
+```javascript
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Approval letters folder - require auth for upload, allow read for authenticated users
+    match /approval-letters/{projectId}/{fileName} {
+      allow read: if request.auth != null; // Only authenticated users can download
+      allow write: if request.auth != null; // Only authenticated users can upload
+    }
+  }
+}
+```
+
+3. Click "Publish" to save the rules
+
 **Important:** 
-- **Read access:** Anyone can view projects (no login required)
-- **Write access:** Only authenticated users can create, edit, or delete projects
-- This allows public viewing while protecting data modification
+- **Firestore Read access:** Anyone can view projects (no login required)
+- **Firestore Write access:** Only authenticated users can create, edit, or delete projects
+- **Storage access:** Only authenticated users can upload/download approval letters
+- This allows public viewing while protecting data modification and file access
 
 ## Step 6: Update firebase-config.js
 

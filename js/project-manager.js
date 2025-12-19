@@ -143,35 +143,41 @@ class ProjectManager {
                     const changes = snapshot.docChanges();
                     let hasChanges = false;
 
-                    changes.forEach((change) => {
-                        if (change.type === 'added' || change.type === 'modified') {
-                            try {
-                                const project = this.convertFirestoreToProject(change.doc.data(), change.doc.id);
-                                const index = this.projects.findIndex(p => p.id === change.doc.id);
-                                if (index >= 0) {
-                                    this.projects[index] = project;
-                                } else {
-                                    this.projects.push(project);
+                    // Process changes asynchronously
+                    const processChanges = async () => {
+                        for (const change of changes) {
+                            if (change.type === 'added' || change.type === 'modified') {
+                                try {
+                                    const project = await this.convertFirestoreToProject(change.doc.data(), change.doc.id);
+                                    const index = this.projects.findIndex(p => p.id === change.doc.id);
+                                    if (index >= 0) {
+                                        this.projects[index] = project;
+                                    } else {
+                                        this.projects.push(project);
+                                    }
+                                    hasChanges = true;
+                                } catch (error) {
+                                    console.error(`Error processing project ${change.doc.id}:`, error);
                                 }
+                            } else if (change.type === 'removed') {
+                                this.projects = this.projects.filter(p => p.id !== change.doc.id);
                                 hasChanges = true;
-                            } catch (error) {
-                                console.error(`Error processing project ${change.doc.id}:`, error);
                             }
-                        } else if (change.type === 'removed') {
-                            this.projects = this.projects.filter(p => p.id !== change.doc.id);
-                            hasChanges = true;
                         }
-                    });
-
-                    if (hasChanges || changes.length === 0) {
-                        // Sort by date approved (newest first)
-                        this.projects.sort((a, b) => {
-                            const dateA = this.parseDate(a.dateApproved);
-                            const dateB = this.parseDate(b.dateApproved);
-                            return dateB - dateA;
-                        });
-                        this.renderProjects();
-                    }
+                        
+                        if (hasChanges || changes.length === 0) {
+                            // Sort by date approved (newest first)
+                            this.projects.sort((a, b) => {
+                                const dateA = this.parseDate(a.dateApproved);
+                                const dateB = this.parseDate(b.dateApproved);
+                                return dateB - dateA; // Descending order
+                            });
+                            
+                            this.renderProjects();
+                        }
+                    };
+                    
+                    processChanges();
                 }, (error) => {
                     console.error('Error in real-time listener:', error);
                     // Listener will continue to work, just log the error
@@ -184,10 +190,17 @@ class ProjectManager {
     }
 
 
-    convertFirestoreToProject(data, id) {
-        // Convert base64 back to ArrayBuffer for approval letter
+    async convertFirestoreToProject(data, id) {
+        // Load approval letter from Firebase Storage or base64 (for backward compatibility)
         let approvalLetterBlob = null;
-        if (data.approvalLetterBlobBase64) {
+        let approvalLetterStorageUrl = null;
+        
+        if (data.approvalLetterStorageUrl) {
+            // New method: Store URL, download on-demand
+            approvalLetterStorageUrl = data.approvalLetterStorageUrl;
+            // Don't download immediately - download when needed (in downloadLetter)
+        } else if (data.approvalLetterBlobBase64) {
+            // Legacy method: Convert base64 back to ArrayBuffer (for old projects)
             try {
                 const binaryString = atob(data.approvalLetterBlobBase64);
                 const bytes = new Uint8Array(binaryString.length);
@@ -195,6 +208,7 @@ class ProjectManager {
                     bytes[i] = binaryString.charCodeAt(i);
                 }
                 approvalLetterBlob = bytes.buffer;
+                console.log('PDF loaded from base64 (legacy)');
             } catch (error) {
                 console.error('Error converting base64 to ArrayBuffer:', error);
             }
@@ -210,8 +224,9 @@ class ProjectManager {
             dateConstructionStarted: data.dateConstructionStarted || '',
             status: data.status || 'open',
             approvalLetterBlob: approvalLetterBlob,
+            approvalLetterStorageUrl: approvalLetterStorageUrl,
             approvalLetterFilename: data.approvalLetterFilename || '',
-            hasApprovalLetter: data.hasApprovalLetter !== undefined ? data.hasApprovalLetter : !!approvalLetterBlob,
+            hasApprovalLetter: data.hasApprovalLetter !== undefined ? data.hasApprovalLetter : (!!approvalLetterBlob || !!approvalLetterStorageUrl),
             noApprovalOnRecord: data.noApprovalOnRecord || false,
             depositAmountReceived: data.depositAmountReceived || null,
             dateDepositReceived: data.dateDepositReceived || '',
@@ -220,31 +235,59 @@ class ProjectManager {
         };
     }
 
-    convertProjectToFirestore(project) {
-        // Check PDF size - Firestore has 1MB limit per field
-        // For large PDFs, we'll need to use Firebase Storage (not implemented yet)
-        let approvalLetterBlobBase64 = null;
+    async convertProjectToFirestore(project) {
+        // Use Firebase Storage for PDFs (supports files up to 5GB)
+        let approvalLetterStorageUrl = null;
         let approvalLetterSize = 0;
         
         if (project.approvalLetterBlob) {
             approvalLetterSize = project.approvalLetterBlob.byteLength || 0;
-            const maxSize = 800000; // ~800KB to leave room (1MB = 1048576 bytes)
             
-            if (approvalLetterSize <= maxSize) {
-                try {
-                    const bytes = new Uint8Array(project.approvalLetterBlob);
-                    let binary = '';
-                    for (let i = 0; i < bytes.length; i++) {
-                        binary += String.fromCharCode(bytes[i]);
-                    }
-                    approvalLetterBlobBase64 = btoa(binary);
-                } catch (error) {
-                    console.error('Error converting ArrayBuffer to base64:', error);
+            // Upload to Firebase Storage
+            try {
+                const storage = window.firebaseStorage;
+                if (!storage) {
+                    throw new Error('Firebase Storage not available');
                 }
-            } else {
-                console.warn(`PDF too large for Firestore (${approvalLetterSize} bytes). Maximum size is ~800KB.`);
-                alert(`Warning: PDF is too large (${(approvalLetterSize / 1024).toFixed(0)}KB). Maximum size is 800KB. Please use a smaller PDF or compress it.`);
-                throw new Error('PDF too large for Firestore');
+                
+                // Generate unique filename
+                const timestamp = Date.now();
+                const filename = project.approvalLetterFilename || `approval-letter-${timestamp}.pdf`;
+                const sanitizedFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+                const storagePath = `approval-letters/${project.id || timestamp}/${sanitizedFilename}`;
+                
+                // Create storage reference
+                const storageRef = storage.ref().child(storagePath);
+                
+                // Upload the blob
+                const uploadTask = storageRef.put(new Blob([project.approvalLetterBlob], { type: 'application/pdf' }));
+                
+                // Wait for upload to complete
+                const snapshot = await new Promise((resolve, reject) => {
+                    uploadTask.on(
+                        'state_changed',
+                        (snapshot) => {
+                            // Progress tracking (optional)
+                            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                            console.log(`Upload progress: ${progress.toFixed(0)}%`);
+                        },
+                        (error) => {
+                            console.error('Upload error:', error);
+                            reject(error);
+                        },
+                        () => {
+                            resolve(uploadTask.snapshot);
+                        }
+                    );
+                });
+                
+                // Get download URL
+                approvalLetterStorageUrl = await snapshot.ref.getDownloadURL();
+                console.log('PDF uploaded to Firebase Storage:', approvalLetterStorageUrl);
+                
+            } catch (error) {
+                console.error('Error uploading PDF to Firebase Storage:', error);
+                throw new Error(`Failed to upload PDF: ${error.message}`);
             }
         }
 
@@ -256,10 +299,10 @@ class ProjectManager {
             dateApproved: project.dateApproved || '',
             dateConstructionStarted: project.dateConstructionStarted || '',
             status: project.status || 'open',
-            approvalLetterBlobBase64: approvalLetterBlobBase64,
+            approvalLetterStorageUrl: approvalLetterStorageUrl, // URL from Firebase Storage
             approvalLetterFilename: project.approvalLetterFilename || '',
             approvalLetterSize: approvalLetterSize,
-            hasApprovalLetter: project.hasApprovalLetter !== undefined ? project.hasApprovalLetter : !!approvalLetterBlobBase64,
+            hasApprovalLetter: project.hasApprovalLetter !== undefined ? project.hasApprovalLetter : !!approvalLetterStorageUrl,
             noApprovalOnRecord: project.noApprovalOnRecord || false,
             depositAmountReceived: project.depositAmountReceived || null,
             dateDepositReceived: project.dateDepositReceived || '',
@@ -529,13 +572,41 @@ class ProjectManager {
             }
 
             try {
-                const firestoreData = this.convertProjectToFirestore(project);
+                // Show loading indicator for PDF upload
+                if (project.approvalLetterBlob) {
+                    const loadingMsg = document.createElement('div');
+                    loadingMsg.id = 'pdfUploadLoading';
+                    loadingMsg.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 10000;';
+                    loadingMsg.innerHTML = '<p>Uploading PDF to storage...</p><div style="text-align: center;"><div class="spinner-large"></div></div>';
+                    document.body.appendChild(loadingMsg);
+                }
+
+                const firestoreData = await this.convertProjectToFirestore(project);
                 const docRef = await this.db.collection(this.collectionName).add(firestoreData);
                 project.id = docRef.id; // Use Firestore document ID
+                
+                // Update project with storage URL for display
+                if (firestoreData.approvalLetterStorageUrl) {
+                    project.approvalLetterStorageUrl = firestoreData.approvalLetterStorageUrl;
+                }
+                
                 this.projects.unshift(project);
                 console.log('Project added to Firestore:', docRef.id);
+                
+                // Remove loading indicator
+                const loadingMsg = document.getElementById('pdfUploadLoading');
+                if (loadingMsg) {
+                    loadingMsg.remove();
+                }
             } catch (error) {
                 console.error('Error adding project to Firestore:', error);
+                
+                // Remove loading indicator on error
+                const loadingMsg = document.getElementById('pdfUploadLoading');
+                if (loadingMsg) {
+                    loadingMsg.remove();
+                }
+                
                 alert('Error adding project: ' + (error.message || 'Unknown error'));
                 throw error;
             }
@@ -650,14 +721,17 @@ class ProjectManager {
             }
             
             if (snapshot && snapshot.docs) {
-                this.projects = snapshot.docs.map(doc => {
+                // Convert all projects (async conversion for Storage URLs)
+                const projectPromises = snapshot.docs.map(async (doc) => {
                     try {
-                        return this.convertFirestoreToProject(doc.data(), doc.id);
+                        return await this.convertFirestoreToProject(doc.data(), doc.id);
                     } catch (error) {
                         console.error(`Error converting project ${doc.id}:`, error);
                         return null;
                     }
-                }).filter(p => p !== null); // Remove any failed conversions
+                });
+                
+                this.projects = (await Promise.all(projectPromises)).filter(p => p !== null);
                 
                 // Sort by dateApproved if we couldn't use orderBy
                 if (this.projects.length > 0) {
@@ -828,8 +902,8 @@ class ProjectManager {
                 <span style="color: var(--text-light); font-size: 0.85rem; font-style: italic; padding: 8px 0;">Sign in to edit or delete</span>
             `;
             
-            // Check if approval letter exists
-            const hasLetter = project.approvalLetterBlob || (project.hasApprovalLetter !== false && project.approvalLetterFilename);
+            // Check if approval letter exists (either in memory, Storage URL, or legacy base64)
+            const hasLetter = project.approvalLetterBlob || project.approvalLetterStorageUrl || (project.hasApprovalLetter !== false && project.approvalLetterFilename);
             const downloadButton = hasLetter ? `
                 <button type="button" class="btn-small btn-primary" onclick="window.projectManager.downloadLetter('${project.id}')" title="${isAuthenticated ? 'Download approval letter' : 'Sign in to download'}">
                     Download Letter
@@ -898,7 +972,7 @@ class ProjectManager {
         }).join('');
     }
 
-    downloadLetter(projectId) {
+    async downloadLetter(projectId) {
         // Require authentication for downloading letters
         if (!this.requireAuth()) {
             return;
@@ -911,7 +985,7 @@ class ProjectManager {
         }
 
         // Check if approval letter exists
-        if (!project.approvalLetterBlob) {
+        if (!project.approvalLetterBlob && !project.approvalLetterStorageUrl) {
             if (project.hasApprovalLetter === false) {
                 alert('Approval not on file for this project.');
             } else {
@@ -921,7 +995,22 @@ class ProjectManager {
         }
 
         try {
-            const blob = new Blob([project.approvalLetterBlob], { type: 'application/pdf' });
+            let blob;
+            
+            if (project.approvalLetterBlob) {
+                // Use in-memory blob (legacy base64)
+                blob = new Blob([project.approvalLetterBlob], { type: 'application/pdf' });
+            } else if (project.approvalLetterStorageUrl) {
+                // Download from Firebase Storage
+                const response = await fetch(project.approvalLetterStorageUrl);
+                if (!response.ok) {
+                    throw new Error(`Failed to download: ${response.statusText}`);
+                }
+                blob = await response.blob();
+            } else {
+                throw new Error('No approval letter available');
+            }
+            
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
@@ -932,7 +1021,7 @@ class ProjectManager {
             URL.revokeObjectURL(url);
         } catch (error) {
             console.error('Error downloading letter:', error);
-            alert('Error downloading approval letter.');
+            alert('Error downloading approval letter: ' + (error.message || 'Unknown error'));
         }
     }
 

@@ -267,3 +267,5 @@ shoa-architectural-review/
 - Must work with file:// protocol
 - Keep code organized and maintainable
 
+
+

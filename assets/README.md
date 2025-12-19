@@ -40,3 +40,5 @@ This should be an example approval letter that demonstrates:
 - The logo will be embedded in the PDF letterhead
 - The reference document will guide the layout and styling of generated approval letters
 
+
+
