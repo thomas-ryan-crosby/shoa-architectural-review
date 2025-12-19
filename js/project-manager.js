@@ -1099,40 +1099,45 @@ class ProjectManager {
                         const storageRef = storage.ref(decodedPath);
                         
                         // Get a fresh download URL with authentication token
-                        // This URL already includes the token, so no Authorization header needed
                         const downloadURL = await storageRef.getDownloadURL();
                         
-                        // Fetch the file - the URL token handles authentication
-                        // Note: CORS must be configured in Firebase Storage for this to work
-                        const response = await fetch(downloadURL);
+                        // Use direct link download to avoid CORS issues
+                        // Open in new window/tab - this bypasses CORS restrictions
+                        const link = document.createElement('a');
+                        link.href = downloadURL;
+                        link.download = project.approvalLetterFilename || `approval-letter-${project.id}.pdf`;
+                        link.target = '_blank';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
                         
-                        if (!response.ok) {
-                            throw new Error(`Failed to download: ${response.statusText} (${response.status})`);
-                        }
-                        blob = await response.blob();
+                        // Return early since we're using direct download
+                        return;
                     } else {
-                        // Fallback: try fetching the stored URL directly
-                        const response = await fetch(project.approvalLetterStorageUrl);
-                        if (!response.ok) {
-                            throw new Error(`Failed to download: ${response.statusText} (${response.status})`);
-                        }
-                        blob = await response.blob();
+                        // Fallback: use stored URL directly
+                        const link = document.createElement('a');
+                        link.href = project.approvalLetterStorageUrl;
+                        link.download = project.approvalLetterFilename || `approval-letter-${project.id}.pdf`;
+                        link.target = '_blank';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        return;
                     }
                 } catch (storageError) {
-                    console.error('Error downloading from Storage:', storageError);
-                    // If CORS error, provide helpful message
-                    if (storageError.message && storageError.message.includes('CORS')) {
-                        throw new Error('CORS error: Firebase Storage needs CORS configuration. See FIREBASE_SETUP.md for instructions.');
-                    }
-                    // Fallback: try direct fetch
+                    console.error('Error getting download URL:', storageError);
+                    // Fallback: try using stored URL directly
                     try {
-                        const response = await fetch(project.approvalLetterStorageUrl);
-                        if (!response.ok) {
-                            throw new Error(`Failed to download: ${response.statusText} (${response.status}). Make sure you are signed in.`);
-                        }
-                        blob = await response.blob();
-                    } catch (fetchError) {
-                        throw new Error(`Failed to download approval letter: ${storageError.message || fetchError.message}. Please ensure you are signed in and CORS is configured in Firebase Storage.`);
+                        const link = document.createElement('a');
+                        link.href = project.approvalLetterStorageUrl;
+                        link.download = project.approvalLetterFilename || `approval-letter-${project.id}.pdf`;
+                        link.target = '_blank';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        return;
+                    } catch (error) {
+                        throw new Error(`Failed to download approval letter: ${storageError.message || error.message}. Please ensure you are signed in.`);
                     }
                 }
             } else {
