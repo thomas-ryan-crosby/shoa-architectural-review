@@ -721,10 +721,14 @@ class ProjectManager {
             }
             
             if (snapshot && snapshot.docs) {
+                console.log(`Found ${snapshot.docs.length} documents in Firestore`);
+                
                 // Convert all projects (async conversion for Storage URLs)
                 const projectPromises = snapshot.docs.map(async (doc) => {
                     try {
-                        return await this.convertFirestoreToProject(doc.data(), doc.id);
+                        const project = await this.convertFirestoreToProject(doc.data(), doc.id);
+                        console.log(`Converted project: ${project.homeownerName} (${doc.id})`);
+                        return project;
                     } catch (error) {
                         console.error(`Error converting project ${doc.id}:`, error);
                         return null;
@@ -732,6 +736,7 @@ class ProjectManager {
                 });
                 
                 this.projects = (await Promise.all(projectPromises)).filter(p => p !== null);
+                console.log(`Successfully converted ${this.projects.length} projects`);
                 
                 // Sort by dateApproved if we couldn't use orderBy
                 if (this.projects.length > 0) {
