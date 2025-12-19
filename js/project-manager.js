@@ -1219,6 +1219,67 @@ class ProjectManager {
         `;
         document.body.appendChild(dialog);
 
+        // Setup drag and drop for file upload
+        const fileDropZone = document.getElementById('editFileDropZone');
+        const fileInput = document.getElementById('editApprovalLetter');
+        const fileDropZoneContent = document.getElementById('editFileDropZoneContent');
+        const fileDropZoneFileName = document.getElementById('editFileDropZoneFileName');
+
+        if (fileDropZone && fileInput) {
+            // Click to browse
+            fileDropZone.addEventListener('click', () => {
+                fileInput.click();
+            });
+
+            // Prevent default drag behaviors
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                fileDropZone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                });
+            });
+
+            // Highlight drop zone when dragging over
+            ['dragenter', 'dragover'].forEach(eventName => {
+                fileDropZone.addEventListener(eventName, () => {
+                    fileDropZone.style.borderColor = '#2c5530';
+                    fileDropZone.style.background = '#e8f5e9';
+                });
+            });
+
+            // Remove highlight when dragging leaves
+            ['dragleave', 'drop'].forEach(eventName => {
+                fileDropZone.addEventListener(eventName, () => {
+                    fileDropZone.style.borderColor = '#ddd';
+                    fileDropZone.style.background = '#fafafa';
+                });
+            });
+
+            // Handle dropped files
+            fileDropZone.addEventListener('drop', (e) => {
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    const file = files[0];
+                    if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+                        fileInput.files = files;
+                        fileDropZoneFileName.textContent = `Selected: ${file.name}`;
+                        fileDropZoneFileName.style.display = 'block';
+                    } else {
+                        alert('Please drop a PDF file.');
+                    }
+                }
+            });
+
+            // Handle file input change (when browsing)
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    const file = e.target.files[0];
+                    fileDropZoneFileName.textContent = `Selected: ${file.name}`;
+                    fileDropZoneFileName.style.display = 'block';
+                }
+            });
+        }
+
         // Handle project type change to show/hide "Other" field
         const projectTypeSelect = document.getElementById('editProjectType');
         const otherProjectTypeGroup = document.getElementById('editOtherProjectTypeGroup');
