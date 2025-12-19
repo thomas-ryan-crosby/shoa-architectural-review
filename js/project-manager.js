@@ -1130,7 +1130,7 @@ class ProjectManager {
         document.body.appendChild(dialog);
 
         // Handle save
-        document.getElementById('editSaveBtn').addEventListener('click', () => {
+        document.getElementById('editSaveBtn').addEventListener('click', async () => {
             const dateStarted = document.getElementById('editDateStarted').value.trim();
             const status = document.getElementById('editStatus').value;
             const depositReceived = document.getElementById('editDepositReceived').value.trim();
