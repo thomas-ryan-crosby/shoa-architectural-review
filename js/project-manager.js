@@ -573,6 +573,103 @@ class ProjectManager {
             });
         }
 
+        // Handle generate letter button in add form
+        const addGenerateLetterBtn = document.getElementById('addGenerateLetterBtn');
+        if (addGenerateLetterBtn) {
+            addGenerateLetterBtn.addEventListener('click', async () => {
+                // Require authentication
+                if (!this.requireAuth()) {
+                    return;
+                }
+
+                // Collect form data
+                const homeownerName = document.getElementById('addHomeownerName')?.value.trim();
+                const address = document.getElementById('addAddress')?.value.trim();
+                const lot = document.getElementById('addLot')?.value.trim();
+                const projectTypeSelect = document.getElementById('addProjectType')?.value;
+                const otherProjectType = document.getElementById('addOtherProjectType')?.value.trim();
+                const projectType = projectTypeSelect === 'Other' ? otherProjectType : projectTypeSelect;
+                const contractorName = document.getElementById('addContractorName')?.value.trim();
+                const approvedBy = document.getElementById('addApprovedBy')?.value.trim();
+                const noApprovalOnRecord = document.getElementById('noApprovalOnRecord')?.checked;
+                const dateApproved = noApprovalOnRecord ? null : document.getElementById('addDateApproved')?.value;
+                
+                // Review comments
+                const reviewCommentsType = document.getElementById('addReviewCommentsType')?.value;
+                const reviewComments = reviewCommentsType === 'other' 
+                    ? document.getElementById('addReviewComments')?.value.trim() 
+                    : 'The plan was reviewed for Sanctuary Setback Requirements.';
+                
+                // Approval reason
+                const approvalReasonType = document.getElementById('addApprovalReasonType')?.value;
+                const approvalReason = approvalReasonType === 'other'
+                    ? document.getElementById('addApprovalReason')?.value.trim()
+                    : 'The project meets Sanctuary Setback Requirements. No variances are required. Approved.';
+                
+                const siteConditionsFiles = document.getElementById('addSiteConditions')?.files || [];
+
+                // Validate required fields
+                if (!homeownerName || !address || !lot || !projectTypeSelect) {
+                    alert('Please fill in all required fields (Homeowner Name, Address, Lot, Project Type) before generating the letter.');
+                    return;
+                }
+                if (reviewCommentsType === 'other' && !reviewComments) {
+                    alert('Please specify the review comments');
+                    return;
+                }
+                if (approvalReasonType === 'other' && !approvalReason) {
+                    alert('Please specify the approval reason');
+                    return;
+                }
+
+                // Prepare form data for PDF generation
+                const formData = {
+                    ownerLastName: homeownerName.split(' ').pop() || homeownerName,
+                    address: address,
+                    lot: lot,
+                    projectType: projectType,
+                    contractorName: contractorName,
+                    reviewComments: reviewComments,
+                    approvalReason: approvalReason,
+                    approvedBy: approvedBy,
+                    approvedOn: noApprovalOnRecord ? null : (dateApproved || new Date().toISOString().split('T')[0])
+                };
+
+                // Convert site conditions files to File objects
+                const siteConditionsFileArray = [];
+                if (siteConditionsFiles.length > 0) {
+                    for (const file of Array.from(siteConditionsFiles)) {
+                        siteConditionsFileArray.push(file);
+                    }
+                }
+
+                // Generate PDF
+                try {
+                    if (!window.pdfGenerator) {
+                        window.pdfGenerator = new PDFGenerator();
+                    }
+                    
+                    await window.pdfGenerator.generatePDF(formData, siteConditionsFileArray, []);
+                    
+                    // After PDF is generated, it will be saved to the project automatically
+                    // Close the form and refresh projects
+                    const form = document.getElementById('addProjectForm');
+                    if (form) {
+                        form.style.display = 'none';
+                    }
+                    const toggleText = document.getElementById('toggleAddProjectText');
+                    if (toggleText) {
+                        toggleText.textContent = '+ Add Existing Project';
+                    }
+                    this.resetAddProjectForm();
+                    this.renderProjects();
+                } catch (error) {
+                    console.error('Error generating approval letter:', error);
+                    alert('Error generating approval letter: ' + error.message);
+                }
+            });
+        }
+
         // Setup drag and drop for file upload in add project form
         this.setupAddProjectDragAndDrop();
         this.setupSiteConditionsDragAndDrop();
