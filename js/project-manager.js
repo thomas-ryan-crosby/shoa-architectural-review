@@ -2208,6 +2208,11 @@ class ProjectManager {
         dialog.appendChild(modalContent);
         document.body.appendChild(dialog);
         
+        // Wait a moment for DOM to be ready before attaching event listeners
+        setTimeout(() => {
+            this.setupEditModalHandlers(dialog, modalContent, projectId, project);
+        }, 0);
+        
         // Close dialog when clicking outside
         dialog.addEventListener('click', (e) => {
             if (e.target === dialog) {
@@ -2358,10 +2363,12 @@ class ProjectManager {
         // Setup drag and drop for site conditions in edit modal
         this.setupEditSiteConditionsDragAndDrop();
         this.setupEditSubmittedPlansDragAndDrop();
+    }
 
+    setupEditModalHandlers(dialog, modalContent) {
         // Helper function to close dialog
         const closeDialog = () => {
-            if (dialog.parentNode) {
+            if (dialog && dialog.parentNode) {
                 document.body.removeChild(dialog);
             }
         };
@@ -2473,6 +2480,8 @@ class ProjectManager {
                 e.stopPropagation();
                 closeDialog();
             });
+        } else {
+            console.error('Cancel button not found in edit modal');
         }
 
         // Handle save
@@ -2506,6 +2515,269 @@ class ProjectManager {
             const depositWaived = document.getElementById('editDepositWaived').checked;
             const depositWaiverReason = document.getElementById('editDepositWaiverReason').value.trim();
             const approvalLetterFile = document.getElementById('editApprovalLetter').files[0];
+            
+            // Review comments
+            const reviewCommentsType = document.getElementById('editReviewCommentsType')?.value;
+            const reviewComments = reviewCommentsType === 'other' 
+                ? document.getElementById('editReviewComments')?.value.trim() 
+                : 'The plan was reviewed for Sanctuary Setback Requirements.';
+            
+            // Approval reason
+            const approvalReasonType = document.getElementById('editApprovalReasonType')?.value;
+            const approvalReason = approvalReasonType === 'other'
+                ? document.getElementById('editApprovalReason')?.value.trim()
+                : 'The project meets Sanctuary Setback Requirements. No variances are required. Approved.';
+            
+            const siteConditionsFiles = document.getElementById('editSiteConditions')?.files || [];
+            const submittedPlansFiles = document.getElementById('editSubmittedPlans')?.files || [];
+
+            // Validate waiver reason if deposit is waived
+            if (depositWaived && !depositWaiverReason) {
+                alert('Waiver reason is required when deposit is waived');
+                return;
+            }
+            if (reviewCommentsType === 'other' && !reviewComments) {
+                alert('Please specify the review comments');
+                return;
+            }
+            if (approvalReasonType === 'other' && !approvalReason) {
+                alert('Please specify the approval reason');
+                return;
+            }
+
+            // Read site conditions files if provided
+            let siteConditionsArrayBuffers = project.siteConditionsFiles || [];
+            if (siteConditionsFiles.length > 0) {
+                siteConditionsArrayBuffers = [];
+                for (const file of Array.from(siteConditionsFiles)) {
+                    try {
+                        const arrayBuffer = await this.readFileAsArrayBuffer(file);
+                        siteConditionsArrayBuffers.push({
+                            name: file.name,
+                            type: file.type,
+                            data: arrayBuffer
+                        });
+                    } catch (error) {
+                        console.error('Error reading site conditions file:', error);
+                    }
+                }
+            }
+
+            // Read submitted plans files if provided
+            let submittedPlansArrayBuffers = project.submittedPlansFiles || [];
+            if (submittedPlansFiles.length > 0) {
+                submittedPlansArrayBuffers = [];
+                for (const file of Array.from(submittedPlansFiles)) {
+                    try {
+                        const arrayBuffer = await this.readFileAsArrayBuffer(file);
+                        submittedPlansArrayBuffers.push({
+                            name: file.name,
+                            type: file.type,
+                            data: arrayBuffer
+                        });
+                    } catch (error) {
+                        console.error('Error reading submitted plans file:', error);
+                    }
+                }
+            }
+
+            const updates = {
+                homeownerName: homeownerName,
+                address: address,
+                lot: lot,
+                projectType: projectType,
+                contractorName: contractorName,
+                approvedBy: approvedBy,
+                dateApproved: noApprovalOnRecord ? '' : dateApproved,
+                noApprovalOnRecord: noApprovalOnRecord,
+                dateConstructionStarted: dateStarted,
+                status: status,
+                reviewComments: reviewComments,
+                approvalReason: approvalReason,
+                siteConditionsFiles: siteConditionsArrayBuffers,
+                submittedPlansFiles: submittedPlansArrayBuffers,
+                depositAmountReceived: depositReceived ? parseFloat(depositReceived) : null,
+                dateDepositReceived: dateDepositReceived,
+                depositAmountReturned: depositReturned ? parseFloat(depositReturned) : null,
+                dateDepositReturned: dateDepositReturned,
+                depositWaived: depositWaived,
+                depositWaiverReason: depositWaiverReason
+            };
+
+            // Handle file upload if provided
+            if (approvalLetterFile) {
+                try {
+                    const arrayBuffer = await approvalLetterFile.arrayBuffer();
+                    updates.approvalLetterBlob = arrayBuffer;
+                    updates.approvalLetterFilename = approvalLetterFile.name;
+                } catch (error) {
+                    console.error('Error reading file:', error);
+                    alert('Error reading approval letter file: ' + error.message);
+                    return;
+                }
+            }
+
+            try {
+                await this.updateProject(projectId, updates);
+                closeDialog();
+            } catch (error) {
+                console.error('Error updating project:', error);
+                alert('Failed to update project: ' + error.message);
+            }
+        });
+    }
+
+    setupEditModalHandlers(dialog, modalContent, projectId, project) {
+        // Helper function to close dialog
+        const closeDialog = () => {
+            if (dialog && dialog.parentNode) {
+                document.body.removeChild(dialog);
+            }
+        };
+
+        // Handle generate letter button (both inline and in footer)
+        const generateLetterBtn = document.getElementById('editGenerateLetterBtn');
+        const generateLetterBtnInline = document.getElementById('editGenerateLetterBtnInline');
+        
+        const handleGenerateLetter = async () => {
+            // Require authentication
+            if (!this.requireAuth()) {
+                return;
+            }
+
+            // Collect form data
+            const homeownerName = document.getElementById('editHomeownerName')?.value.trim();
+            const address = document.getElementById('editAddress')?.value.trim();
+            const lot = document.getElementById('editLot')?.value.trim();
+            const projectTypeSelect = document.getElementById('editProjectType');
+            const projectType = projectTypeSelect?.value === 'Other' 
+                ? document.getElementById('editOtherProjectType')?.value.trim() 
+                : projectTypeSelect?.value;
+            const contractorName = document.getElementById('editContractorName')?.value.trim();
+            const approvedBy = document.getElementById('editApprovedBy')?.value.trim();
+            const dateApprovedInput = document.getElementById('editDateApproved');
+            const dateApproved = dateApprovedInput?.value ? this.formatDateFromInput(dateApprovedInput.value) : '';
+            const noApprovalOnRecord = document.getElementById('editNoApprovalOnRecord')?.checked;
+            
+            // Review comments
+            const reviewCommentsType = document.getElementById('editReviewCommentsType')?.value;
+            const reviewComments = reviewCommentsType === 'other' 
+                ? document.getElementById('editReviewComments')?.value.trim() 
+                : 'The plan was reviewed for Sanctuary Setback Requirements.';
+            
+            // Approval reason
+            const approvalReasonType = document.getElementById('editApprovalReasonType')?.value;
+            const approvalReason = approvalReasonType === 'other'
+                ? document.getElementById('editApprovalReason')?.value.trim()
+                : 'The project meets Sanctuary Setback Requirements. No variances are required. Approved.';
+            
+            const siteConditionsFiles = document.getElementById('editSiteConditions')?.files || [];
+            const submittedPlansFiles = document.getElementById('editSubmittedPlans')?.files || [];
+
+            // Validate required fields
+            if (!homeownerName || !address || !lot || !projectType) {
+                alert('Please fill in all required fields (Homeowner Name, Address, Lot, Project Type) before generating the letter.');
+                return;
+            }
+
+            // Prepare form data for PDF generation
+            const formData = {
+                ownerLastName: homeownerName.split(' ').pop() || homeownerName,
+                address: address,
+                lot: lot,
+                projectType: projectType,
+                contractorName: contractorName,
+                reviewComments: reviewComments,
+                approvalReason: approvalReason,
+                approvedBy: approvedBy,
+                approvedOn: noApprovalOnRecord ? null : (dateApproved || new Date().toISOString().split('T')[0])
+            };
+
+            // Convert site conditions files to File objects
+            const siteConditionsFileArray = [];
+            if (siteConditionsFiles.length > 0) {
+                for (const file of Array.from(siteConditionsFiles)) {
+                    siteConditionsFileArray.push(file);
+                }
+            }
+
+            // Convert submitted plans files to File objects
+            const submittedPlansFileArray = [];
+            if (submittedPlansFiles.length > 0) {
+                for (const file of Array.from(submittedPlansFiles)) {
+                    submittedPlansFileArray.push(file);
+                }
+            }
+
+            // Generate PDF
+            try {
+                if (!window.pdfGenerator) {
+                    window.pdfGenerator = new PDFGenerator();
+                }
+                
+                await window.pdfGenerator.generatePDF(formData, siteConditionsFileArray, submittedPlansFileArray);
+                
+                // After PDF is generated, it will be saved to the project automatically
+                // Close the dialog and refresh projects
+                closeDialog();
+                this.renderProjects();
+            } catch (error) {
+                console.error('Error generating approval letter:', error);
+                alert('Error generating approval letter: ' + error.message);
+            }
+        };
+
+        if (generateLetterBtn) {
+            generateLetterBtn.addEventListener('click', handleGenerateLetter);
+        }
+        if (generateLetterBtnInline) {
+            generateLetterBtnInline.addEventListener('click', handleGenerateLetter);
+        }
+
+        // Handle cancel
+        const cancelBtn = document.getElementById('editCancelBtn');
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                closeDialog();
+            });
+        } else {
+            console.error('Cancel button not found in edit modal');
+        }
+
+        // Handle save
+        const saveBtn = document.getElementById('editSaveBtn');
+        if (!saveBtn) {
+            console.error('Save button not found in edit modal');
+            return;
+        }
+        
+        saveBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const homeownerName = document.getElementById('editHomeownerName')?.value.trim();
+            const address = document.getElementById('editAddress')?.value.trim();
+            const lot = document.getElementById('editLot')?.value.trim();
+            const projectTypeSelect = document.getElementById('editProjectType');
+            const projectType = projectTypeSelect?.value === 'Other' 
+                ? document.getElementById('editOtherProjectType')?.value.trim() 
+                : projectTypeSelect?.value;
+            const contractorName = document.getElementById('editContractorName')?.value.trim();
+            const approvedBy = document.getElementById('editApprovedBy')?.value.trim();
+            const dateApprovedInput = document.getElementById('editDateApproved');
+            const dateApproved = dateApprovedInput?.value ? this.formatDateFromInput(dateApprovedInput.value) : '';
+            const noApprovalOnRecord = document.getElementById('editNoApprovalOnRecord')?.checked;
+            const dateStarted = document.getElementById('editDateStarted')?.value.trim();
+            const status = document.getElementById('editStatus')?.value;
+            const depositReceived = document.getElementById('editDepositReceived')?.value.trim();
+            const dateDepositReceived = document.getElementById('editDateDepositReceived')?.value.trim();
+            const depositReturned = document.getElementById('editDepositReturned')?.value.trim();
+            const dateDepositReturned = document.getElementById('editDateDepositReturned')?.value.trim();
+            const depositWaived = document.getElementById('editDepositWaived')?.checked;
+            const depositWaiverReason = document.getElementById('editDepositWaiverReason')?.value.trim();
+            const approvalLetterFile = document.getElementById('editApprovalLetter')?.files[0];
             
             // Review comments
             const reviewCommentsType = document.getElementById('editReviewCommentsType')?.value;
