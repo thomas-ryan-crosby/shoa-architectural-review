@@ -443,11 +443,21 @@
                                 <label for="addApprovalLetter">
                                     Upload Approval Letter PDF (Optional)
                                 </label>
+                                <div id="addFileDropZone" style="border: 2px dashed #ddd; border-radius: 8px; padding: 30px; text-align: center; margin-top: 8px; background: #fafafa; cursor: pointer; transition: all 0.3s ease;">
+                                    <div id="addFileDropZoneContent">
+                                        <div style="font-size: 2rem; margin-bottom: 10px;">📄</div>
+                                        <div style="font-weight: 500; margin-bottom: 5px;">Drag and drop PDF here</div>
+                                        <div style="font-size: 0.9rem; color: #666; margin-bottom: 10px;">or</div>
+                                        <div style="display: inline-block; padding: 8px 16px; background: #2c5530; color: white; border-radius: 4px; font-size: 0.9rem;">Click to browse</div>
+                                    </div>
+                                    <div id="addFileDropZoneFileName" style="display: none; margin-top: 10px; font-weight: 500; color: #2c5530;"></div>
+                                </div>
                                 <input 
                                     type="file" 
                                     id="addApprovalLetter" 
                                     name="addApprovalLetter" 
                                     accept=".pdf"
+                                    style="display: none;"
                                 >
                                 <span class="error-message" id="addApprovalLetter-error"></span>
                                 <small class="form-hint">Upload the previously issued architectural approval letter. If not provided, will show "Approval not on file".</small>

@@ -484,6 +484,108 @@ class ProjectManager {
                 dateApprovedInput.disabled = true;
             }
         }
+
+        // Setup drag and drop for file upload in add project form
+        this.setupAddProjectDragAndDrop();
+    }
+
+    setupAddProjectDragAndDrop() {
+        const fileDropZone = document.getElementById('addFileDropZone');
+        const fileInput = document.getElementById('addApprovalLetter');
+        const fileDropZoneContent = document.getElementById('addFileDropZoneContent');
+        const fileDropZoneFileName = document.getElementById('addFileDropZoneFileName');
+
+        if (fileDropZone && fileInput) {
+            // Click to browse
+            fileDropZone.addEventListener('click', () => {
+                fileInput.click();
+            });
+
+            // Prevent default drag behaviors
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                fileDropZone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                });
+            });
+
+            // Highlight drop zone when dragging over
+            ['dragenter', 'dragover'].forEach(eventName => {
+                fileDropZone.addEventListener(eventName, () => {
+                    fileDropZone.style.borderColor = '#2c5530';
+                    fileDropZone.style.background = '#e8f5e9';
+                });
+            });
+
+            // Remove highlight when dragging leaves
+            ['dragleave', 'drop'].forEach(eventName => {
+                fileDropZone.addEventListener(eventName, () => {
+                    fileDropZone.style.borderColor = '#ddd';
+                    fileDropZone.style.background = '#fafafa';
+                });
+            });
+
+            // Handle dropped files
+            fileDropZone.addEventListener('drop', (e) => {
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    const file = files[0];
+                    if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+                        // Create a new FileList using DataTransfer
+                        const dataTransfer = new DataTransfer();
+                        dataTransfer.items.add(file);
+                        fileInput.files = dataTransfer.files;
+                        
+                        // Update UI to show file name
+                        if (fileDropZoneContent) {
+                            fileDropZoneContent.style.display = 'none';
+                        }
+                        if (fileDropZoneFileName) {
+                            fileDropZoneFileName.textContent = file.name;
+                            fileDropZoneFileName.style.display = 'block';
+                        }
+                        
+                        // Clear any error messages
+                        this.clearError('addApprovalLetter');
+                        
+                        // Trigger change event for any listeners
+                        fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+                    } else {
+                        alert('Please upload a PDF file.');
+                    }
+                }
+            });
+
+            // Handle file selection via click
+            fileInput.addEventListener('change', (e) => {
+                const files = e.target.files;
+                if (files.length > 0) {
+                    const file = files[0];
+                    if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+                        // Update UI to show file name
+                        if (fileDropZoneContent) {
+                            fileDropZoneContent.style.display = 'none';
+                        }
+                        if (fileDropZoneFileName) {
+                            fileDropZoneFileName.textContent = file.name;
+                            fileDropZoneFileName.style.display = 'block';
+                        }
+                        
+                        // Clear any error messages
+                        this.clearError('addApprovalLetter');
+                    } else {
+                        alert('Please upload a PDF file.');
+                        fileInput.value = '';
+                        if (fileDropZoneContent) {
+                            fileDropZoneContent.style.display = 'block';
+                        }
+                        if (fileDropZoneFileName) {
+                            fileDropZoneFileName.style.display = 'none';
+                        }
+                    }
+                }
+            });
+        }
     }
 
     clearError(fieldId) {
@@ -551,6 +653,17 @@ class ProjectManager {
             if (dateApprovedInput) {
                 dateApprovedInput.disabled = false;
             }
+        }
+
+        // Reset drag-and-drop UI
+        const fileDropZoneContent = document.getElementById('addFileDropZoneContent');
+        const fileDropZoneFileName = document.getElementById('addFileDropZoneFileName');
+        if (fileDropZoneContent) {
+            fileDropZoneContent.style.display = 'block';
+        }
+        if (fileDropZoneFileName) {
+            fileDropZoneFileName.style.display = 'none';
+            fileDropZoneFileName.textContent = '';
         }
     }
 
