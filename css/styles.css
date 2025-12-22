@@ -649,13 +649,18 @@ footer {
 }
 
 .compact-project-row:hover {
-    background-color: #f8f9fa !important;
+    background-color: #f5f7fa !important;
+}
+
+.compact-project-row:last-child {
+    border-bottom: none !important;
 }
 
 .compact-project-header {
     position: sticky;
     top: 0;
     z-index: 10;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .project-card {
