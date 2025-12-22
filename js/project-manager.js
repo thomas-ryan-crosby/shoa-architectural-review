@@ -1246,29 +1246,34 @@ class ProjectManager {
                     <div class="deposit-info">
                         <h4>Deposit Information</h4>
                         ${project.depositWaived ? `
-                            <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 12px; margin-bottom: 12px;">
+                            <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 12px;">
                                 <div style="font-weight: bold; color: #856404; margin-bottom: 8px;">⚠️ Deposit Waived</div>
                                 <div style="color: #856404; font-size: 0.9rem;">${project.depositWaiverReason || 'No reason provided'}</div>
                             </div>
-                        ` : ''}
-                        <div class="project-info">
-                            <div class="info-item">
-                                <span class="info-label">Amount Received:</span>
-                                <span class="info-value">${project.depositAmountReceived ? '$' + project.depositAmountReceived.toFixed(2) : 'Not recorded'}</span>
+                        ` : (!project.depositAmountReceived && !project.depositWaived) ? `
+                            <div style="color: #d32f2f; font-weight: bold; font-size: 1rem; padding: 8px 0;">
+                                Deposit Needed
                             </div>
-                            <div class="info-item">
-                                <span class="info-label">Date Received:</span>
-                                <span class="info-value">${project.dateDepositReceived || 'Not recorded'}</span>
+                        ` : `
+                            <div class="project-info">
+                                <div class="info-item">
+                                    <span class="info-label">Amount Received:</span>
+                                    <span class="info-value">${project.depositAmountReceived ? '$' + project.depositAmountReceived.toFixed(2) : 'Not recorded'}</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Date Received:</span>
+                                    <span class="info-value">${project.dateDepositReceived || 'Not recorded'}</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Amount Returned:</span>
+                                    <span class="info-value">${project.depositAmountReturned !== null ? '$' + project.depositAmountReturned.toFixed(2) : 'Not returned'}</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Date Returned:</span>
+                                    <span class="info-value">${project.dateDepositReturned || 'Not returned'}</span>
+                                </div>
                             </div>
-                            <div class="info-item">
-                                <span class="info-label">Amount Returned:</span>
-                                <span class="info-value">${project.depositAmountReturned !== null ? '$' + project.depositAmountReturned.toFixed(2) : 'Not returned'}</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">Date Returned:</span>
-                                <span class="info-value">${project.dateDepositReturned || 'Not returned'}</span>
-                            </div>
-                        </div>
+                        `}
                     </div>
                 </div>
                 <div class="project-card-actions">
