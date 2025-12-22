@@ -1236,7 +1236,7 @@ class ProjectManager {
 
     renderCompactHeader() {
         return `
-            <div class="compact-project-header" style="display: grid; grid-template-columns: 70px 1.6fr 0.9fr 0.9fr 1.1fr 95px 100px 75px 110px; gap: 10px; padding: 10px 14px; background: #2c5530; color: white; font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.3px; border-bottom: 2px solid #1e3d22;">
+            <div class="compact-project-header" style="display: grid; grid-template-columns: 70px 1.6fr 0.9fr 0.9fr 1.1fr 95px 100px 75px 120px; gap: 10px; padding: 10px 14px; background: #2c5530; color: white; font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.3px; border-bottom: 2px solid #1e3d22;">
                 <div style="text-align: center;">Status</div>
                 <div>Homeowner / Address</div>
                 <div>Lot</div>
@@ -1391,22 +1391,22 @@ class ProjectManager {
             '<span style="color: #4caf50; font-size: 0.8rem; font-weight: 600;">✓</span>' : 
             '<span style="color: #d32f2f; font-size: 0.75rem; font-weight: 700;">✗</span>';
         
-        // Download button - smaller, more compact
+        // Download button - smaller, more compact, with overflow protection
         const downloadButton = hasLetter && isAuthenticated ? `
-            <button type="button" class="btn-small btn-primary" onclick="window.projectManager.downloadLetter('${project.id}')" style="padding: 3px 8px; font-size: 0.7rem; white-space: nowrap; border-radius: 3px; font-weight: 500; line-height: 1.2;">Download</button>
+            <button type="button" class="btn-small btn-primary" onclick="window.projectManager.downloadLetter('${project.id}')" style="padding: 3px 8px; font-size: 0.7rem; white-space: nowrap; border-radius: 3px; font-weight: 500; line-height: 1.2; max-width: 100%; overflow: hidden; text-overflow: ellipsis;">Download</button>
         ` : '<span style="color: #999; font-size: 0.7rem;">—</span>';
         
         return `
-            <div class="compact-project-row" data-project-id="${project.id}" style="display: grid; grid-template-columns: 70px 1.6fr 0.9fr 0.9fr 1.1fr 95px 100px 75px 110px; gap: 10px; padding: 10px 14px; background: #ffffff; border-bottom: 1px solid #e8e8e8; align-items: center; transition: background-color 0.15s ease; font-size: 0.8rem;">
-                <div style="display: flex; align-items: center; justify-content: center;">${statusBadge}</div>
-                <div style="line-height: 1.4;">${homeownerAddress}</div>
-                <div style="display: flex; align-items: center;">${lot}</div>
-                <div style="display: flex; align-items: center;">${projectType}</div>
-                <div style="display: flex; align-items: center;">${contractor}</div>
-                <div style="display: flex; align-items: center; justify-content: center;">${dateApproved}</div>
-                <div style="display: flex; align-items: center; justify-content: center;">${depositStatus}</div>
-                <div style="display: flex; align-items: center; justify-content: center;">${approvalStatus}</div>
-                <div style="display: flex; align-items: center; justify-content: center;">${downloadButton}</div>
+            <div class="compact-project-row" data-project-id="${project.id}" style="display: grid; grid-template-columns: 70px 1.6fr 0.9fr 0.9fr 1.1fr 95px 100px 75px 120px; gap: 10px; padding: 10px 14px; background: #ffffff; border-bottom: 1px solid #e8e8e8; align-items: center; transition: background-color 0.15s ease; font-size: 0.8rem;">
+                <div style="display: flex; align-items: center; justify-content: center; overflow: hidden;">${statusBadge}</div>
+                <div style="line-height: 1.4; overflow: hidden; text-overflow: ellipsis;">${homeownerAddress}</div>
+                <div style="display: flex; align-items: center; overflow: hidden;">${lot}</div>
+                <div style="display: flex; align-items: center; overflow: hidden; text-overflow: ellipsis;">${projectType}</div>
+                <div style="display: flex; align-items: center; overflow: hidden; text-overflow: ellipsis;">${contractor}</div>
+                <div style="display: flex; align-items: center; justify-content: center; overflow: hidden;">${dateApproved}</div>
+                <div style="display: flex; align-items: center; justify-content: center; overflow: hidden;">${depositStatus}</div>
+                <div style="display: flex; align-items: center; justify-content: center; overflow: hidden;">${approvalStatus}</div>
+                <div style="display: flex; align-items: center; justify-content: center; overflow: hidden; min-width: 0;">${downloadButton}</div>
             </div>
         `;
     }
