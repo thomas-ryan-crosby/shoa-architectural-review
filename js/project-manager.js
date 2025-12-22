@@ -952,11 +952,38 @@ class ProjectManager {
         return this.projects;
     }
 
+    calculateTotalDeposits() {
+        let totalReceived = 0;
+        let totalReturned = 0;
+
+        this.projects.forEach(project => {
+            if (project.depositAmountReceived !== null && project.depositAmountReceived !== undefined) {
+                totalReceived += project.depositAmountReceived;
+            }
+            if (project.depositAmountReturned !== null && project.depositAmountReturned !== undefined) {
+                totalReturned += project.depositAmountReturned;
+            }
+        });
+
+        return totalReceived - totalReturned;
+    }
+
+    updateDepositSummary() {
+        const totalDepositElement = document.getElementById('totalDepositAmount');
+        if (totalDepositElement) {
+            const total = this.calculateTotalDeposits();
+            totalDepositElement.textContent = '$' + total.toFixed(2);
+        }
+    }
+
     renderProjects() {
         const projectList = document.getElementById('projectList');
         const noProjects = document.getElementById('noProjects');
         
         if (!projectList) return;
+
+        // Update deposit summary
+        this.updateDepositSummary();
 
         const filteredProjects = this.getFilteredProjects();
 
