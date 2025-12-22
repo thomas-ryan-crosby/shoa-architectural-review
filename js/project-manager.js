@@ -4,7 +4,7 @@ class ProjectManager {
     constructor() {
         this.projects = [];
         this.currentFilter = 'all';
-        this.viewMode = 'detailed'; // 'detailed' or 'compact'
+        this.viewMode = 'compact'; // 'detailed' or 'compact' - compact is default
         this.firestoreEnabled = false;
         this.collectionName = 'projects';
         this.init();
@@ -966,10 +966,10 @@ class ProjectManager {
     }
 
     updateViewToggleText(element) {
-        if (this.viewMode === 'detailed') {
-            element.textContent = '📋 Detailed';
-        } else {
+        if (this.viewMode === 'compact') {
             element.textContent = '📄 Compact';
+        } else {
+            element.textContent = '📋 Detailed';
         }
     }
 
@@ -1236,11 +1236,12 @@ class ProjectManager {
 
     renderCompactHeader() {
         return `
-            <div class="compact-project-header" style="display: grid; grid-template-columns: 80px 1.5fr 1fr 0.8fr 100px 120px 100px 130px; gap: 12px; padding: 14px 16px; background: var(--primary-color); color: white; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">
+            <div class="compact-project-header" style="display: grid; grid-template-columns: 80px 1.5fr 1fr 0.8fr 1fr 100px 120px 100px 130px; gap: 12px; padding: 14px 16px; background: var(--primary-color); color: white; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">
                 <div>Status</div>
                 <div>Homeowner / Address</div>
                 <div>Lot</div>
                 <div>Project Type</div>
+                <div>Contractor</div>
                 <div>Date Approved</div>
                 <div>Deposit</div>
                 <div>Letter</div>
@@ -1357,6 +1358,9 @@ class ProjectManager {
         // Project type
         const projectType = `<span style="font-size: 0.9rem; color: var(--text-primary);">${project.projectType || 'N/A'}</span>`;
         
+        // Contractor
+        const contractor = `<span style="font-size: 0.9rem; color: var(--text-primary);">${project.contractorName || 'N/A'}</span>`;
+        
         // Date approved
         const dateApproved = project.noApprovalOnRecord ? 
             '<span style="color: #d32f2f; font-weight: bold; font-size: 0.85rem;">No Record</span>' :
@@ -1385,11 +1389,12 @@ class ProjectManager {
         ` : '<span style="color: var(--text-light); font-size: 0.8rem;">—</span>';
         
         return `
-            <div class="compact-project-row" data-project-id="${project.id}" style="display: grid; grid-template-columns: 80px 1.5fr 1fr 0.8fr 100px 120px 100px 130px; gap: 12px; padding: 14px 16px; background: var(--white); border-bottom: 1px solid #e0e0e0; align-items: center; transition: background-color 0.2s ease;">
+            <div class="compact-project-row" data-project-id="${project.id}" style="display: grid; grid-template-columns: 80px 1.5fr 1fr 0.8fr 1fr 100px 120px 100px 130px; gap: 12px; padding: 14px 16px; background: var(--white); border-bottom: 1px solid #e0e0e0; align-items: center; transition: background-color 0.2s ease;">
                 <div style="display: flex; align-items: center;">${statusBadge}</div>
                 <div>${homeownerAddress}</div>
                 <div style="display: flex; align-items: center;">${lot}</div>
                 <div style="display: flex; align-items: center;">${projectType}</div>
+                <div style="display: flex; align-items: center;">${contractor}</div>
                 <div style="display: flex; align-items: center;">${dateApproved}</div>
                 <div style="display: flex; align-items: center;">${depositStatus}</div>
                 <div style="display: flex; align-items: center;">${approvalStatus}</div>
