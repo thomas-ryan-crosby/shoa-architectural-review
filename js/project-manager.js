@@ -1220,10 +1220,33 @@ class ProjectManager {
         
         // Render based on view mode
         if (this.viewMode === 'compact') {
-            projectList.innerHTML = filteredProjects.map(project => this.renderProjectCompact(project, isAuthenticated)).join('');
+            // Add header row for compact view and wrap in table-like container
+            const headerRow = this.renderCompactHeader();
+            const dataRows = filteredProjects.map(project => this.renderProjectCompact(project, isAuthenticated)).join('');
+            projectList.innerHTML = `
+                <div style="background: var(--white); border: 2px solid var(--border-color); border-radius: 8px; overflow: hidden; box-shadow: var(--shadow);">
+                    ${headerRow}
+                    ${dataRows}
+                </div>
+            `;
         } else {
             projectList.innerHTML = filteredProjects.map(project => this.renderProjectDetailed(project, isAuthenticated)).join('');
         }
+    }
+
+    renderCompactHeader() {
+        return `
+            <div class="compact-project-header" style="display: grid; grid-template-columns: 80px 1.5fr 1fr 0.8fr 100px 120px 100px 100px; gap: 12px; padding: 14px 16px; background: var(--primary-color); color: white; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">
+                <div>Status</div>
+                <div>Homeowner / Address</div>
+                <div>Lot</div>
+                <div>Project Type</div>
+                <div>Date Approved</div>
+                <div>Deposit</div>
+                <div>Letter</div>
+                <div>Actions</div>
+            </div>
+        `;
     }
 
     renderProjectDetailed(project, isAuthenticated) {
@@ -1319,50 +1342,58 @@ class ProjectManager {
     }
 
     renderProjectCompact(project, isAuthenticated) {
-        const statusBadge = `<span class="project-status-badge ${project.status}" style="padding: 4px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; margin-right: 8px;">${project.status === 'open' ? 'Open' : 'Previous'}</span>`;
+        // Status badge
+        const statusBadge = `<span class="project-status-badge ${project.status}" style="padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; display: inline-block; white-space: nowrap;">${project.status === 'open' ? 'Open' : 'Previous'}</span>`;
+        
+        // Homeowner and address
+        const homeownerAddress = `
+            <div style="font-weight: 600; color: var(--primary-color); font-size: 0.9rem; margin-bottom: 2px;">${project.homeownerName || 'N/A'}</div>
+            ${project.address ? `<div style="color: var(--text-light); font-size: 0.8rem;">${project.address}</div>` : ''}
+        `;
+        
+        // Lot
+        const lot = `<span style="font-size: 0.9rem; color: var(--text-primary);">${project.lot || 'N/A'}</span>`;
+        
+        // Project type
+        const projectType = `<span style="font-size: 0.9rem; color: var(--text-primary);">${project.projectType || 'N/A'}</span>`;
+        
+        // Date approved
+        const dateApproved = project.noApprovalOnRecord ? 
+            '<span style="color: #d32f2f; font-weight: bold; font-size: 0.85rem;">No Record</span>' :
+            `<span style="font-size: 0.9rem; color: var(--text-primary);">${project.dateApproved || 'N/A'}</span>`;
         
         // Deposit status
         let depositStatus = '';
         if (project.depositWaived) {
-            depositStatus = '<span style="color: #856404; font-size: 0.85rem;">⚠️ Waived</span>';
+            depositStatus = '<span style="color: #856404; font-size: 0.85rem; font-weight: 500;">⚠️ Waived</span>';
         } else if (!project.depositAmountReceived) {
-            depositStatus = '<span style="color: #d32f2f; font-size: 0.85rem; font-weight: bold;">Deposit Needed</span>';
+            depositStatus = '<span style="color: #d32f2f; font-size: 0.85rem; font-weight: bold;">Needed</span>';
         } else {
             const netDeposit = (project.depositAmountReceived || 0) - (project.depositAmountReturned || 0);
-            depositStatus = `<span style="color: #2c5530; font-size: 0.85rem;">$${netDeposit.toFixed(2)}</span>`;
+            depositStatus = `<span style="color: #2c5530; font-size: 0.9rem; font-weight: 600;">$${netDeposit.toFixed(2)}</span>`;
         }
         
-        // Approval status
+        // Approval letter status
         const hasLetter = project.approvalLetterBlob || project.approvalLetterStorageUrl || (project.hasApprovalLetter !== false && project.approvalLetterFilename);
         const approvalStatus = hasLetter ? 
-            '<span style="color: #4caf50; font-size: 0.85rem;">✓ Letter</span>' : 
-            '<span style="color: #d32f2f; font-size: 0.85rem; font-weight: bold;">No Letter</span>';
+            '<span style="color: #4caf50; font-size: 0.9rem; font-weight: 600;">✓ Yes</span>' : 
+            '<span style="color: #d32f2f; font-size: 0.85rem; font-weight: bold;">No</span>';
         
+        // Download button
         const downloadButton = hasLetter && isAuthenticated ? `
-            <button type="button" class="btn-small btn-primary" onclick="window.projectManager.downloadLetter('${project.id}')" style="padding: 4px 8px; font-size: 0.75rem;">Download</button>
-        ` : '';
+            <button type="button" class="btn-small btn-primary" onclick="window.projectManager.downloadLetter('${project.id}')" style="padding: 6px 12px; font-size: 0.8rem; white-space: nowrap;">Download</button>
+        ` : '<span style="color: var(--text-light); font-size: 0.8rem;">—</span>';
         
         return `
-            <div class="project-card" data-project-id="${project.id}" style="padding: 12px 15px; margin-bottom: 8px;">
-                <div style="display: flex; align-items: center; justify-content: space-between; gap: 15px; flex-wrap: wrap;">
-                    <div style="display: flex; align-items: center; gap: 12px; flex: 1; min-width: 300px;">
-                        ${statusBadge}
-                        <span style="font-weight: 600; color: var(--primary-color);">${project.homeownerName}</span>
-                        ${project.address ? `<span style="color: var(--text-light);">${project.address}</span>` : ''}
-                        <span style="color: var(--text-light); font-size: 0.9rem;">Lot: ${project.lot || 'N/A'}</span>
-                        <span style="color: var(--text-light); font-size: 0.9rem;">${project.projectType || 'N/A'}</span>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
-                        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px;">
-                            <div style="font-size: 0.85rem; color: var(--text-light);">${project.dateApproved || 'N/A'}</div>
-                            <div style="display: flex; gap: 10px; align-items: center;">
-                                ${depositStatus}
-                                ${approvalStatus}
-                            </div>
-                        </div>
-                        ${downloadButton ? `<div>${downloadButton}</div>` : ''}
-                    </div>
-                </div>
+            <div class="compact-project-row" data-project-id="${project.id}" style="display: grid; grid-template-columns: 80px 1.5fr 1fr 0.8fr 100px 120px 100px 100px; gap: 12px; padding: 14px 16px; background: var(--white); border-bottom: 1px solid #e0e0e0; align-items: center; transition: background-color 0.2s ease;">
+                <div style="display: flex; align-items: center;">${statusBadge}</div>
+                <div>${homeownerAddress}</div>
+                <div style="display: flex; align-items: center;">${lot}</div>
+                <div style="display: flex; align-items: center;">${projectType}</div>
+                <div style="display: flex; align-items: center;">${dateApproved}</div>
+                <div style="display: flex; align-items: center;">${depositStatus}</div>
+                <div style="display: flex; align-items: center;">${approvalStatus}</div>
+                <div style="display: flex; align-items: center; justify-content: flex-start;">${downloadButton}</div>
             </div>
         `;
     }

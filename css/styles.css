@@ -648,6 +648,16 @@ footer {
     gap: 20px;
 }
 
+.compact-project-row:hover {
+    background-color: #f8f9fa !important;
+}
+
+.compact-project-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
 .project-card {
     background: var(--white);
     border: 2px solid var(--border-color);
