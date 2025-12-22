@@ -1393,7 +1393,7 @@ class ProjectManager {
         
         // Download button - smaller, more compact
         const downloadButton = hasLetter && isAuthenticated ? `
-            <button type="button" class="btn-small btn-primary" onclick="window.projectManager.downloadLetter('${project.id}')" style="padding: 4px 10px; font-size: 0.75rem; white-space: nowrap; border-radius: 4px; font-weight: 500;">Download</button>
+            <button type="button" class="btn-small btn-primary" onclick="window.projectManager.downloadLetter('${project.id}')" style="padding: 3px 8px; font-size: 0.7rem; white-space: nowrap; border-radius: 3px; font-weight: 500; line-height: 1.2;">Download</button>
         ` : '<span style="color: #999; font-size: 0.7rem;">—</span>';
         
         return `
