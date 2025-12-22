@@ -2468,11 +2468,23 @@ class ProjectManager {
         // Handle cancel
         const cancelBtn = document.getElementById('editCancelBtn');
         if (cancelBtn) {
-            cancelBtn.addEventListener('click', closeDialog);
+            cancelBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                closeDialog();
+            });
         }
 
         // Handle save
-        document.getElementById('editSaveBtn').addEventListener('click', async () => {
+        const saveBtn = document.getElementById('editSaveBtn');
+        if (!saveBtn) {
+            console.error('Save button not found in edit modal');
+            return;
+        }
+        
+        saveBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
             const homeownerName = document.getElementById('editHomeownerName').value.trim();
             const address = document.getElementById('editAddress').value.trim();
             const lot = document.getElementById('editLot').value.trim();
