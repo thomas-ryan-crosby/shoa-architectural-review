@@ -1026,13 +1026,26 @@ class ProjectManager {
             throw new Error('Firestore not initialized. Cannot add project.');
         }
 
+        // Format dateApproved from approvedOn if provided, otherwise use today's date
+        let dateApproved;
+        if (projectData.approvedOn) {
+            // approvedOn is a Date object, format it to MM/DD/YYYY
+            const date = projectData.approvedOn instanceof Date ? projectData.approvedOn : new Date(projectData.approvedOn);
+            dateApproved = date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+        } else {
+            // Fall back to today's date if not provided
+            dateApproved = new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+        }
+
         const project = {
             id: Date.now().toString(),
             homeownerName: projectData.ownerLastName || 'Unknown',
             address: projectData.address || '',
             lot: projectData.lot || '',
             projectType: projectData.projectType || '',
-            dateApproved: new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
+            contractorName: projectData.contractorName || '',
+            approvedBy: projectData.approvedBy || '',
+            dateApproved: dateApproved,
             dateConstructionStarted: '',
             status: 'open', // 'open' or 'previous'
             approvalLetterBlob: projectData.approvalLetterBlob || null,
