@@ -308,7 +308,10 @@ class ProjectManager {
             depositAmountReturned: data.depositAmountReturned || null,
             dateDepositReturned: data.dateDepositReturned || '',
             depositWaived: data.depositWaived || false,
-            depositWaiverReason: data.depositWaiverReason || ''
+            depositWaiverReason: data.depositWaiverReason || '',
+            reviewComments: data.reviewComments || '',
+            approvalReason: data.approvalReason || '',
+            siteConditionsFiles: data.siteConditionsFiles || []
         };
     }
 
@@ -389,6 +392,12 @@ class ProjectManager {
             dateDepositReturned: project.dateDepositReturned || '',
             depositWaived: project.depositWaived || false,
             depositWaiverReason: project.depositWaiverReason || '',
+            reviewComments: project.reviewComments || '',
+            approvalReason: project.approvalReason || '',
+            siteConditionsFiles: project.siteConditionsFiles ? project.siteConditionsFiles.map(file => ({
+                name: file.name || file,
+                type: file.type || ''
+            })) : [],
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         };
     }
@@ -520,8 +529,53 @@ class ProjectManager {
             }
         }
 
+        // Handle Review Comments dropdown
+        const reviewCommentsTypeSelect = document.getElementById('addReviewCommentsType');
+        const otherReviewCommentsGroup = document.getElementById('addOtherReviewCommentsGroup');
+        const reviewCommentsInput = document.getElementById('addReviewComments');
+        if (reviewCommentsTypeSelect && otherReviewCommentsGroup) {
+            reviewCommentsTypeSelect.addEventListener('change', () => {
+                if (reviewCommentsTypeSelect.value === 'other') {
+                    otherReviewCommentsGroup.style.display = 'block';
+                    if (reviewCommentsInput) {
+                        reviewCommentsInput.required = true;
+                    }
+                } else {
+                    otherReviewCommentsGroup.style.display = 'none';
+                    if (reviewCommentsInput) {
+                        reviewCommentsInput.required = false;
+                        reviewCommentsInput.value = '';
+                        this.clearError('addReviewComments');
+                    }
+                }
+            });
+        }
+
+        // Handle Approval Reason dropdown
+        const approvalReasonTypeSelect = document.getElementById('addApprovalReasonType');
+        const otherApprovalReasonGroup = document.getElementById('addOtherApprovalReasonGroup');
+        const approvalReasonInput = document.getElementById('addApprovalReason');
+        if (approvalReasonTypeSelect && otherApprovalReasonGroup) {
+            approvalReasonTypeSelect.addEventListener('change', () => {
+                if (approvalReasonTypeSelect.value === 'other') {
+                    otherApprovalReasonGroup.style.display = 'block';
+                    if (approvalReasonInput) {
+                        approvalReasonInput.required = true;
+                    }
+                } else {
+                    otherApprovalReasonGroup.style.display = 'none';
+                    if (approvalReasonInput) {
+                        approvalReasonInput.required = false;
+                        approvalReasonInput.value = '';
+                        this.clearError('addApprovalReason');
+                    }
+                }
+            });
+        }
+
         // Setup drag and drop for file upload in add project form
         this.setupAddProjectDragAndDrop();
+        this.setupSiteConditionsDragAndDrop();
     }
 
     setupAddProjectDragAndDrop() {
@@ -623,6 +677,100 @@ class ProjectManager {
         }
     }
 
+    setupSiteConditionsDragAndDrop() {
+        const dropZone = document.getElementById('addSiteConditionsDropZone');
+        const fileInput = document.getElementById('addSiteConditions');
+        const dropZoneContent = document.getElementById('addSiteConditionsDropZoneContent');
+        const fileList = document.getElementById('addSiteConditionsDropZoneFileList');
+
+        if (dropZone && fileInput) {
+            // Click to browse
+            dropZone.addEventListener('click', () => {
+                fileInput.click();
+            });
+
+            // Prevent default drag behaviors
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                });
+            });
+
+            // Highlight drop zone when dragging over
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => {
+                    dropZone.style.borderColor = '#2c5530';
+                    dropZone.style.background = '#e8f5e9';
+                });
+            });
+
+            // Remove highlight when dragging leaves
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => {
+                    dropZone.style.borderColor = '#ddd';
+                    dropZone.style.background = '#fafafa';
+                });
+            });
+
+            // Handle dropped files
+            dropZone.addEventListener('drop', (e) => {
+                const files = Array.from(e.dataTransfer.files);
+                if (files.length > 0) {
+                    const validFiles = files.filter(file => 
+                        file.type === 'application/pdf' || 
+                        file.type.startsWith('image/') ||
+                        file.name.toLowerCase().match(/\.(pdf|jpg|jpeg|png)$/i)
+                    );
+                    
+                    if (validFiles.length > 0) {
+                        // Create a new FileList using DataTransfer
+                        const dataTransfer = new DataTransfer();
+                        validFiles.forEach(file => dataTransfer.items.add(file));
+                        fileInput.files = dataTransfer.files;
+                        
+                        // Update UI to show file names
+                        this.updateSiteConditionsFileList(validFiles, dropZoneContent, fileList);
+                    } else {
+                        alert('Please upload PDF or image files (JPG, PNG).');
+                    }
+                }
+            });
+
+            // Handle file selection via click
+            fileInput.addEventListener('change', (e) => {
+                const files = Array.from(e.target.files);
+                if (files.length > 0) {
+                    this.updateSiteConditionsFileList(files, dropZoneContent, fileList);
+                } else {
+                    this.updateSiteConditionsFileList([], dropZoneContent, fileList);
+                }
+            });
+        }
+    }
+
+    updateSiteConditionsFileList(files, dropZoneContent, fileList) {
+        if (files.length > 0) {
+            if (dropZoneContent) {
+                dropZoneContent.style.display = 'none';
+            }
+            if (fileList) {
+                fileList.innerHTML = files.map(file => 
+                    `<div style="padding: 4px 0; font-size: 0.85rem; color: #2c5530;">✓ ${file.name}</div>`
+                ).join('');
+                fileList.style.display = 'block';
+            }
+        } else {
+            if (dropZoneContent) {
+                dropZoneContent.style.display = 'block';
+            }
+            if (fileList) {
+                fileList.style.display = 'none';
+                fileList.innerHTML = '';
+            }
+        }
+    }
+
     clearError(fieldId) {
         const errorElement = document.getElementById(`${fieldId}-error`);
         if (errorElement) {
@@ -716,6 +864,53 @@ class ProjectManager {
             depositWaiverReasonInput.required = false;
             this.clearError('addDepositWaiverReason');
         }
+
+        // Reset review comments fields
+        const reviewCommentsTypeSelect = document.getElementById('addReviewCommentsType');
+        const otherReviewCommentsGroup = document.getElementById('addOtherReviewCommentsGroup');
+        const reviewCommentsInput = document.getElementById('addReviewComments');
+        if (reviewCommentsTypeSelect) {
+            reviewCommentsTypeSelect.value = 'default';
+        }
+        if (otherReviewCommentsGroup) {
+            otherReviewCommentsGroup.style.display = 'none';
+        }
+        if (reviewCommentsInput) {
+            reviewCommentsInput.value = '';
+            reviewCommentsInput.required = false;
+            this.clearError('addReviewComments');
+        }
+
+        // Reset approval reason fields
+        const approvalReasonTypeSelect = document.getElementById('addApprovalReasonType');
+        const otherApprovalReasonGroup = document.getElementById('addOtherApprovalReasonGroup');
+        const approvalReasonInput = document.getElementById('addApprovalReason');
+        if (approvalReasonTypeSelect) {
+            approvalReasonTypeSelect.value = 'default';
+        }
+        if (otherApprovalReasonGroup) {
+            otherApprovalReasonGroup.style.display = 'none';
+        }
+        if (approvalReasonInput) {
+            approvalReasonInput.value = '';
+            approvalReasonInput.required = false;
+            this.clearError('addApprovalReason');
+        }
+
+        // Reset site conditions files
+        const siteConditionsInput = document.getElementById('addSiteConditions');
+        const siteConditionsDropZoneContent = document.getElementById('addSiteConditionsDropZoneContent');
+        const siteConditionsFileList = document.getElementById('addSiteConditionsDropZoneFileList');
+        if (siteConditionsInput) {
+            siteConditionsInput.value = '';
+        }
+        if (siteConditionsDropZoneContent) {
+            siteConditionsDropZoneContent.style.display = 'block';
+        }
+        if (siteConditionsFileList) {
+            siteConditionsFileList.style.display = 'none';
+            siteConditionsFileList.innerHTML = '';
+        }
     }
 
     async handleAddProject() {
@@ -730,11 +925,27 @@ class ProjectManager {
         const projectTypeSelect = document.getElementById('addProjectType')?.value;
         const otherProjectType = document.getElementById('addOtherProjectType')?.value.trim();
         const projectType = projectTypeSelect === 'Other' ? otherProjectType : projectTypeSelect;
+        const contractorName = document.getElementById('addContractorName')?.value.trim();
+        const approvedBy = document.getElementById('addApprovedBy')?.value.trim();
         const noApprovalOnRecord = document.getElementById('noApprovalOnRecord')?.checked;
         const dateApproved = noApprovalOnRecord ? null : document.getElementById('addDateApproved')?.value;
         const dateConstructionStarted = document.getElementById('addDateConstructionStarted')?.value;
         const status = document.getElementById('addProjectStatus')?.value;
         const approvalLetterFile = document.getElementById('addApprovalLetter')?.files[0];
+        const siteConditionsFiles = document.getElementById('addSiteConditions')?.files || [];
+        
+        // Review comments
+        const reviewCommentsType = document.getElementById('addReviewCommentsType')?.value;
+        const reviewComments = reviewCommentsType === 'other' 
+            ? document.getElementById('addReviewComments')?.value.trim() 
+            : 'The plan was reviewed for Sanctuary Setback Requirements.';
+        
+        // Approval reason
+        const approvalReasonType = document.getElementById('addApprovalReasonType')?.value;
+        const approvalReason = approvalReasonType === 'other'
+            ? document.getElementById('addApprovalReason')?.value.trim()
+            : 'The project meets Sanctuary Setback Requirements. No variances are required. Approved.';
+        
         const depositAmountReceived = document.getElementById('addDepositAmountReceived')?.value;
         const dateDepositReceived = document.getElementById('addDateDepositReceived')?.value;
         const depositAmountReturned = document.getElementById('addDepositAmountReturned')?.value;
@@ -745,6 +956,26 @@ class ProjectManager {
         // Validation
         if (!homeownerName) {
             this.showError('addHomeownerName', 'Homeowner name is required');
+            return;
+        }
+        if (!address) {
+            this.showError('addAddress', 'Property address is required');
+            return;
+        }
+        if (!lot) {
+            this.showError('addLot', 'Lot number is required');
+            return;
+        }
+        if (!projectTypeSelect) {
+            this.showError('addProjectType', 'Project type is required');
+            return;
+        }
+        if (reviewCommentsType === 'other' && !reviewComments) {
+            this.showError('addReviewComments', 'Please specify the review comments');
+            return;
+        }
+        if (approvalReasonType === 'other' && !approvalReason) {
+            this.showError('addApprovalReason', 'Please specify the approval reason');
             return;
         }
 
@@ -793,6 +1024,23 @@ class ProjectManager {
             const formattedDateDepositReceived = dateDepositReceived ? this.formatDate(dateDepositReceived) : '';
             const formattedDateDepositReturned = dateDepositReturned ? this.formatDate(dateDepositReturned) : '';
 
+            // Read site conditions files as ArrayBuffers
+            const siteConditionsArrayBuffers = [];
+            if (siteConditionsFiles.length > 0) {
+                for (const file of Array.from(siteConditionsFiles)) {
+                    try {
+                        const arrayBuffer = await this.readFileAsArrayBuffer(file);
+                        siteConditionsArrayBuffers.push({
+                            name: file.name,
+                            type: file.type,
+                            data: arrayBuffer
+                        });
+                    } catch (error) {
+                        console.error('Error reading site conditions file:', error);
+                    }
+                }
+            }
+
             // Create project
             const project = {
                 id: Date.now().toString(),
@@ -800,6 +1048,8 @@ class ProjectManager {
                 address: address || '',
                 lot: lot || '',
                 projectType: projectType || '',
+                contractorName: contractorName || '',
+                approvedBy: approvedBy || '',
                 dateApproved: formattedDateApproved,
                 noApprovalOnRecord: noApprovalOnRecord || false,
                 dateConstructionStarted: formattedDateStarted,
@@ -807,6 +1057,9 @@ class ProjectManager {
                 approvalLetterBlob: arrayBuffer,
                 approvalLetterFilename: approvalLetterFilename,
                 hasApprovalLetter: !!arrayBuffer, // Flag to track if letter exists
+                reviewComments: reviewComments || '',
+                approvalReason: approvalReason || '',
+                siteConditionsFiles: siteConditionsArrayBuffers,
                 depositAmountReceived: depositAmountReceived ? parseFloat(depositAmountReceived) : null,
                 dateDepositReceived: formattedDateDepositReceived,
                 depositAmountReturned: depositAmountReturned ? parseFloat(depositAmountReturned) : null,

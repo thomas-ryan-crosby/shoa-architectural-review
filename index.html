@@ -355,33 +355,37 @@
 
                             <div class="form-group">
                                 <label for="addAddress">
-                                    Property Address
+                                    Property Address <span class="required">*</span>
                                 </label>
                                 <input 
                                     type="text" 
                                     id="addAddress" 
                                     name="addAddress" 
+                                    required
                                     placeholder="e.g., 113 Juniper Court"
                                 >
+                                <span class="error-message" id="addAddress-error"></span>
                             </div>
 
                             <div class="form-group">
                                 <label for="addLot">
-                                    Lot Number
+                                    Lot Number <span class="required">*</span>
                                 </label>
                                 <input 
                                     type="text" 
                                     id="addLot" 
                                     name="addLot" 
+                                    required
                                     placeholder="e.g., 434"
                                 >
+                                <span class="error-message" id="addLot-error"></span>
                             </div>
 
                             <div class="form-group">
                                 <label for="addProjectType">
-                                    Project Type
+                                    Project Type <span class="required">*</span>
                                 </label>
-                                <select id="addProjectType" name="addProjectType">
+                                <select id="addProjectType" name="addProjectType" required>
                                     <option value="">Select a project type...</option>
                                     <option value="New Home">New Home</option>
                                     <option value="Renovation/Extension">Renovation/Extension</option>
@@ -401,6 +405,113 @@
                                     name="addOtherProjectType" 
                                     placeholder="Enter project type"
                                 >
+                            </div>
+
+                            <div class="form-group">
+                                <label for="addContractorName">
+                                    Contractor Name
+                                </label>
+                                <input 
+                                    type="text" 
+                                    id="addContractorName" 
+                                    name="addContractorName" 
+                                    placeholder="e.g., ABC Construction"
+                                >
+                            </div>
+
+                            <div class="form-group">
+                                <label for="addApprovedBy">
+                                    Approved By
+                                </label>
+                                <input 
+                                    type="text" 
+                                    id="addApprovedBy" 
+                                    name="addApprovedBy" 
+                                    placeholder="e.g., John Smith, AECC Chair"
+                                >
+                            </div>
+
+                            <div class="form-section-divider">
+                                <h4>Review Information</h4>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="addReviewCommentsType">
+                                    Review Comments <span class="required">*</span>
+                                </label>
+                                <select id="addReviewCommentsType" name="addReviewCommentsType" required>
+                                    <option value="default">The plan was reviewed for Sanctuary Setback Requirements.</option>
+                                    <option value="other">Other (specify below)</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group" id="addOtherReviewCommentsGroup" style="display: none;">
+                                <label for="addReviewComments">
+                                    Specify Review Comments <span class="required">*</span>
+                                </label>
+                                <textarea 
+                                    id="addReviewComments" 
+                                    name="addReviewComments" 
+                                    rows="4"
+                                    placeholder="Enter your review comments"
+                                ></textarea>
+                                <span class="error-message" id="addReviewComments-error"></span>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="addApprovalReasonType">
+                                    Approval Reason <span class="required">*</span>
+                                </label>
+                                <select id="addApprovalReasonType" name="addApprovalReasonType" required>
+                                    <option value="default">The project meets Sanctuary Setback Requirements. No variances are required. Approved.</option>
+                                    <option value="other">Other (specify below)</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group" id="addOtherApprovalReasonGroup" style="display: none;">
+                                <label for="addApprovalReason">
+                                    Specify Approval Reason <span class="required">*</span>
+                                </label>
+                                <textarea 
+                                    id="addApprovalReason" 
+                                    name="addApprovalReason" 
+                                    rows="4"
+                                    placeholder="Enter your approval reason"
+                                ></textarea>
+                                <span class="error-message" id="addApprovalReason-error"></span>
+                            </div>
+
+                            <div class="form-section-divider">
+                                <h4>Current Site Conditions</h4>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="addSiteConditions">
+                                    Upload Current Site Conditions (Optional)
+                                </label>
+                                <div id="addSiteConditionsDropZone" style="border: 2px dashed #ddd; border-radius: 8px; padding: 30px; text-align: center; margin-top: 8px; background: #fafafa; cursor: pointer; transition: all 0.3s ease;">
+                                    <div id="addSiteConditionsDropZoneContent">
+                                        <div style="font-size: 2rem; margin-bottom: 10px;">📷</div>
+                                        <div style="font-weight: 500; margin-bottom: 5px;">Drag and drop files here</div>
+                                        <div style="font-size: 0.9rem; color: #666; margin-bottom: 10px;">or</div>
+                                        <div style="display: inline-block; padding: 8px 16px; background: #2c5530; color: white; border-radius: 4px; font-size: 0.9rem;">Click to browse</div>
+                                        <div style="font-size: 0.85rem; color: #666; margin-top: 8px;">PDF, JPG, PNG</div>
+                                    </div>
+                                    <div id="addSiteConditionsDropZoneFileList" style="display: none; margin-top: 10px;"></div>
+                                </div>
+                                <input 
+                                    type="file" 
+                                    id="addSiteConditions" 
+                                    name="addSiteConditions" 
+                                    multiple
+                                    accept=".pdf,.jpg,.jpeg,.png"
+                                    style="display: none;"
+                                >
+                                <small class="form-hint">Attach image of Google Maps or site picture (optional but recommended)</small>
+                            </div>
+
+                            <div class="form-section-divider">
+                                <h4>Approval Information</h4>
                             </div>
 
                             <div class="form-group">
