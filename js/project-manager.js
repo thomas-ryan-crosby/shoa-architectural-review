@@ -1158,7 +1158,7 @@ class ProjectManager {
         if (this.currentFilter === 'all') {
             return this.projects;
         } else if (this.currentFilter === 'open') {
-            return this.projects.filter(p => p.status === 'open');
+            return this.projects.filter(p => p.status === 'open' || p.status === 'under_review');
         } else if (this.currentFilter === 'previous') {
             return this.projects.filter(p => p.status === 'previous');
         }
@@ -1276,7 +1276,7 @@ class ProjectManager {
             <div class="project-card" data-project-id="${project.id}">
                 <div class="project-card-header">
                     <h3>${project.homeownerName}${project.address ? ' - ' + project.address : ''}</h3>
-                    <div class="project-status-badge ${project.status}">${project.status === 'open' ? 'Open' : 'Previous'}</div>
+                    <div class="project-status-badge ${project.status}">${project.status === 'open' ? 'Open' : project.status === 'under_review' ? 'Under Architectural Review' : 'Previous'}</div>
                 </div>
                 <div class="project-card-body">
                     <div class="project-info">
@@ -1352,7 +1352,8 @@ class ProjectManager {
 
     renderProjectCompact(project, isAuthenticated) {
         // Status badge - smaller and more refined
-        const statusBadge = `<span class="project-status-badge ${project.status}" style="padding: 3px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: 600; display: inline-block; white-space: nowrap; text-align: center; min-width: 50px;">${project.status === 'open' ? 'Open' : 'Previous'}</span>`;
+        const statusText = project.status === 'open' ? 'Open' : project.status === 'under_review' ? 'Under Review' : 'Previous';
+        const statusBadge = `<span class="project-status-badge ${project.status}" style="padding: 3px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: 600; display: inline-block; white-space: nowrap; text-align: center; min-width: 50px;">${statusText}</span>`;
         
         // Homeowner and address - tighter spacing
         const homeownerAddress = `
@@ -1614,6 +1615,7 @@ class ProjectManager {
                     <label><strong>Status:</strong></label><br>
                     <select id="editStatus" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px;">
                         <option value="open" ${project.status === 'open' ? 'selected' : ''}>Open</option>
+                        <option value="under_review" ${project.status === 'under_review' ? 'selected' : ''}>Under Architectural Review</option>
                         <option value="previous" ${project.status === 'previous' ? 'selected' : ''}>Previous</option>
                     </select>
                 </div>

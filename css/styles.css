@@ -705,6 +705,11 @@ footer {
     color: var(--success-color);
 }
 
+.project-status-badge.under_review {
+    background: #fff3cd;
+    color: #856404;
+}
+
 .project-status-badge.previous {
     background: #f5f5f5;
     color: var(--text-light);
