@@ -1906,6 +1906,61 @@ class ProjectManager {
                     <textarea id="editDepositWaiverReason" rows="3" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px;" placeholder="Enter the reason why the deposit was waived...">${project.depositWaiverReason || ''}</textarea>
                 </div>
                 
+                <div style="margin-bottom: 20px; border-top: 1px solid #e0e0e0; padding-top: 15px;">
+                    <h4 style="margin: 0 0 15px 0; color: #2c5530;">Review Information</h4>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label><strong>Review Comments:</strong></label><br>
+                        <select id="editReviewCommentsType" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px;">
+                            <option value="default" ${!project.reviewComments || project.reviewComments === 'The plan was reviewed for Sanctuary Setback Requirements.' ? 'selected' : ''}>The plan was reviewed for Sanctuary Setback Requirements.</option>
+                            <option value="other" ${project.reviewComments && project.reviewComments !== 'The plan was reviewed for Sanctuary Setback Requirements.' ? 'selected' : ''}>Other (specify below)</option>
+                        </select>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px; display: ${project.reviewComments && project.reviewComments !== 'The plan was reviewed for Sanctuary Setback Requirements.' ? 'block' : 'none'};" id="editOtherReviewCommentsGroup">
+                        <label><strong>Specify Review Comments:</strong></label><br>
+                        <textarea id="editReviewComments" rows="4" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px;" placeholder="Enter your review comments">${project.reviewComments && project.reviewComments !== 'The plan was reviewed for Sanctuary Setback Requirements.' ? project.reviewComments : ''}</textarea>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label><strong>Approval Reason:</strong></label><br>
+                        <select id="editApprovalReasonType" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px;">
+                            <option value="default" ${!project.approvalReason || project.approvalReason === 'The project meets Sanctuary Setback Requirements. No variances are required. Approved.' ? 'selected' : ''}>The project meets Sanctuary Setback Requirements. No variances are required. Approved.</option>
+                            <option value="other" ${project.approvalReason && project.approvalReason !== 'The project meets Sanctuary Setback Requirements. No variances are required. Approved.' ? 'selected' : ''}>Other (specify below)</option>
+                        </select>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px; display: ${project.approvalReason && project.approvalReason !== 'The project meets Sanctuary Setback Requirements. No variances are required. Approved.' ? 'block' : 'none'};" id="editOtherApprovalReasonGroup">
+                        <label><strong>Specify Approval Reason:</strong></label><br>
+                        <textarea id="editApprovalReason" rows="4" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px;" placeholder="Enter your approval reason">${project.approvalReason && project.approvalReason !== 'The project meets Sanctuary Setback Requirements. No variances are required. Approved.' ? project.approvalReason : ''}</textarea>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 20px; border-top: 1px solid #e0e0e0; padding-top: 15px;">
+                    <h4 style="margin: 0 0 15px 0; color: #2c5530;">Current Site Conditions</h4>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label><strong>Upload Current Site Conditions (Optional):</strong></label><br>
+                        <div id="editSiteConditionsDropZone" style="border: 2px dashed #ddd; border-radius: 8px; padding: 30px; text-align: center; margin-top: 8px; background: #fafafa; cursor: pointer; transition: all 0.3s ease;">
+                            <div id="editSiteConditionsDropZoneContent">
+                                <div style="font-size: 2rem; margin-bottom: 10px;">📷</div>
+                                <div style="font-weight: 500; margin-bottom: 5px;">Drag and drop files here</div>
+                                <div style="font-size: 0.9rem; color: #666; margin-bottom: 10px;">or</div>
+                                <div style="display: inline-block; padding: 8px 16px; background: #2c5530; color: white; border-radius: 4px; font-size: 0.9rem;">Click to browse</div>
+                                <div style="font-size: 0.85rem; color: #666; margin-top: 8px;">PDF, JPG, PNG</div>
+                            </div>
+                            <div id="editSiteConditionsDropZoneFileList" style="display: none; margin-top: 10px;"></div>
+                        </div>
+                        <input type="file" id="editSiteConditions" multiple accept=".pdf,.jpg,.jpeg,.png" style="display: none;">
+                        <small style="color: #666; font-size: 0.85rem; display: block; margin-top: 5px;">Attach image of Google Maps or site picture (optional but recommended)</small>
+                        ${project.siteConditionsFiles && project.siteConditionsFiles.length > 0 ? `
+                            <div style="margin-top: 8px; font-size: 0.85rem; color: #666;">
+                                Current files: ${project.siteConditionsFiles.map(f => f.name || f).join(', ')}
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+                
                 <div style="margin-bottom: 15px;">
                     <label><strong>Upload Approval Letter PDF:</strong></label><br>
                     <div id="editFileDropZone" style="border: 2px dashed #ddd; border-radius: 8px; padding: 30px; text-align: center; margin-top: 8px; background: #fafafa; cursor: pointer; transition: all 0.3s ease;">
@@ -2037,6 +2092,51 @@ class ProjectManager {
             });
         }
 
+        // Handle Review Comments dropdown
+        const editReviewCommentsTypeSelect = document.getElementById('editReviewCommentsType');
+        const editOtherReviewCommentsGroup = document.getElementById('editOtherReviewCommentsGroup');
+        const editReviewCommentsInput = document.getElementById('editReviewComments');
+        if (editReviewCommentsTypeSelect && editOtherReviewCommentsGroup) {
+            editReviewCommentsTypeSelect.addEventListener('change', () => {
+                if (editReviewCommentsTypeSelect.value === 'other') {
+                    editOtherReviewCommentsGroup.style.display = 'block';
+                    if (editReviewCommentsInput) {
+                        editReviewCommentsInput.required = true;
+                    }
+                } else {
+                    editOtherReviewCommentsGroup.style.display = 'none';
+                    if (editReviewCommentsInput) {
+                        editReviewCommentsInput.required = false;
+                        editReviewCommentsInput.value = '';
+                    }
+                }
+            });
+        }
+
+        // Handle Approval Reason dropdown
+        const editApprovalReasonTypeSelect = document.getElementById('editApprovalReasonType');
+        const editOtherApprovalReasonGroup = document.getElementById('editOtherApprovalReasonGroup');
+        const editApprovalReasonInput = document.getElementById('editApprovalReason');
+        if (editApprovalReasonTypeSelect && editOtherApprovalReasonGroup) {
+            editApprovalReasonTypeSelect.addEventListener('change', () => {
+                if (editApprovalReasonTypeSelect.value === 'other') {
+                    editOtherApprovalReasonGroup.style.display = 'block';
+                    if (editApprovalReasonInput) {
+                        editApprovalReasonInput.required = true;
+                    }
+                } else {
+                    editOtherApprovalReasonGroup.style.display = 'none';
+                    if (editApprovalReasonInput) {
+                        editApprovalReasonInput.required = false;
+                        editApprovalReasonInput.value = '';
+                    }
+                }
+            });
+        }
+
+        // Setup drag and drop for site conditions in edit modal
+        this.setupEditSiteConditionsDragAndDrop();
+
         // Handle save
         document.getElementById('editSaveBtn').addEventListener('click', async () => {
             const homeownerName = document.getElementById('editHomeownerName').value.trim();
@@ -2060,11 +2160,51 @@ class ProjectManager {
             const depositWaived = document.getElementById('editDepositWaived').checked;
             const depositWaiverReason = document.getElementById('editDepositWaiverReason').value.trim();
             const approvalLetterFile = document.getElementById('editApprovalLetter').files[0];
+            
+            // Review comments
+            const reviewCommentsType = document.getElementById('editReviewCommentsType')?.value;
+            const reviewComments = reviewCommentsType === 'other' 
+                ? document.getElementById('editReviewComments')?.value.trim() 
+                : 'The plan was reviewed for Sanctuary Setback Requirements.';
+            
+            // Approval reason
+            const approvalReasonType = document.getElementById('editApprovalReasonType')?.value;
+            const approvalReason = approvalReasonType === 'other'
+                ? document.getElementById('editApprovalReason')?.value.trim()
+                : 'The project meets Sanctuary Setback Requirements. No variances are required. Approved.';
+            
+            const siteConditionsFiles = document.getElementById('editSiteConditions')?.files || [];
 
             // Validate waiver reason if deposit is waived
             if (depositWaived && !depositWaiverReason) {
                 alert('Waiver reason is required when deposit is waived');
                 return;
+            }
+            if (reviewCommentsType === 'other' && !reviewComments) {
+                alert('Please specify the review comments');
+                return;
+            }
+            if (approvalReasonType === 'other' && !approvalReason) {
+                alert('Please specify the approval reason');
+                return;
+            }
+
+            // Read site conditions files if provided
+            let siteConditionsArrayBuffers = project.siteConditionsFiles || [];
+            if (siteConditionsFiles.length > 0) {
+                siteConditionsArrayBuffers = [];
+                for (const file of Array.from(siteConditionsFiles)) {
+                    try {
+                        const arrayBuffer = await this.readFileAsArrayBuffer(file);
+                        siteConditionsArrayBuffers.push({
+                            name: file.name,
+                            type: file.type,
+                            data: arrayBuffer
+                        });
+                    } catch (error) {
+                        console.error('Error reading site conditions file:', error);
+                    }
+                }
             }
 
             const updates = {
@@ -2078,6 +2218,9 @@ class ProjectManager {
                 noApprovalOnRecord: noApprovalOnRecord,
                 dateConstructionStarted: dateStarted,
                 status: status,
+                reviewComments: reviewComments,
+                approvalReason: approvalReason,
+                siteConditionsFiles: siteConditionsArrayBuffers,
                 depositAmountReceived: depositReceived ? parseFloat(depositReceived) : null,
                 dateDepositReceived: dateDepositReceived,
                 depositAmountReturned: depositReturned ? parseFloat(depositReturned) : null,
