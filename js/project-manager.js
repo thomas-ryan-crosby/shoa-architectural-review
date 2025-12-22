@@ -4,6 +4,7 @@ class ProjectManager {
     constructor() {
         this.projects = [];
         this.currentFilter = 'all';
+        this.viewMode = 'detailed'; // 'detailed' or 'compact'
         this.firestoreEnabled = false;
         this.collectionName = 'projects';
         this.init();
@@ -13,6 +14,7 @@ class ProjectManager {
         // Initialize UI components (no auth required for viewing)
         this.setupTabs();
         this.setupFilters();
+        this.setupViewToggle();
         this.setupAddProjectForm();
         
         // Initialize Firebase/Firestore (works without auth for reads)
@@ -947,6 +949,30 @@ class ProjectManager {
         });
     }
 
+    setupViewToggle() {
+        const viewToggleBtn = document.getElementById('viewToggleBtn');
+        const viewToggleText = document.getElementById('viewToggleText');
+        
+        if (viewToggleBtn && viewToggleText) {
+            // Update button text based on current view mode
+            this.updateViewToggleText(viewToggleText);
+            
+            viewToggleBtn.addEventListener('click', () => {
+                this.viewMode = this.viewMode === 'detailed' ? 'compact' : 'detailed';
+                this.updateViewToggleText(viewToggleText);
+                this.renderProjects();
+            });
+        }
+    }
+
+    updateViewToggleText(element) {
+        if (this.viewMode === 'detailed') {
+            element.textContent = '📋 Detailed';
+        } else {
+            element.textContent = '📄 Compact';
+        }
+    }
+
     async loadProjects() {
         if (!this.firestoreEnabled || !this.db) {
             console.error('Cannot load projects: Firestore not initialized');
@@ -1192,7 +1218,15 @@ class ProjectManager {
 
         const isAuthenticated = window.authHandler && window.authHandler.isAuthenticated();
         
-        projectList.innerHTML = filteredProjects.map(project => {
+        // Render based on view mode
+        if (this.viewMode === 'compact') {
+            projectList.innerHTML = filteredProjects.map(project => this.renderProjectCompact(project, isAuthenticated)).join('');
+        } else {
+            projectList.innerHTML = filteredProjects.map(project => this.renderProjectDetailed(project, isAuthenticated)).join('');
+        }
+    }
+
+    renderProjectDetailed(project, isAuthenticated) {
             const editDeleteButtons = isAuthenticated ? `
                 <button type="button" class="btn-small btn-secondary" onclick="window.projectManager.editProject('${project.id}')">
                     Edit
@@ -1282,7 +1316,63 @@ class ProjectManager {
                 </div>
             </div>
         `;
-        }).join('');
+    }
+
+    renderProjectCompact(project, isAuthenticated) {
+        const statusBadge = `<span class="project-status-badge ${project.status}" style="padding: 4px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; margin-right: 8px;">${project.status === 'open' ? 'Open' : 'Previous'}</span>`;
+        
+        // Deposit status
+        let depositStatus = '';
+        if (project.depositWaived) {
+            depositStatus = '<span style="color: #856404; font-size: 0.85rem;">⚠️ Waived</span>';
+        } else if (!project.depositAmountReceived) {
+            depositStatus = '<span style="color: #d32f2f; font-size: 0.85rem; font-weight: bold;">Deposit Needed</span>';
+        } else {
+            const netDeposit = (project.depositAmountReceived || 0) - (project.depositAmountReturned || 0);
+            depositStatus = `<span style="color: #2c5530; font-size: 0.85rem;">$${netDeposit.toFixed(2)}</span>`;
+        }
+        
+        // Approval status
+        const hasLetter = project.approvalLetterBlob || project.approvalLetterStorageUrl || (project.hasApprovalLetter !== false && project.approvalLetterFilename);
+        const approvalStatus = hasLetter ? 
+            '<span style="color: #4caf50; font-size: 0.85rem;">✓ Letter</span>' : 
+            '<span style="color: #d32f2f; font-size: 0.85rem; font-weight: bold;">No Letter</span>';
+        
+        const editDeleteButtons = isAuthenticated ? `
+            <button type="button" class="btn-small btn-secondary" onclick="window.projectManager.editProject('${project.id}')" style="padding: 4px 8px; font-size: 0.75rem;">Edit</button>
+            <button type="button" class="btn-small btn-danger" onclick="window.projectManager.deleteProject('${project.id}')" style="padding: 4px 8px; font-size: 0.75rem;">Delete</button>
+        ` : '';
+        
+        const downloadButton = hasLetter && isAuthenticated ? `
+            <button type="button" class="btn-small btn-primary" onclick="window.projectManager.downloadLetter('${project.id}')" style="padding: 4px 8px; font-size: 0.75rem;">Download</button>
+        ` : '';
+        
+        return `
+            <div class="project-card" data-project-id="${project.id}" style="padding: 12px 15px; margin-bottom: 8px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 15px; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 12px; flex: 1; min-width: 300px;">
+                        ${statusBadge}
+                        <span style="font-weight: 600; color: var(--primary-color);">${project.homeownerName}</span>
+                        ${project.address ? `<span style="color: var(--text-light);">${project.address}</span>` : ''}
+                        <span style="color: var(--text-light); font-size: 0.9rem;">Lot: ${project.lot || 'N/A'}</span>
+                        <span style="color: var(--text-light); font-size: 0.9rem;">${project.projectType || 'N/A'}</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+                        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px;">
+                            <div style="font-size: 0.85rem; color: var(--text-light);">${project.dateApproved || 'N/A'}</div>
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                ${depositStatus}
+                                ${approvalStatus}
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 5px;">
+                            ${downloadButton}
+                            ${editDeleteButtons}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
     }
 
     async downloadLetter(projectId) {
