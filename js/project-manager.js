@@ -310,7 +310,8 @@ class ProjectManager {
             depositWaiverReason: data.depositWaiverReason || '',
             reviewComments: data.reviewComments || '',
             approvalReason: data.approvalReason || '',
-            siteConditionsFiles: data.siteConditionsFiles || []
+            siteConditionsFiles: data.siteConditionsFiles || [],
+            submittedPlansFiles: data.submittedPlansFiles || []
         };
     }
 
@@ -394,6 +395,10 @@ class ProjectManager {
             reviewComments: project.reviewComments || '',
             approvalReason: project.approvalReason || '',
             siteConditionsFiles: project.siteConditionsFiles ? project.siteConditionsFiles.map(file => ({
+                name: file.name || file,
+                type: file.type || ''
+            })) : [],
+            submittedPlansFiles: project.submittedPlansFiles ? project.submittedPlansFiles.map(file => ({
                 name: file.name || file,
                 type: file.type || ''
             })) : [],
@@ -642,13 +647,21 @@ class ProjectManager {
                     }
                 }
 
+                // Convert submitted plans files to File objects
+                const submittedPlansFileArray = [];
+                if (submittedPlansFiles.length > 0) {
+                    for (const file of Array.from(submittedPlansFiles)) {
+                        submittedPlansFileArray.push(file);
+                    }
+                }
+
                 // Generate PDF
                 try {
                     if (!window.pdfGenerator) {
                         window.pdfGenerator = new PDFGenerator();
                     }
                     
-                    await window.pdfGenerator.generatePDF(formData, siteConditionsFileArray, []);
+                    await window.pdfGenerator.generatePDF(formData, siteConditionsFileArray, submittedPlansFileArray);
                     
                     // After PDF is generated, it will be saved to the project automatically
                     // Close the form and refresh projects
@@ -672,6 +685,7 @@ class ProjectManager {
         // Setup drag and drop for file upload in add project form
         this.setupAddProjectDragAndDrop();
         this.setupSiteConditionsDragAndDrop();
+        this.setupSubmittedPlansDragAndDrop();
     }
 
     setupAddProjectDragAndDrop() {
@@ -1007,6 +1021,21 @@ class ProjectManager {
             siteConditionsFileList.style.display = 'none';
             siteConditionsFileList.innerHTML = '';
         }
+
+        // Reset submitted plans files
+        const submittedPlansInput = document.getElementById('addSubmittedPlans');
+        const submittedPlansDropZoneContent = document.getElementById('addSubmittedPlansDropZoneContent');
+        const submittedPlansFileList = document.getElementById('addSubmittedPlansDropZoneFileList');
+        if (submittedPlansInput) {
+            submittedPlansInput.value = '';
+        }
+        if (submittedPlansDropZoneContent) {
+            submittedPlansDropZoneContent.style.display = 'block';
+        }
+        if (submittedPlansFileList) {
+            submittedPlansFileList.style.display = 'none';
+            submittedPlansFileList.innerHTML = '';
+        }
     }
 
     async handleAddProject() {
@@ -1029,6 +1058,7 @@ class ProjectManager {
         const status = document.getElementById('addProjectStatus')?.value;
         const approvalLetterFile = document.getElementById('addApprovalLetter')?.files[0];
         const siteConditionsFiles = document.getElementById('addSiteConditions')?.files || [];
+        const submittedPlansFiles = document.getElementById('addSubmittedPlans')?.files || [];
         
         // Review comments
         const reviewCommentsType = document.getElementById('addReviewCommentsType')?.value;
@@ -1137,6 +1167,23 @@ class ProjectManager {
                 }
             }
 
+            // Read submitted plans files as ArrayBuffers
+            const submittedPlansArrayBuffers = [];
+            if (submittedPlansFiles.length > 0) {
+                for (const file of Array.from(submittedPlansFiles)) {
+                    try {
+                        const arrayBuffer = await this.readFileAsArrayBuffer(file);
+                        submittedPlansArrayBuffers.push({
+                            name: file.name,
+                            type: file.type,
+                            data: arrayBuffer
+                        });
+                    } catch (error) {
+                        console.error('Error reading submitted plans file:', error);
+                    }
+                }
+            }
+
             // Create project
             const project = {
                 id: Date.now().toString(),
@@ -1156,6 +1203,7 @@ class ProjectManager {
                 reviewComments: reviewComments || '',
                 approvalReason: approvalReason || '',
                 siteConditionsFiles: siteConditionsArrayBuffers,
+                submittedPlansFiles: submittedPlansArrayBuffers,
                 depositAmountReceived: depositAmountReceived ? parseFloat(depositAmountReceived) : null,
                 dateDepositReceived: formattedDateDepositReceived,
                 depositAmountReturned: depositAmountReturned ? parseFloat(depositAmountReturned) : null,
@@ -1686,11 +1734,11 @@ class ProjectManager {
                         </div>
                     ` : ''}
                     
-                    ${project.projectFiles && project.projectFiles.length > 0 ? `
+                    ${project.submittedPlansFiles && project.submittedPlansFiles.length > 0 ? `
                         <div class="file-info" style="margin-top: 20px;">
-                            <h4>Submitted Project Files</h4>
+                            <h4>Submitted Plans</h4>
                             <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">
-                                ${project.projectFiles.map((file, index) => {
+                                ${project.submittedPlansFiles.map((file, index) => {
                                     const fileName = file.name || file;
                                     const fileType = file.type || '';
                                     const isImage = fileType.startsWith('image/') || /\.(jpg|jpeg|png)$/i.test(fileName);
@@ -1703,6 +1751,18 @@ class ProjectManager {
                                         </div>
                                     `;
                                 }).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    ${project.approvalLetterFilename || project.approvalLetterStorageUrl || project.hasApprovalLetter ? `
+                        <div class="file-info" style="margin-top: 20px;">
+                            <h4>Architectural Approval Letter</h4>
+                            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">
+                                <div style="display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: #e8f5e9; border: 1px solid #4caf50; border-radius: 4px; font-size: 0.85rem;">
+                                    <span style="font-size: 1rem;">📋</span>
+                                    <span style="color: #2c5530; font-weight: 500;">${project.approvalLetterFilename || 'Approval Letter.pdf'}</span>
+                                </div>
                             </div>
                         </div>
                     ` : ''}
@@ -2074,6 +2134,31 @@ class ProjectManager {
                 </div>
                 
                 <div style="margin-bottom: 20px; border-top: 1px solid #e0e0e0; padding-top: 15px;">
+                    <h4 style="margin: 0 0 15px 0; color: #2c5530;">Submitted Plans</h4>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label><strong>Upload Submitted Plans (Optional):</strong></label><br>
+                        <div id="editSubmittedPlansDropZone" style="border: 2px dashed #ddd; border-radius: 8px; padding: 30px; text-align: center; margin-top: 8px; background: #fafafa; cursor: pointer; transition: all 0.3s ease;">
+                            <div id="editSubmittedPlansDropZoneContent">
+                                <div style="font-size: 2rem; margin-bottom: 10px;">📐</div>
+                                <div style="font-weight: 500; margin-bottom: 5px;">Drag and drop files here</div>
+                                <div style="font-size: 0.9rem; color: #666; margin-bottom: 10px;">or</div>
+                                <div style="display: inline-block; padding: 8px 16px; background: #2c5530; color: white; border-radius: 4px; font-size: 0.9rem;">Click to browse</div>
+                                <div style="font-size: 0.85rem; color: #666; margin-top: 8px;">PDF, JPG, PNG, DOC, DOCX</div>
+                            </div>
+                            <div id="editSubmittedPlansDropZoneFileList" style="display: none; margin-top: 10px;"></div>
+                        </div>
+                        <input type="file" id="editSubmittedPlans" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="display: none;">
+                        <small style="color: #666; font-size: 0.85rem; display: block; margin-top: 5px;">Upload project documents, plans, or drawings (optional but recommended)</small>
+                        ${project.submittedPlansFiles && project.submittedPlansFiles.length > 0 ? `
+                            <div style="margin-top: 8px; font-size: 0.85rem; color: #666;">
+                                Current files: ${project.submittedPlansFiles.map(f => f.name || f).join(', ')}
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 20px; border-top: 1px solid #e0e0e0; padding-top: 15px;">
                     <h4 style="margin: 0 0 15px 0; color: #2c5530;">Approval Letter</h4>
                     <div style="margin-bottom: 15px;">
                         <label><strong>Upload Approval Letter PDF (Optional):</strong></label><br>
@@ -2272,6 +2357,119 @@ class ProjectManager {
 
         // Setup drag and drop for site conditions in edit modal
         this.setupEditSiteConditionsDragAndDrop();
+        this.setupEditSubmittedPlansDragAndDrop();
+
+        // Helper function to close dialog
+        const closeDialog = () => {
+            if (dialog.parentNode) {
+                document.body.removeChild(dialog);
+            }
+        };
+
+        // Handle generate letter button (both inline and in footer)
+        const generateLetterBtn = document.getElementById('editGenerateLetterBtn');
+        const generateLetterBtnInline = document.getElementById('editGenerateLetterBtnInline');
+        
+        const handleGenerateLetter = async () => {
+            // Require authentication
+            if (!this.requireAuth()) {
+                return;
+            }
+
+            // Collect form data
+            const homeownerName = document.getElementById('editHomeownerName')?.value.trim();
+            const address = document.getElementById('editAddress')?.value.trim();
+            const lot = document.getElementById('editLot')?.value.trim();
+            const projectTypeSelect = document.getElementById('editProjectType');
+            const projectType = projectTypeSelect?.value === 'Other' 
+                ? document.getElementById('editOtherProjectType')?.value.trim() 
+                : projectTypeSelect?.value;
+            const contractorName = document.getElementById('editContractorName')?.value.trim();
+            const approvedBy = document.getElementById('editApprovedBy')?.value.trim();
+            const dateApprovedInput = document.getElementById('editDateApproved');
+            const dateApproved = dateApprovedInput?.value ? this.formatDateFromInput(dateApprovedInput.value) : '';
+            const noApprovalOnRecord = document.getElementById('editNoApprovalOnRecord')?.checked;
+            
+            // Review comments
+            const reviewCommentsType = document.getElementById('editReviewCommentsType')?.value;
+            const reviewComments = reviewCommentsType === 'other' 
+                ? document.getElementById('editReviewComments')?.value.trim() 
+                : 'The plan was reviewed for Sanctuary Setback Requirements.';
+            
+            // Approval reason
+            const approvalReasonType = document.getElementById('editApprovalReasonType')?.value;
+            const approvalReason = approvalReasonType === 'other'
+                ? document.getElementById('editApprovalReason')?.value.trim()
+                : 'The project meets Sanctuary Setback Requirements. No variances are required. Approved.';
+            
+            const siteConditionsFiles = document.getElementById('editSiteConditions')?.files || [];
+            const submittedPlansFiles = document.getElementById('editSubmittedPlans')?.files || [];
+
+            // Validate required fields
+            if (!homeownerName || !address || !lot || !projectType) {
+                alert('Please fill in all required fields (Homeowner Name, Address, Lot, Project Type) before generating the letter.');
+                return;
+            }
+
+            // Prepare form data for PDF generation
+            const formData = {
+                ownerLastName: homeownerName.split(' ').pop() || homeownerName,
+                address: address,
+                lot: lot,
+                projectType: projectType,
+                contractorName: contractorName,
+                reviewComments: reviewComments,
+                approvalReason: approvalReason,
+                approvedBy: approvedBy,
+                approvedOn: noApprovalOnRecord ? null : (dateApproved || new Date().toISOString().split('T')[0])
+            };
+
+            // Convert site conditions files to File objects
+            const siteConditionsFileArray = [];
+            if (siteConditionsFiles.length > 0) {
+                for (const file of Array.from(siteConditionsFiles)) {
+                    siteConditionsFileArray.push(file);
+                }
+            }
+
+            // Convert submitted plans files to File objects
+            const submittedPlansFileArray = [];
+            if (submittedPlansFiles.length > 0) {
+                for (const file of Array.from(submittedPlansFiles)) {
+                    submittedPlansFileArray.push(file);
+                }
+            }
+
+            // Generate PDF
+            try {
+                if (!window.pdfGenerator) {
+                    window.pdfGenerator = new PDFGenerator();
+                }
+                
+                await window.pdfGenerator.generatePDF(formData, siteConditionsFileArray, submittedPlansFileArray);
+                
+                // After PDF is generated, it will be saved to the project automatically
+                // Close the dialog and refresh projects
+                closeDialog();
+                this.renderProjects();
+            } catch (error) {
+                console.error('Error generating approval letter:', error);
+                alert('Error generating approval letter: ' + error.message);
+            }
+        };
+
+        if (generateLetterBtn) {
+            generateLetterBtn.addEventListener('click', handleGenerateLetter);
+        }
+        if (generateLetterBtnInline) {
+            generateLetterBtnInline.addEventListener('click', handleGenerateLetter);
+        }
+
+        // Handle cancel
+        const cancelBtn = document.getElementById('editCancelBtn');
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', closeDialog);
+        }
 
         // Handle save
         document.getElementById('editSaveBtn').addEventListener('click', async () => {
@@ -2310,6 +2508,7 @@ class ProjectManager {
                 : 'The project meets Sanctuary Setback Requirements. No variances are required. Approved.';
             
             const siteConditionsFiles = document.getElementById('editSiteConditions')?.files || [];
+            const submittedPlansFiles = document.getElementById('editSubmittedPlans')?.files || [];
 
             // Validate waiver reason if deposit is waived
             if (depositWaived && !depositWaiverReason) {
@@ -2343,6 +2542,24 @@ class ProjectManager {
                 }
             }
 
+            // Read submitted plans files if provided
+            let submittedPlansArrayBuffers = project.submittedPlansFiles || [];
+            if (submittedPlansFiles.length > 0) {
+                submittedPlansArrayBuffers = [];
+                for (const file of Array.from(submittedPlansFiles)) {
+                    try {
+                        const arrayBuffer = await this.readFileAsArrayBuffer(file);
+                        submittedPlansArrayBuffers.push({
+                            name: file.name,
+                            type: file.type,
+                            data: arrayBuffer
+                        });
+                    } catch (error) {
+                        console.error('Error reading submitted plans file:', error);
+                    }
+                }
+            }
+
             const updates = {
                 homeownerName: homeownerName,
                 address: address,
@@ -2357,6 +2574,7 @@ class ProjectManager {
                 reviewComments: reviewComments,
                 approvalReason: approvalReason,
                 siteConditionsFiles: siteConditionsArrayBuffers,
+                submittedPlansFiles: submittedPlansArrayBuffers,
                 depositAmountReceived: depositReceived ? parseFloat(depositReceived) : null,
                 dateDepositReceived: dateDepositReceived,
                 depositAmountReturned: depositReturned ? parseFloat(depositReturned) : null,
@@ -2396,6 +2614,78 @@ class ProjectManager {
             return `${parts[1]}/${parts[2]}/${parts[0]}`;
         }
         return dateStr;
+    }
+
+    setupEditSubmittedPlansDragAndDrop() {
+        const dropZone = document.getElementById('editSubmittedPlansDropZone');
+        const fileInput = document.getElementById('editSubmittedPlans');
+        const dropZoneContent = document.getElementById('editSubmittedPlansDropZoneContent');
+        const fileList = document.getElementById('editSubmittedPlansDropZoneFileList');
+
+        if (dropZone && fileInput) {
+            // Click to browse
+            dropZone.addEventListener('click', () => {
+                fileInput.click();
+            });
+
+            // Prevent default drag behaviors
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                });
+            });
+
+            // Highlight drop zone when dragging over
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => {
+                    dropZone.style.borderColor = '#2c5530';
+                    dropZone.style.background = '#e8f5e9';
+                });
+            });
+
+            // Remove highlight when dragging leaves
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => {
+                    dropZone.style.borderColor = '#ddd';
+                    dropZone.style.background = '#fafafa';
+                });
+            });
+
+            // Handle dropped files
+            dropZone.addEventListener('drop', (e) => {
+                const files = Array.from(e.dataTransfer.files);
+                if (files.length > 0) {
+                    const validFiles = files.filter(file => 
+                        file.type === 'application/pdf' || 
+                        file.type.startsWith('image/') ||
+                        file.name.toLowerCase().match(/\.(pdf|jpg|jpeg|png|doc|docx)$/i)
+                    );
+                    
+                    if (validFiles.length > 0) {
+                        // Create a new FileList using DataTransfer
+                        const dataTransfer = new DataTransfer();
+                        validFiles.forEach(file => dataTransfer.items.add(file));
+                        fileInput.files = dataTransfer.files;
+                        
+                        // Update UI to show file names
+                        this.updateSubmittedPlansFileList(validFiles, dropZoneContent, fileList);
+                    } else {
+                        alert('Please upload PDF, image, or document files (JPG, PNG, DOC, DOCX).');
+                    }
+                }
+            });
+
+            // Handle file selection via click
+            fileInput.addEventListener('change', (e) => {
+                const files = Array.from(e.target.files);
+                if (files.length > 0) {
+                    this.updateSubmittedPlansFileList(files, dropZoneContent, fileList);
+                } else {
+                    this.updateSubmittedPlansFileList([], dropZoneContent, fileList);
+                }
+            });
+        }
     }
 }
 

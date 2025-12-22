@@ -268,6 +268,35 @@
                             </div>
 
                             <div class="form-section-divider">
+                                <h4>Submitted Plans</h4>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="addSubmittedPlans">
+                                    Upload Submitted Plans (Optional)
+                                </label>
+                                <div id="addSubmittedPlansDropZone" style="border: 2px dashed #ddd; border-radius: 8px; padding: 30px; text-align: center; margin-top: 8px; background: #fafafa; cursor: pointer; transition: all 0.3s ease;">
+                                    <div id="addSubmittedPlansDropZoneContent">
+                                        <div style="font-size: 2rem; margin-bottom: 10px;">📐</div>
+                                        <div style="font-weight: 500; margin-bottom: 5px;">Drag and drop files here</div>
+                                        <div style="font-size: 0.9rem; color: #666; margin-bottom: 10px;">or</div>
+                                        <div style="display: inline-block; padding: 8px 16px; background: #2c5530; color: white; border-radius: 4px; font-size: 0.9rem;">Click to browse</div>
+                                        <div style="font-size: 0.85rem; color: #666; margin-top: 8px;">PDF, JPG, PNG, DOC, DOCX</div>
+                                    </div>
+                                    <div id="addSubmittedPlansDropZoneFileList" style="display: none; margin-top: 10px;"></div>
+                                </div>
+                                <input 
+                                    type="file" 
+                                    id="addSubmittedPlans" 
+                                    name="addSubmittedPlans" 
+                                    multiple
+                                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                                    style="display: none;"
+                                >
+                                <small class="form-hint">Upload project documents, plans, or drawings (optional but recommended)</small>
+                            </div>
+
+                            <div class="form-section-divider">
                                 <h4>Approval Information</h4>
                             </div>
 
