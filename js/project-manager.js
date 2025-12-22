@@ -1393,7 +1393,19 @@ class ProjectManager {
         
         // Download button - smaller, more compact, with overflow protection
         const downloadButton = hasLetter && isAuthenticated ? `
-            <button type="button" class="btn-small btn-primary" onclick="window.projectManager.downloadLetter('${project.id}')" style="padding: 3px 8px; font-size: 0.7rem; white-space: nowrap; border-radius: 3px; font-weight: 500; line-height: 1.2; max-width: 100%; overflow: hidden; text-overflow: ellipsis;">Download</button>
+            <button type="button" class="btn-small btn-primary" onclick="window.projectManager.downloadLetter('${project.id}')" style="padding: 3px 8px; font-size: 0.7rem; white-space: nowrap; border-radius: 3px; font-weight: 500; line-height: 1.2; max-width: 100%; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px;">Download</button>
+        ` : '';
+        
+        // Edit button - only show if authenticated
+        const editButton = isAuthenticated ? `
+            <button type="button" class="btn-small btn-secondary" onclick="window.projectManager.editProject('${project.id}')" style="padding: 3px 8px; font-size: 0.7rem; white-space: nowrap; border-radius: 3px; font-weight: 500; line-height: 1.2; max-width: 100%; overflow: hidden; text-overflow: ellipsis;">Edit</button>
+        ` : '';
+        
+        const actionsContent = (downloadButton || editButton) ? `
+            <div style="display: flex; flex-direction: column; gap: 4px; align-items: center;">
+                ${downloadButton}
+                ${editButton}
+            </div>
         ` : '<span style="color: #999; font-size: 0.7rem;">—</span>';
         
         return `
@@ -1406,7 +1418,7 @@ class ProjectManager {
                 <div style="display: flex; align-items: center; justify-content: center; overflow: hidden;">${dateApproved}</div>
                 <div style="display: flex; align-items: center; justify-content: center; overflow: hidden;">${depositStatus}</div>
                 <div style="display: flex; align-items: center; justify-content: center; overflow: hidden;">${approvalStatus}</div>
-                <div style="display: flex; align-items: center; justify-content: center; overflow: hidden; min-width: 0;">${downloadButton}</div>
+                <div style="display: flex; align-items: center; justify-content: center; overflow: hidden; min-width: 0;">${actionsContent}</div>
             </div>
         `;
     }
