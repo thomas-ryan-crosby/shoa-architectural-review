@@ -1961,38 +1961,62 @@ class ProjectManager {
                     </div>
                 </div>
                 
-                <div style="margin-bottom: 15px;">
-                    <label><strong>Upload Approval Letter PDF:</strong></label><br>
-                    <div id="editFileDropZone" style="border: 2px dashed #ddd; border-radius: 8px; padding: 30px; text-align: center; margin-top: 8px; background: #fafafa; cursor: pointer; transition: all 0.3s ease;">
-                        <div id="editFileDropZoneContent">
-                            <div style="font-size: 2rem; margin-bottom: 10px;">📄</div>
-                            <div style="font-weight: 500; margin-bottom: 5px;">Drag and drop PDF here</div>
-                            <div style="font-size: 0.9rem; color: #666; margin-bottom: 10px;">or</div>
-                            <div style="display: inline-block; padding: 8px 16px; background: #2c5530; color: white; border-radius: 4px; font-size: 0.9rem;">Click to browse</div>
+                <div style="margin-bottom: 20px; border-top: 1px solid #e0e0e0; padding-top: 15px;">
+                    <h4 style="margin: 0 0 15px 0; color: #2c5530;">Approval Letter</h4>
+                    <div style="margin-bottom: 15px;">
+                        <label><strong>Upload Approval Letter PDF (Optional):</strong></label><br>
+                        <div id="editFileDropZone" style="border: 2px dashed #ddd; border-radius: 8px; padding: 30px; text-align: center; margin-top: 8px; background: #fafafa; cursor: pointer; transition: all 0.3s ease;">
+                            <div id="editFileDropZoneContent">
+                                <div style="font-size: 2rem; margin-bottom: 10px;">📄</div>
+                                <div style="font-weight: 500; margin-bottom: 5px;">Drag and drop PDF here</div>
+                                <div style="font-size: 0.9rem; color: #666; margin-bottom: 10px;">or</div>
+                                <div style="display: inline-block; padding: 8px 16px; background: #2c5530; color: white; border-radius: 4px; font-size: 0.9rem;">Click to browse</div>
+                            </div>
+                            <div id="editFileDropZoneFileName" style="display: none; margin-top: 10px; font-weight: 500; color: #2c5530;"></div>
                         </div>
-                        <div id="editFileDropZoneFileName" style="display: none; margin-top: 10px; font-weight: 500; color: #2c5530;"></div>
+                        <input type="file" id="editApprovalLetter" accept=".pdf" style="display: none;">
+                        <div style="margin-top: 5px; font-size: 0.9rem; color: #666;">
+                            ${project.approvalLetterFilename ? `Current file: ${project.approvalLetterFilename}` : 'No approval letter on file'}
+                        </div>
                     </div>
-                    <input type="file" id="editApprovalLetter" accept=".pdf" style="display: none;">
-                    <div style="margin-top: 5px; font-size: 0.9rem; color: #666;">
-                        ${project.approvalLetterFilename ? `Current file: ${project.approvalLetterFilename}` : 'No approval letter on file'}
+                    <div style="text-align: center; padding: 10px; color: #666; font-size: 0.9rem;">
+                        <strong>OR</strong>
                     </div>
+                    <div style="text-align: center; margin-top: 10px;">
+                        <button type="button" id="editGenerateLetterBtnInline" style="padding: 10px 20px; background: #4a90e2; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.95rem;">Generate Approval Letter from Form Data</button>
+                    </div>
+                    <small style="color: #666; font-size: 0.85rem; display: block; margin-top: 8px; text-align: center;">Generate a new approval letter using the information in this form</small>
                 </div>
             </div>
         `;
 
         // Show form in a dialog
         const dialog = document.createElement('div');
+        dialog.id = 'editProjectDialog';
         dialog.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; display: flex; align-items: center; justify-content: center;';
-        dialog.innerHTML = `
-            <div style="background: white; padding: 0; border-radius: 8px; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto;">
-                ${editForm}
-                <div style="padding: 20px; border-top: 1px solid #ddd; display: flex; gap: 10px; justify-content: flex-end;">
-                    <button id="editCancelBtn" style="padding: 10px 20px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 6px; cursor: pointer;">Cancel</button>
-                    <button id="editSaveBtn" style="padding: 10px 20px; background: #2c5530; color: white; border: none; border-radius: 6px; cursor: pointer;">Save</button>
-                </div>
-            </div>
+        
+        const modalContent = document.createElement('div');
+        modalContent.style.cssText = 'background: white; padding: 0; border-radius: 8px; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto; position: relative;';
+        modalContent.innerHTML = editForm;
+        
+        const buttonContainer = document.createElement('div');
+        buttonContainer.style.cssText = 'padding: 20px; border-top: 1px solid #ddd; display: flex; gap: 10px; justify-content: flex-end;';
+        buttonContainer.innerHTML = `
+            <button id="editGenerateLetterBtn" style="padding: 10px 20px; background: #4a90e2; color: white; border: none; border-radius: 6px; cursor: pointer; margin-right: auto;">Generate Approval Letter</button>
+            <button id="editCancelBtn" style="padding: 10px 20px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 6px; cursor: pointer;">Cancel</button>
+            <button id="editSaveBtn" style="padding: 10px 20px; background: #2c5530; color: white; border: none; border-radius: 6px; cursor: pointer;">Save</button>
         `;
+        
+        modalContent.appendChild(buttonContainer);
+        dialog.appendChild(modalContent);
         document.body.appendChild(dialog);
+        
+        // Close dialog when clicking outside
+        dialog.addEventListener('click', (e) => {
+            if (e.target === dialog) {
+                document.body.removeChild(dialog);
+            }
+        });
 
         // Setup drag and drop for file upload
         const fileDropZone = document.getElementById('editFileDropZone');
@@ -2244,16 +2268,11 @@ class ProjectManager {
 
             try {
                 await this.updateProject(projectId, updates);
-                document.body.removeChild(dialog);
+                closeDialog();
             } catch (error) {
                 console.error('Error updating project:', error);
                 alert('Failed to update project: ' + error.message);
             }
-        });
-
-        // Handle cancel
-        document.getElementById('editCancelBtn').addEventListener('click', () => {
-            document.body.removeChild(dialog);
         });
     }
 
