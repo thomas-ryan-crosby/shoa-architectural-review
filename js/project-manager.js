@@ -1665,6 +1665,47 @@ class ProjectManager {
                             </div>
                         `}
                     </div>
+                    
+                    ${project.siteConditionsFiles && project.siteConditionsFiles.length > 0 ? `
+                        <div class="file-info" style="margin-top: 20px;">
+                            <h4>Current Site Conditions Files</h4>
+                            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">
+                                ${project.siteConditionsFiles.map((file, index) => {
+                                    const fileName = file.name || file;
+                                    const fileType = file.type || '';
+                                    const isImage = fileType.startsWith('image/') || /\.(jpg|jpeg|png)$/i.test(fileName);
+                                    const isPDF = fileType === 'application/pdf' || /\.pdf$/i.test(fileName);
+                                    return `
+                                        <div style="display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 4px; font-size: 0.85rem;">
+                                            <span style="font-size: 1rem;">${isImage ? '🖼️' : isPDF ? '📄' : '📎'}</span>
+                                            <span style="color: #333;">${fileName}</span>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    ${project.projectFiles && project.projectFiles.length > 0 ? `
+                        <div class="file-info" style="margin-top: 20px;">
+                            <h4>Submitted Project Files</h4>
+                            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">
+                                ${project.projectFiles.map((file, index) => {
+                                    const fileName = file.name || file;
+                                    const fileType = file.type || '';
+                                    const isImage = fileType.startsWith('image/') || /\.(jpg|jpeg|png)$/i.test(fileName);
+                                    const isPDF = fileType === 'application/pdf' || /\.pdf$/i.test(fileName);
+                                    const isDoc = /\.(doc|docx)$/i.test(fileName);
+                                    return `
+                                        <div style="display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 4px; font-size: 0.85rem;">
+                                            <span style="font-size: 1rem;">${isImage ? '🖼️' : isPDF ? '📄' : isDoc ? '📝' : '📎'}</span>
+                                            <span style="color: #333;">${fileName}</span>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
                 </div>
                 <div class="project-card-actions">
                     ${downloadButton}
