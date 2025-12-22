@@ -1338,11 +1338,6 @@ class ProjectManager {
             '<span style="color: #4caf50; font-size: 0.85rem;">✓ Letter</span>' : 
             '<span style="color: #d32f2f; font-size: 0.85rem; font-weight: bold;">No Letter</span>';
         
-        const editDeleteButtons = isAuthenticated ? `
-            <button type="button" class="btn-small btn-secondary" onclick="window.projectManager.editProject('${project.id}')" style="padding: 4px 8px; font-size: 0.75rem;">Edit</button>
-            <button type="button" class="btn-small btn-danger" onclick="window.projectManager.deleteProject('${project.id}')" style="padding: 4px 8px; font-size: 0.75rem;">Delete</button>
-        ` : '';
-        
         const downloadButton = hasLetter && isAuthenticated ? `
             <button type="button" class="btn-small btn-primary" onclick="window.projectManager.downloadLetter('${project.id}')" style="padding: 4px 8px; font-size: 0.75rem;">Download</button>
         ` : '';
@@ -1365,10 +1360,7 @@ class ProjectManager {
                                 ${approvalStatus}
                             </div>
                         </div>
-                        <div style="display: flex; gap: 5px;">
-                            ${downloadButton}
-                            ${editDeleteButtons}
-                        </div>
+                        ${downloadButton ? `<div>${downloadButton}</div>` : ''}
                     </div>
                 </div>
             </div>
