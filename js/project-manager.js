@@ -12,7 +12,6 @@ class ProjectManager {
 
     async init() {
         // Initialize UI components (no auth required for viewing)
-        this.setupTabs();
         this.setupFilters();
         this.setupViewToggle();
         this.setupAddProjectForm();
@@ -1259,31 +1258,6 @@ class ProjectManager {
         }
     }
 
-    setupTabs() {
-        const tabButtons = document.querySelectorAll('.tab-button');
-        const tabContents = document.querySelectorAll('.tab-content');
-
-        tabButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                const targetTab = button.getAttribute('data-tab');
-                
-                // Update active button
-                tabButtons.forEach(btn => btn.classList.remove('active'));
-                button.classList.add('active');
-                
-                // Update active content
-                tabContents.forEach(content => {
-                    if (content.id === `${targetTab}Tab`) {
-                        content.style.display = 'block';
-                        content.classList.add('active');
-                    } else {
-                        content.style.display = 'none';
-                        content.classList.remove('active');
-                    }
-                });
-            });
-        });
-    }
 
     setupFilters() {
         const filterButtons = document.querySelectorAll('.filter-btn');
