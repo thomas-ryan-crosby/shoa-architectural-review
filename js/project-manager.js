@@ -304,7 +304,9 @@ class ProjectManager {
             depositAmountReceived: data.depositAmountReceived || null,
             dateDepositReceived: data.dateDepositReceived || '',
             depositAmountReturned: data.depositAmountReturned || null,
-            dateDepositReturned: data.dateDepositReturned || ''
+            dateDepositReturned: data.dateDepositReturned || '',
+            depositWaived: data.depositWaived || false,
+            depositWaiverReason: data.depositWaiverReason || ''
         };
     }
 
@@ -383,6 +385,8 @@ class ProjectManager {
             dateDepositReceived: project.dateDepositReceived || '',
             depositAmountReturned: project.depositAmountReturned || null,
             dateDepositReturned: project.dateDepositReturned || '',
+            depositWaived: project.depositWaived || false,
+            depositWaiverReason: project.depositWaiverReason || '',
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         };
     }
@@ -482,6 +486,35 @@ class ProjectManager {
             // Also disable date input when checkbox is checked on load
             if (noApprovalCheckbox.checked) {
                 dateApprovedInput.disabled = true;
+            }
+        }
+
+        // Handle "Deposit Waived" checkbox
+        const depositWaivedCheckbox = document.getElementById('addDepositWaived');
+        const depositWaiverReasonGroup = document.getElementById('addDepositWaiverReasonGroup');
+        const depositWaiverReasonInput = document.getElementById('addDepositWaiverReason');
+        if (depositWaivedCheckbox && depositWaiverReasonGroup) {
+            depositWaivedCheckbox.addEventListener('change', () => {
+                if (depositWaivedCheckbox.checked) {
+                    depositWaiverReasonGroup.style.display = 'block';
+                    if (depositWaiverReasonInput) {
+                        depositWaiverReasonInput.required = true;
+                    }
+                } else {
+                    depositWaiverReasonGroup.style.display = 'none';
+                    if (depositWaiverReasonInput) {
+                        depositWaiverReasonInput.required = false;
+                        depositWaiverReasonInput.value = '';
+                        this.clearError('addDepositWaiverReason');
+                    }
+                }
+            });
+            // Also set initial state
+            if (depositWaivedCheckbox.checked) {
+                depositWaiverReasonGroup.style.display = 'block';
+                if (depositWaiverReasonInput) {
+                    depositWaiverReasonInput.required = true;
+                }
             }
         }
 
@@ -665,6 +698,22 @@ class ProjectManager {
             fileDropZoneFileName.style.display = 'none';
             fileDropZoneFileName.textContent = '';
         }
+
+        // Reset deposit waiver fields
+        const depositWaivedCheckbox = document.getElementById('addDepositWaived');
+        const depositWaiverReasonGroup = document.getElementById('addDepositWaiverReasonGroup');
+        const depositWaiverReasonInput = document.getElementById('addDepositWaiverReason');
+        if (depositWaivedCheckbox) {
+            depositWaivedCheckbox.checked = false;
+        }
+        if (depositWaiverReasonGroup) {
+            depositWaiverReasonGroup.style.display = 'none';
+        }
+        if (depositWaiverReasonInput) {
+            depositWaiverReasonInput.value = '';
+            depositWaiverReasonInput.required = false;
+            this.clearError('addDepositWaiverReason');
+        }
     }
 
     async handleAddProject() {
@@ -688,6 +737,8 @@ class ProjectManager {
         const dateDepositReceived = document.getElementById('addDateDepositReceived')?.value;
         const depositAmountReturned = document.getElementById('addDepositAmountReturned')?.value;
         const dateDepositReturned = document.getElementById('addDateDepositReturned')?.value;
+        const depositWaived = document.getElementById('addDepositWaived')?.checked || false;
+        const depositWaiverReason = document.getElementById('addDepositWaiverReason')?.value.trim() || '';
 
         // Validation
         if (!homeownerName) {
@@ -716,6 +767,12 @@ class ProjectManager {
         // Validate PDF if provided
         if (approvalLetterFile && approvalLetterFile.type !== 'application/pdf') {
             this.showError('addApprovalLetter', 'Please upload a PDF file');
+            return;
+        }
+
+        // Validate waiver reason if deposit is waived
+        if (depositWaived && !depositWaiverReason) {
+            this.showError('addDepositWaiverReason', 'Waiver reason is required when deposit is waived');
             return;
         }
 
@@ -751,7 +808,9 @@ class ProjectManager {
                 depositAmountReceived: depositAmountReceived ? parseFloat(depositAmountReceived) : null,
                 dateDepositReceived: formattedDateDepositReceived,
                 depositAmountReturned: depositAmountReturned ? parseFloat(depositAmountReturned) : null,
-                dateDepositReturned: formattedDateDepositReturned
+                dateDepositReturned: formattedDateDepositReturned,
+                depositWaived: depositWaived,
+                depositWaiverReason: depositWaiverReason
             };
 
             if (!this.firestoreEnabled || !this.db) {
@@ -981,7 +1040,9 @@ class ProjectManager {
             depositAmountReceived: null,
             dateDepositReceived: '',
             depositAmountReturned: null,
-            dateDepositReturned: ''
+            dateDepositReturned: '',
+            depositWaived: false,
+            depositWaiverReason: ''
         };
 
         try {
@@ -1070,6 +1131,10 @@ class ProjectManager {
         let totalReturned = 0;
 
         this.projects.forEach(project => {
+            // Skip waived deposits in the calculation
+            if (project.depositWaived) {
+                return;
+            }
             if (project.depositAmountReceived !== null && project.depositAmountReceived !== undefined) {
                 totalReceived += project.depositAmountReceived;
             }
@@ -1167,6 +1232,12 @@ class ProjectManager {
                     </div>
                     <div class="deposit-info">
                         <h4>Deposit Information</h4>
+                        ${project.depositWaived ? `
+                            <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 12px; margin-bottom: 12px;">
+                                <div style="font-weight: bold; color: #856404; margin-bottom: 8px;">⚠️ Deposit Waived</div>
+                                <div style="color: #856404; font-size: 0.9rem;">${project.depositWaiverReason || 'No reason provided'}</div>
+                            </div>
+                        ` : ''}
                         <div class="project-info">
                             <div class="info-item">
                                 <span class="info-label">Amount Received:</span>
@@ -1412,6 +1483,19 @@ class ProjectManager {
                 </div>
                 
                 <div style="margin-bottom: 15px;">
+                    <label style="display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" id="editDepositWaived" ${project.depositWaived ? 'checked' : ''} style="width: auto;">
+                        <span><strong>Deposit Waived</strong></span>
+                    </label>
+                    <small style="color: #666; font-size: 0.85rem; display: block; margin-top: 4px;">Check this if the deposit requirement was waived for this project</small>
+                </div>
+                
+                <div style="margin-bottom: 15px; display: ${project.depositWaived ? 'block' : 'none'};" id="editDepositWaiverReasonGroup">
+                    <label><strong>Waiver Reason:</strong></label><br>
+                    <textarea id="editDepositWaiverReason" rows="3" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px;" placeholder="Enter the reason why the deposit was waived...">${project.depositWaiverReason || ''}</textarea>
+                </div>
+                
+                <div style="margin-bottom: 15px;">
                     <label><strong>Upload Approval Letter PDF:</strong></label><br>
                     <div id="editFileDropZone" style="border: 2px dashed #ddd; border-radius: 8px; padding: 30px; text-align: center; margin-top: 8px; background: #fafafa; cursor: pointer; transition: all 0.3s ease;">
                         <div id="editFileDropZoneContent">
@@ -1521,6 +1605,27 @@ class ProjectManager {
             });
         }
 
+        // Handle "Deposit Waived" checkbox
+        const editDepositWaivedCheckbox = document.getElementById('editDepositWaived');
+        const editDepositWaiverReasonGroup = document.getElementById('editDepositWaiverReasonGroup');
+        const editDepositWaiverReasonInput = document.getElementById('editDepositWaiverReason');
+        if (editDepositWaivedCheckbox && editDepositWaiverReasonGroup) {
+            editDepositWaivedCheckbox.addEventListener('change', () => {
+                if (editDepositWaivedCheckbox.checked) {
+                    editDepositWaiverReasonGroup.style.display = 'block';
+                    if (editDepositWaiverReasonInput) {
+                        editDepositWaiverReasonInput.required = true;
+                    }
+                } else {
+                    editDepositWaiverReasonGroup.style.display = 'none';
+                    if (editDepositWaiverReasonInput) {
+                        editDepositWaiverReasonInput.required = false;
+                        editDepositWaiverReasonInput.value = '';
+                    }
+                }
+            });
+        }
+
         // Handle save
         document.getElementById('editSaveBtn').addEventListener('click', async () => {
             const homeownerName = document.getElementById('editHomeownerName').value.trim();
@@ -1541,7 +1646,15 @@ class ProjectManager {
             const dateDepositReceived = document.getElementById('editDateDepositReceived').value.trim();
             const depositReturned = document.getElementById('editDepositReturned').value.trim();
             const dateDepositReturned = document.getElementById('editDateDepositReturned').value.trim();
+            const depositWaived = document.getElementById('editDepositWaived').checked;
+            const depositWaiverReason = document.getElementById('editDepositWaiverReason').value.trim();
             const approvalLetterFile = document.getElementById('editApprovalLetter').files[0];
+
+            // Validate waiver reason if deposit is waived
+            if (depositWaived && !depositWaiverReason) {
+                alert('Waiver reason is required when deposit is waived');
+                return;
+            }
 
             const updates = {
                 homeownerName: homeownerName,
@@ -1557,7 +1670,9 @@ class ProjectManager {
                 depositAmountReceived: depositReceived ? parseFloat(depositReceived) : null,
                 dateDepositReceived: dateDepositReceived,
                 depositAmountReturned: depositReturned ? parseFloat(depositReturned) : null,
-                dateDepositReturned: dateDepositReturned
+                dateDepositReturned: dateDepositReturned,
+                depositWaived: depositWaived,
+                depositWaiverReason: depositWaiverReason
             };
 
             // Handle file upload if provided

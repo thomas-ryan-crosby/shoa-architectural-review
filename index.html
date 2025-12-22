@@ -517,6 +517,32 @@
                                 >
                             </div>
 
+                            <div class="form-group">
+                                <label style="display: flex; align-items: center; gap: 8px;">
+                                    <input 
+                                        type="checkbox" 
+                                        id="addDepositWaived" 
+                                        name="addDepositWaived"
+                                    >
+                                    <span>Deposit Waived</span>
+                                </label>
+                                <small class="form-hint">Check this if the deposit requirement was waived for this project</small>
+                            </div>
+
+                            <div class="form-group" id="addDepositWaiverReasonGroup" style="display: none;">
+                                <label for="addDepositWaiverReason">
+                                    Waiver Reason <span class="required">*</span>
+                                </label>
+                                <textarea 
+                                    id="addDepositWaiverReason" 
+                                    name="addDepositWaiverReason" 
+                                    rows="3"
+                                    placeholder="Enter the reason why the deposit was waived..."
+                                ></textarea>
+                                <span class="error-message" id="addDepositWaiverReason-error"></span>
+                                <small class="form-hint">Required when deposit is waived</small>
+                            </div>
+
                             <div class="form-actions">
                                 <button type="button" class="btn-primary" id="saveProjectBtn">Save Project</button>
                                 <button type="button" class="btn-secondary" id="cancelAddProjectBtn">Cancel</button>
