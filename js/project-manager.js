@@ -3559,26 +3559,46 @@ class ProjectManager {
             
             // Download existing site conditions files from project
             if (project.siteConditionsFiles && project.siteConditionsFiles.length > 0) {
+                console.log(`Attempting to download ${project.siteConditionsFiles.length} site conditions files...`);
                 for (const fileInfo of project.siteConditionsFiles) {
                     if (fileInfo.storageUrl) {
-                        const fileData = await downloadFileFromStorage(fileInfo);
-                        if (fileData) {
-                            siteConditionsFileArray.push(fileData);
+                        try {
+                            const fileData = await downloadFileFromStorage(fileInfo);
+                            if (fileData) {
+                                siteConditionsFileArray.push(fileData);
+                                console.log(`Successfully downloaded site conditions file: ${fileInfo.name}`);
+                            } else {
+                                console.warn(`Failed to download site conditions file: ${fileInfo.name}`);
+                            }
+                        } catch (error) {
+                            console.error(`Error downloading site conditions file ${fileInfo.name}:`, error);
+                            // Continue with other files even if one fails
                         }
                     }
                 }
+                console.log(`Downloaded ${siteConditionsFileArray.length} of ${project.siteConditionsFiles.length} site conditions files`);
             }
             
             // Download existing submitted plans files from project
             if (project.submittedPlansFiles && project.submittedPlansFiles.length > 0) {
+                console.log(`Attempting to download ${project.submittedPlansFiles.length} submitted plans files...`);
                 for (const fileInfo of project.submittedPlansFiles) {
                     if (fileInfo.storageUrl) {
-                        const fileData = await downloadFileFromStorage(fileInfo);
-                        if (fileData) {
-                            submittedPlansFileArray.push(fileData);
+                        try {
+                            const fileData = await downloadFileFromStorage(fileInfo);
+                            if (fileData) {
+                                submittedPlansFileArray.push(fileData);
+                                console.log(`Successfully downloaded submitted plans file: ${fileInfo.name}`);
+                            } else {
+                                console.warn(`Failed to download submitted plans file: ${fileInfo.name}`);
+                            }
+                        } catch (error) {
+                            console.error(`Error downloading submitted plans file ${fileInfo.name}:`, error);
+                            // Continue with other files even if one fails
                         }
                     }
                 }
+                console.log(`Downloaded ${submittedPlansFileArray.length} of ${project.submittedPlansFiles.length} submitted plans files`);
             }
             
             // Add newly uploaded files from form (if any) - convert to expected format
@@ -4063,26 +4083,46 @@ class ProjectManager {
             
             // Download existing site conditions files from project
             if (project.siteConditionsFiles && project.siteConditionsFiles.length > 0) {
+                console.log(`Attempting to download ${project.siteConditionsFiles.length} site conditions files...`);
                 for (const fileInfo of project.siteConditionsFiles) {
                     if (fileInfo.storageUrl) {
-                        const fileData = await downloadFileFromStorage(fileInfo);
-                        if (fileData) {
-                            siteConditionsFileArray.push(fileData);
+                        try {
+                            const fileData = await downloadFileFromStorage(fileInfo);
+                            if (fileData) {
+                                siteConditionsFileArray.push(fileData);
+                                console.log(`Successfully downloaded site conditions file: ${fileInfo.name}`);
+                            } else {
+                                console.warn(`Failed to download site conditions file: ${fileInfo.name}`);
+                            }
+                        } catch (error) {
+                            console.error(`Error downloading site conditions file ${fileInfo.name}:`, error);
+                            // Continue with other files even if one fails
                         }
                     }
                 }
+                console.log(`Downloaded ${siteConditionsFileArray.length} of ${project.siteConditionsFiles.length} site conditions files`);
             }
             
             // Download existing submitted plans files from project
             if (project.submittedPlansFiles && project.submittedPlansFiles.length > 0) {
+                console.log(`Attempting to download ${project.submittedPlansFiles.length} submitted plans files...`);
                 for (const fileInfo of project.submittedPlansFiles) {
                     if (fileInfo.storageUrl) {
-                        const fileData = await downloadFileFromStorage(fileInfo);
-                        if (fileData) {
-                            submittedPlansFileArray.push(fileData);
+                        try {
+                            const fileData = await downloadFileFromStorage(fileInfo);
+                            if (fileData) {
+                                submittedPlansFileArray.push(fileData);
+                                console.log(`Successfully downloaded submitted plans file: ${fileInfo.name}`);
+                            } else {
+                                console.warn(`Failed to download submitted plans file: ${fileInfo.name}`);
+                            }
+                        } catch (error) {
+                            console.error(`Error downloading submitted plans file ${fileInfo.name}:`, error);
+                            // Continue with other files even if one fails
                         }
                     }
                 }
+                console.log(`Downloaded ${submittedPlansFileArray.length} of ${project.submittedPlansFiles.length} submitted plans files`);
             }
             
             // Add newly uploaded files from form (if any) - convert to expected format
