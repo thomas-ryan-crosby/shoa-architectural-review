@@ -3472,13 +3472,23 @@ class ProjectManager {
             const siteConditionsFileArray = [];
             const submittedPlansFileArray = [];
             
+            // Helper to convert File to format expected by PDF generator
+            const convertFileToPDFFormat = async (file) => {
+                const arrayBuffer = await this.readFileAsArrayBuffer(file);
+                return {
+                    name: file.name,
+                    type: file.type,
+                    data: arrayBuffer
+                };
+            };
+            
             // Download existing site conditions files from project
             if (project.siteConditionsFiles && project.siteConditionsFiles.length > 0) {
                 for (const fileInfo of project.siteConditionsFiles) {
                     if (fileInfo.storageUrl) {
-                        const file = await downloadFileFromStorage(fileInfo);
-                        if (file) {
-                            siteConditionsFileArray.push(file);
+                        const fileData = await downloadFileFromStorage(fileInfo);
+                        if (fileData) {
+                            siteConditionsFileArray.push(fileData);
                         }
                     }
                 }
@@ -3488,24 +3498,26 @@ class ProjectManager {
             if (project.submittedPlansFiles && project.submittedPlansFiles.length > 0) {
                 for (const fileInfo of project.submittedPlansFiles) {
                     if (fileInfo.storageUrl) {
-                        const file = await downloadFileFromStorage(fileInfo);
-                        if (file) {
-                            submittedPlansFileArray.push(file);
+                        const fileData = await downloadFileFromStorage(fileInfo);
+                        if (fileData) {
+                            submittedPlansFileArray.push(fileData);
                         }
                     }
                 }
             }
             
-            // Add newly uploaded files from form (if any)
+            // Add newly uploaded files from form (if any) - convert to expected format
             if (siteConditionsFiles.length > 0) {
                 for (const file of Array.from(siteConditionsFiles)) {
-                    siteConditionsFileArray.push(file);
+                    const fileData = await convertFileToPDFFormat(file);
+                    siteConditionsFileArray.push(fileData);
                 }
             }
             
             if (submittedPlansFiles.length > 0) {
                 for (const file of Array.from(submittedPlansFiles)) {
-                    submittedPlansFileArray.push(file);
+                    const fileData = await convertFileToPDFFormat(file);
+                    submittedPlansFileArray.push(fileData);
                 }
             }
 
@@ -3889,13 +3901,23 @@ class ProjectManager {
             const siteConditionsFileArray = [];
             const submittedPlansFileArray = [];
             
+            // Helper to convert File to format expected by PDF generator
+            const convertFileToPDFFormat = async (file) => {
+                const arrayBuffer = await this.readFileAsArrayBuffer(file);
+                return {
+                    name: file.name,
+                    type: file.type,
+                    data: arrayBuffer
+                };
+            };
+            
             // Download existing site conditions files from project
             if (project.siteConditionsFiles && project.siteConditionsFiles.length > 0) {
                 for (const fileInfo of project.siteConditionsFiles) {
                     if (fileInfo.storageUrl) {
-                        const file = await downloadFileFromStorage(fileInfo);
-                        if (file) {
-                            siteConditionsFileArray.push(file);
+                        const fileData = await downloadFileFromStorage(fileInfo);
+                        if (fileData) {
+                            siteConditionsFileArray.push(fileData);
                         }
                     }
                 }
@@ -3905,24 +3927,26 @@ class ProjectManager {
             if (project.submittedPlansFiles && project.submittedPlansFiles.length > 0) {
                 for (const fileInfo of project.submittedPlansFiles) {
                     if (fileInfo.storageUrl) {
-                        const file = await downloadFileFromStorage(fileInfo);
-                        if (file) {
-                            submittedPlansFileArray.push(file);
+                        const fileData = await downloadFileFromStorage(fileInfo);
+                        if (fileData) {
+                            submittedPlansFileArray.push(fileData);
                         }
                     }
                 }
             }
             
-            // Add newly uploaded files from form (if any)
+            // Add newly uploaded files from form (if any) - convert to expected format
             if (siteConditionsFiles.length > 0) {
                 for (const file of Array.from(siteConditionsFiles)) {
-                    siteConditionsFileArray.push(file);
+                    const fileData = await convertFileToPDFFormat(file);
+                    siteConditionsFileArray.push(fileData);
                 }
             }
             
             if (submittedPlansFiles.length > 0) {
                 for (const file of Array.from(submittedPlansFiles)) {
-                    submittedPlansFileArray.push(file);
+                    const fileData = await convertFileToPDFFormat(file);
+                    submittedPlansFileArray.push(fileData);
                 }
             }
 
