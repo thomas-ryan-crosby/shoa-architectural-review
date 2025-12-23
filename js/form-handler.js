@@ -37,8 +37,9 @@ class FormHandler {
         // Handle review comments type change
         if (this.reviewCommentsTypeSelect) {
             this.reviewCommentsTypeSelect.addEventListener('change', () => {
-            this.handleReviewCommentsTypeChange();
-        });
+                this.handleReviewCommentsTypeChange();
+            });
+        }
 
         // Handle approval reason type change
         if (this.approvalReasonTypeSelect) {

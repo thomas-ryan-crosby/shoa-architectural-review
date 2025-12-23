@@ -3195,6 +3195,78 @@ class ProjectManager {
         return dateStr;
     }
 
+    setupEditSiteConditionsDragAndDrop() {
+        const dropZone = document.getElementById('editSiteConditionsDropZone');
+        const fileInput = document.getElementById('editSiteConditions');
+        const dropZoneContent = document.getElementById('editSiteConditionsDropZoneContent');
+        const fileList = document.getElementById('editSiteConditionsDropZoneFileList');
+
+        if (dropZone && fileInput) {
+            // Click to browse
+            dropZone.addEventListener('click', () => {
+                fileInput.click();
+            });
+
+            // Prevent default drag behaviors
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                });
+            });
+
+            // Highlight drop zone when dragging over
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => {
+                    dropZone.style.borderColor = '#2c5530';
+                    dropZone.style.background = '#e8f5e9';
+                });
+            });
+
+            // Remove highlight when dragging leaves
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => {
+                    dropZone.style.borderColor = '#ddd';
+                    dropZone.style.background = '#fafafa';
+                });
+            });
+
+            // Handle dropped files
+            dropZone.addEventListener('drop', (e) => {
+                const files = Array.from(e.dataTransfer.files);
+                if (files.length > 0) {
+                    const validFiles = files.filter(file => 
+                        file.type === 'application/pdf' || 
+                        file.type.startsWith('image/') ||
+                        file.name.toLowerCase().match(/\.(pdf|jpg|jpeg|png)$/i)
+                    );
+                    
+                    if (validFiles.length > 0) {
+                        // Create a new FileList using DataTransfer
+                        const dataTransfer = new DataTransfer();
+                        validFiles.forEach(file => dataTransfer.items.add(file));
+                        fileInput.files = dataTransfer.files;
+                        
+                        // Update UI to show file names
+                        this.updateSiteConditionsFileList(validFiles, dropZoneContent, fileList);
+                    } else {
+                        alert('Please upload PDF or image files (JPG, PNG).');
+                    }
+                }
+            });
+
+            // Handle file selection via click
+            fileInput.addEventListener('change', (e) => {
+                const files = Array.from(e.target.files);
+                if (files.length > 0) {
+                    this.updateSiteConditionsFileList(files, dropZoneContent, fileList);
+                } else {
+                    this.updateSiteConditionsFileList([], dropZoneContent, fileList);
+                }
+            });
+        }
+    }
+
     setupEditSubmittedPlansDragAndDrop() {
         const dropZone = document.getElementById('editSubmittedPlansDropZone');
         const fileInput = document.getElementById('editSubmittedPlans');
