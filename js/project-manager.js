@@ -790,14 +790,6 @@ class ProjectManager {
                     // Don't close form - let user upload the file if they want
                     alert('Approval letter generated and downloaded! You can now upload it to this project using the "Upload Approval Letter" field above.');
                     return; // Don't proceed with form submission
-                        form.style.display = 'none';
-                    }
-                    const toggleText = document.getElementById('toggleAddProjectText');
-                    if (toggleText) {
-                        toggleText.textContent = '+ Add Existing Project';
-                    }
-                    this.resetAddProjectForm();
-                    this.renderProjects();
                 } catch (error) {
                     console.error('Error generating approval letter:', error);
                     alert('Error generating approval letter: ' + error.message);
@@ -3449,10 +3441,9 @@ class ProjectManager {
                 
                 await window.pdfGenerator.generatePDF(formData, siteConditionsFileArray, submittedPlansFileArray);
                 
-                // After PDF is generated, it will be saved to the project automatically
-                // Close the dialog and refresh projects
-                closeDialog();
-                this.renderProjects();
+                // PDF is downloaded - user must intentionally upload it to the project
+                // Don't close dialog - let user upload the file if they want
+                alert('Approval letter generated and downloaded! You can now upload it to this project using the "Upload Approval Letter" field above.');
             } catch (error) {
                 console.error('Error generating approval letter:', error);
                 alert('Error generating approval letter: ' + error.message);
@@ -3808,10 +3799,9 @@ class ProjectManager {
                 
                 await window.pdfGenerator.generatePDF(formData, siteConditionsFileArray, submittedPlansFileArray);
                 
-                // After PDF is generated, it will be saved to the project automatically
-                // Close the dialog and refresh projects
-                closeDialog();
-                this.renderProjects();
+                // PDF is downloaded - user must intentionally upload it to the project
+                // Don't close dialog - let user upload the file if they want
+                alert('Approval letter generated and downloaded! You can now upload it to this project using the "Upload Approval Letter" field above.');
             } catch (error) {
                 console.error('Error generating approval letter:', error);
                 alert('Error generating approval letter: ' + error.message);
