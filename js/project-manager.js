@@ -1683,6 +1683,35 @@ class ProjectManager {
         }
     }
 
+    async saveProjectWithRemovedFiles(projectId) {
+        // This method is called when user clicks "Save Changes" button after removing files
+        const project = this.projects.find(p => p.id === projectId);
+        if (!project) {
+            alert('Project not found');
+            return;
+        }
+        
+        if (!project.filesToRemove || (
+            project.filesToRemove.siteConditions.length === 0 &&
+            project.filesToRemove.submittedPlans.length === 0 &&
+            !project.filesToRemove.approvalLetter
+        )) {
+            alert('No files marked for removal');
+            return;
+        }
+        
+        // Open edit modal to save changes
+        this.editProject(projectId);
+        
+        // Auto-save after a short delay to allow modal to open
+        setTimeout(async () => {
+            const saveBtn = document.getElementById('editSaveBtn');
+            if (saveBtn) {
+                saveBtn.click();
+            }
+        }, 500);
+    }
+
     async updateProject(projectId, updates) {
         // Require authentication for write operations
         if (!this.requireAuth()) {
@@ -2169,6 +2198,9 @@ class ProjectManager {
                         badgeContainer.style.textDecoration = 'line-through';
                         removeBtn.style.display = 'none';
                     }
+                    
+                    // Re-render the project to show the Save Changes button
+                    this.renderProjects();
                 }
                 return;
             }
