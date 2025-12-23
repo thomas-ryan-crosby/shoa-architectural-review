@@ -3231,13 +3231,18 @@ class ProjectManager {
             console.log('Current submitted plans files:', project.submittedPlansFiles);
             
             // Read site conditions files - filter out removed ones and preserve storageUrl for existing files
-            console.log('Filtering site conditions files. filesToRemove.siteConditions:', filesToRemove.siteConditions);
+            console.log('Filtering site conditions files. filesToRemove.siteConditions:', filesToRemove.siteConditions, 'type:', typeof filesToRemove.siteConditions[0]);
             console.log('Current project.siteConditionsFiles:', project.siteConditionsFiles);
+            console.log('Current project.siteConditionsFiles length:', (project.siteConditionsFiles || []).length);
             
             let siteConditionsArrayBuffers = (project.siteConditionsFiles || []).filter((file, index) => {
                 // Keep files that are not marked for removal
-                const shouldRemove = filesToRemove.siteConditions.includes(index);
-                console.log(`Site conditions file ${index} (${file.name || file}): shouldRemove=${shouldRemove}, filesToRemove.siteConditions=`, filesToRemove.siteConditions);
+                // Ensure we're comparing numbers, not strings
+                const indexToCheck = parseInt(index);
+                const shouldRemove = filesToRemove.siteConditions.some(removeIndex => parseInt(removeIndex) === indexToCheck);
+                console.log(`Site conditions file index ${index} (type: ${typeof index}), file: ${file.name || file}, shouldRemove: ${shouldRemove}`);
+                console.log(`  - filesToRemove.siteConditions:`, filesToRemove.siteConditions);
+                console.log(`  - Comparing: ${indexToCheck} with`, filesToRemove.siteConditions.map(i => `${i} (${typeof i})`));
                 return !shouldRemove;
             }).map(file => {
                 // Preserve the file structure (name, type, storageUrl) for existing files
@@ -3248,7 +3253,7 @@ class ProjectManager {
                 };
             });
             
-            console.log('After filtering, siteConditionsArrayBuffers length:', siteConditionsArrayBuffers.length);
+            console.log('After filtering, siteConditionsArrayBuffers length:', siteConditionsArrayBuffers.length, 'files:', siteConditionsArrayBuffers);
             
             // Add new files (these will have data property for upload)
             if (siteConditionsFiles.length > 0) {
@@ -3272,8 +3277,10 @@ class ProjectManager {
             
             let submittedPlansArrayBuffers = (project.submittedPlansFiles || []).filter((file, index) => {
                 // Keep files that are not marked for removal
-                const shouldRemove = filesToRemove.submittedPlans.includes(index);
-                console.log(`Submitted plans file ${index} (${file.name || file}): shouldRemove=${shouldRemove}, filesToRemove.submittedPlans=`, filesToRemove.submittedPlans);
+                // Ensure we're comparing numbers, not strings
+                const indexToCheck = parseInt(index);
+                const shouldRemove = filesToRemove.submittedPlans.some(removeIndex => parseInt(removeIndex) === indexToCheck);
+                console.log(`Submitted plans file index ${index} (type: ${typeof index}), file: ${file.name || file}, shouldRemove: ${shouldRemove}`);
                 return !shouldRemove;
             }).map(file => {
                 // Preserve the file structure (name, type, storageUrl) for existing files
