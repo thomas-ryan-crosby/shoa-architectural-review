@@ -1530,28 +1530,209 @@ class ProjectManager {
         });
     }
 
-    setupViewToggle() {
-        const viewToggleBtn = document.getElementById('viewToggleBtn');
-        const viewToggleText = document.getElementById('viewToggleText');
+    setupRowExpansion() {
+        // Use event delegation for expand/collapse buttons
+        const projectList = document.getElementById('projectList');
+        if (!projectList) return;
         
-        if (viewToggleBtn && viewToggleText) {
-            // Update button text based on current view mode
-            this.updateViewToggleText(viewToggleText);
+        projectList.addEventListener('click', (e) => {
+            const expandBtn = e.target.closest('.expand-row-btn');
+            const row = e.target.closest('.compact-project-row');
             
-            viewToggleBtn.addEventListener('click', () => {
-                this.viewMode = this.viewMode === 'detailed' ? 'compact' : 'detailed';
-                this.updateViewToggleText(viewToggleText);
-                this.renderProjects();
-            });
-        }
+            if (expandBtn || row) {
+                e.stopPropagation();
+                const projectId = expandBtn ? expandBtn.getAttribute('data-project-id') : row?.getAttribute('data-project-id');
+                if (!projectId) return;
+                
+                const wrapper = document.querySelector(`.compact-project-row-wrapper[data-project-id="${projectId}"]`);
+                const details = document.querySelector(`.compact-project-row-details[data-project-id="${projectId}"]`);
+                const expandIcon = wrapper?.querySelector('.expand-icon');
+                
+                if (wrapper && details && expandIcon) {
+                    const isExpanded = details.style.display !== 'none';
+                    
+                    if (isExpanded) {
+                        // Collapse
+                        details.style.display = 'none';
+                        expandIcon.textContent = '▶';
+                        expandIcon.style.transform = 'rotate(0deg)';
+                    } else {
+                        // Expand
+                        details.style.display = 'block';
+                        expandIcon.textContent = '▼';
+                        expandIcon.style.transform = 'rotate(0deg)';
+                    }
+                }
+            }
+        });
     }
+    
+    renderExpandedDetails(project, isAuthenticated) {
+        // Get the detailed content from renderProjectDetailed but without the card wrapper
+        const hasLetter = project.approvalLetterBlob || project.approvalLetterStorageUrl || (project.hasApprovalLetter !== false && project.approvalLetterFilename);
+        const downloadButton = hasLetter ? `
+            <button type="button" class="btn-small btn-primary" onclick="window.projectManager.downloadLetter('${project.id}')" title="${isAuthenticated ? 'Download approval letter' : 'Sign in to download'}">
+                Download Letter
+            </button>
+        ` : `
+            <span style="color: #d32f2f; font-size: 0.9rem; font-weight: bold; padding: 8px 0;">Approval not on file</span>
+        `;
+        
+        const editDeleteButtons = isAuthenticated ? `
+            <button type="button" class="btn-small btn-secondary" onclick="window.projectManager.editProject('${project.id}')">
+                Edit
+            </button>
+            <button type="button" class="btn-small btn-danger" onclick="window.projectManager.deleteProject('${project.id}')">
+                Delete
+            </button>
+        ` : `
+            <span style="color: var(--text-light); font-size: 0.85rem; font-style: italic; padding: 8px 0;">Sign in to edit or delete</span>
+        `;
+        
+        // Render file sections (same as in renderProjectDetailed)
+        const renderFileSection = (files, type, title, iconMap, fileIdPrefix, fileTypeDataAttr) => {
+            const fileBadgesHtml = files && files.length > 0 ?
+                files.map((file, index) => {
+                    const fileName = file.name || file;
+                    const fileType = file.type || '';
+                    const icon = iconMap(fileType, fileName);
+                    const fileId = `${fileIdPrefix}-${project.id}-${index}`;
+                    return `
+                        <div class="file-badge-with-remove" data-file-id="${fileId}" data-project-id="${project.id}" data-file-index="${index}" data-file-type="${fileTypeDataAttr}" style="display: flex; align-items: center; gap: 4px; padding: 6px 8px 6px 12px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 4px; font-size: 0.85rem;">
+                            <div class="file-badge-clickable" data-file-id="${fileId}" data-project-id="${project.id}" data-file-index="${index}" data-file-type="${fileTypeDataAttr}" style="display: flex; align-items: center; gap: 6px; cursor: pointer; flex: 1; transition: all 0.2s ease;" onmouseover="this.style.color='#2c5530';" onmouseout="this.style.color='#333';">
+                                <span style="font-size: 1rem;">${icon}</span>
+                                <span style="color: #333;">${fileName}</span>
+                            </div>
+                            ${isAuthenticated ? `
+                                <button type="button" class="file-remove-btn" data-project-id="${project.id}" data-file-type="${fileTypeDataAttr}" data-file-index="${index}" style="background: #dc3545; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; line-height: 1; transition: all 0.2s ease;" onmouseover="this.style.background='#c82333'; this.style.transform='scale(1.1)';" onmouseout="this.style.background='#dc3545'; this.style.transform='scale(1)';" title="Remove file">×</button>
+                            ` : ''}
+                        </div>
+                    `;
+                }).join('') :
+                `<div style="display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; font-size: 0.85rem;">
+                    <span style="font-size: 1rem;">⚠️</span>
+                    <span style="color: #856404; font-weight: 500;">File Needed</span>
+                </div>`;
 
-    updateViewToggleText(element) {
-        if (this.viewMode === 'compact') {
-            element.textContent = '📄 Compact';
-        } else {
-            element.textContent = '📋 Detailed';
-        }
+            return `
+                <div class="file-info" style="margin-top: 20px;">
+                    <h4>${title}</h4>
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">
+                        ${fileBadgesHtml}
+                    </div>
+                </div>
+            `;
+        };
+
+        const siteConditionsIconMap = (fileType, fileName) => fileType.startsWith('image/') || /\.(jpg|jpeg|png)$/i.test(fileName) ? '🖼️' : '📄';
+        const submittedPlansIconMap = (fileType, fileName) => {
+            if (fileType.startsWith('image/')) return '🖼️';
+            if (fileType === 'application/pdf' || /\.pdf$/i.test(fileName)) return '📄';
+            if (/\.(doc|docx)$/i.test(fileName)) return '📝';
+            return '📎';
+        };
+
+        return `
+            <div style="padding: 20px;">
+                <div class="project-info" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                    <div class="info-item">
+                        <span class="info-label">Lot:</span>
+                        <span class="info-value">${project.lot || 'N/A'}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Project Type:</span>
+                        <span class="info-value">${project.projectType || 'N/A'}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Contractor:</span>
+                        <span class="info-value">${project.contractorName || 'N/A'}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Approved By:</span>
+                        <span class="info-value">${project.approvedBy || 'N/A'}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Date Approved:</span>
+                        <span class="info-value" ${project.noApprovalOnRecord || (!project.dateApproved && !project.approvalLetterBlob && project.hasApprovalLetter === false) ? 'style="color: #d32f2f; font-weight: bold;"' : ''}>
+                            ${project.noApprovalOnRecord ? 'No Approval on Record' : (project.dateApproved || 'N/A')}
+                        </span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Construction Started:</span>
+                        <span class="info-value">${project.dateConstructionStarted || 'Not started'}</span>
+                    </div>
+                </div>
+                
+                <div class="deposit-info" style="margin-bottom: 20px;">
+                    <h4>Deposit Information</h4>
+                    ${project.depositWaived ? `
+                        <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 12px;">
+                            <div style="font-weight: bold; color: #856404; margin-bottom: 8px;">⚠️ Deposit Waived</div>
+                            <div style="color: #856404; font-size: 0.9rem;">${project.depositWaiverReason || 'No reason provided'}</div>
+                        </div>
+                    ` : (!project.depositAmountReceived && !project.depositWaived) ? `
+                        <div style="color: #d32f2f; font-weight: bold; font-size: 1rem; padding: 8px 0;">
+                            Deposit Needed
+                        </div>
+                    ` : `
+                        <div class="project-info" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                            <div class="info-item">
+                                <span class="info-label">Amount Received:</span>
+                                <span class="info-value">${project.depositAmountReceived ? '$' + project.depositAmountReceived.toFixed(2) : 'Not recorded'}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Date Received:</span>
+                                <span class="info-value">${project.dateDepositReceived || 'Not recorded'}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Amount Returned:</span>
+                                <span class="info-value">${project.depositAmountReturned !== null ? '$' + project.depositAmountReturned.toFixed(2) : 'Not returned'}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Date Returned:</span>
+                                <span class="info-value">${project.dateDepositReturned || 'Not returned'}</span>
+                            </div>
+                        </div>
+                    `}
+                </div>
+                
+                ${renderFileSection(
+                    project.siteConditionsFiles,
+                    'siteConditions',
+                    'Current Site Conditions Files',
+                    siteConditionsIconMap,
+                    'site-conditions',
+                    'siteConditions'
+                )}
+                
+                ${renderFileSection(
+                    project.submittedPlansFiles,
+                    'submittedPlans',
+                    'Submitted Plans',
+                    submittedPlansIconMap,
+                    'submitted-plans',
+                    'submittedPlans'
+                )}
+                
+                ${renderFileSection(
+                    project.approvalLetterFilename || project.approvalLetterStorageUrl || project.hasApprovalLetter ? [{
+                        name: project.approvalLetterFilename || 'Approval Letter.pdf',
+                        type: 'application/pdf',
+                        storageUrl: project.approvalLetterStorageUrl
+                    }] : null,
+                    'approvalLetter',
+                    'Architectural Approval Letter',
+                    () => '📋',
+                    'approval-letter',
+                    'approvalLetter'
+                )}
+                
+                <div class="project-card-actions" style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+                    ${downloadButton}
+                    ${editDeleteButtons}
+                </div>
+            </div>
+        `;
     }
 
     async loadProjects() {
@@ -1840,25 +2021,24 @@ class ProjectManager {
 
         const isAuthenticated = window.authHandler && window.authHandler.isAuthenticated();
         
-        // Render based on view mode
-        if (this.viewMode === 'compact') {
-            // Add header row for compact view and wrap in table-like container
-            const headerRow = this.renderCompactHeader();
-            const dataRows = filteredProjects.map(project => this.renderProjectCompact(project, isAuthenticated)).join('');
-            projectList.innerHTML = `
-                <div style="background: #ffffff; border: 1px solid #d0d0d0; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.08);">
-                    ${headerRow}
-                    ${dataRows}
-                </div>
-            `;
-        } else {
-            projectList.innerHTML = filteredProjects.map(project => this.renderProjectDetailed(project, isAuthenticated)).join('');
-        }
+        // Always use compact view with expandable rows
+        const headerRow = this.renderCompactHeader();
+        const dataRows = filteredProjects.map(project => this.renderProjectCompact(project, isAuthenticated)).join('');
+        projectList.innerHTML = `
+            <div style="background: #ffffff; border: 1px solid #d0d0d0; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.08);">
+                ${headerRow}
+                ${dataRows}
+            </div>
+        `;
+        
+        // Setup expand/collapse handlers after rendering
+        this.setupRowExpansion();
     }
 
     renderCompactHeader() {
         return `
-            <div class="compact-project-header" style="display: grid; grid-template-columns: 70px 1.6fr 0.9fr 0.9fr 1.1fr 95px 100px 75px 120px; gap: 10px; padding: 10px 14px; background: #2c5530; color: white; font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.3px; border-bottom: 2px solid #1e3d22;">
+            <div class="compact-project-header" style="display: grid; grid-template-columns: 40px 70px 1.6fr 0.9fr 0.9fr 1.1fr 95px 100px 75px 120px; gap: 10px; padding: 10px 14px; background: #2c5530; color: white; font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.3px; border-bottom: 2px solid #1e3d22;">
+                <div style="text-align: center;"></div>
                 <div style="text-align: center;">Status</div>
                 <div>Homeowner / Address</div>
                 <div>Lot</div>
@@ -2537,17 +2717,30 @@ class ProjectManager {
             </div>
         ` : '<span style="color: #999; font-size: 0.7rem;">—</span>';
         
+        // Expand button
+        const expandButton = `
+            <button type="button" class="expand-row-btn" data-project-id="${project.id}" style="background: none; border: none; color: #2c5530; font-size: 1.2rem; cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; transition: transform 0.2s ease;" title="Expand to view details">
+                <span class="expand-icon">▶</span>
+            </button>
+        `;
+        
         return `
-            <div class="compact-project-row" data-project-id="${project.id}" style="display: grid; grid-template-columns: 70px 1.6fr 0.9fr 0.9fr 1.1fr 95px 100px 75px 120px; gap: 10px; padding: 10px 14px; background: #ffffff; border-bottom: 1px solid #e8e8e8; align-items: center; transition: background-color 0.15s ease; font-size: 0.8rem;">
-                <div style="display: flex; align-items: center; justify-content: center; overflow: hidden;">${statusBadge}</div>
-                <div style="line-height: 1.4; overflow: hidden; text-overflow: ellipsis;">${homeownerAddress}</div>
-                <div style="display: flex; align-items: center; overflow: hidden;">${lot}</div>
-                <div style="display: flex; align-items: center; overflow: hidden; text-overflow: ellipsis;">${projectType}</div>
-                <div style="display: flex; align-items: center; overflow: hidden; text-overflow: ellipsis;">${contractor}</div>
-                <div style="display: flex; align-items: center; justify-content: center; overflow: hidden;">${dateApproved}</div>
-                <div style="display: flex; align-items: center; justify-content: center; overflow: hidden;">${depositStatus}</div>
-                <div style="display: flex; align-items: center; justify-content: center; overflow: hidden;">${approvalStatus}</div>
-                <div style="display: flex; align-items: center; justify-content: center; overflow: hidden; min-width: 0;">${actionsContent}</div>
+            <div class="compact-project-row-wrapper" data-project-id="${project.id}">
+                <div class="compact-project-row" data-project-id="${project.id}" style="display: grid; grid-template-columns: 40px 70px 1.6fr 0.9fr 0.9fr 1.1fr 95px 100px 75px 120px; gap: 10px; padding: 10px 14px; background: #ffffff; border-bottom: 1px solid #e8e8e8; align-items: center; transition: background-color 0.15s ease; font-size: 0.8rem; cursor: pointer;" onmouseover="this.style.backgroundColor='#f8f9fa';" onmouseout="this.style.backgroundColor='#ffffff';">
+                    <div style="display: flex; align-items: center; justify-content: center; overflow: hidden;">${expandButton}</div>
+                    <div style="display: flex; align-items: center; justify-content: center; overflow: hidden;">${statusBadge}</div>
+                    <div style="line-height: 1.4; overflow: hidden; text-overflow: ellipsis;">${homeownerAddress}</div>
+                    <div style="display: flex; align-items: center; overflow: hidden;">${lot}</div>
+                    <div style="display: flex; align-items: center; overflow: hidden; text-overflow: ellipsis;">${projectType}</div>
+                    <div style="display: flex; align-items: center; overflow: hidden; text-overflow: ellipsis;">${contractor}</div>
+                    <div style="display: flex; align-items: center; justify-content: center; overflow: hidden;">${dateApproved}</div>
+                    <div style="display: flex; align-items: center; justify-content: center; overflow: hidden;">${depositStatus}</div>
+                    <div style="display: flex; align-items: center; justify-content: center; overflow: hidden;">${approvalStatus}</div>
+                    <div style="display: flex; align-items: center; justify-content: center; overflow: hidden; min-width: 0;">${actionsContent}</div>
+                </div>
+                <div class="compact-project-row-details" data-project-id="${project.id}" style="display: none; padding: 0; background: #f8f9fa; border-bottom: 1px solid #e8e8e8;">
+                    ${this.renderExpandedDetails(project, isAuthenticated)}
+                </div>
             </div>
         `;
     }
