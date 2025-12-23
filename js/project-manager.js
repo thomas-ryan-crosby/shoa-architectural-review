@@ -311,13 +311,75 @@ class ProjectManager {
             depositWaiverReason: data.depositWaiverReason || '',
             reviewComments: data.reviewComments || '',
             approvalReason: data.approvalReason || '',
-            siteConditionsFiles: data.siteConditionsFiles || [],
-            submittedPlansFiles: data.submittedPlansFiles || []
+            siteConditionsFiles: (data.siteConditionsFiles || []).map(file => ({
+                name: file.name || file,
+                type: file.type || '',
+                storageUrl: file.storageUrl || null
+            })),
+            submittedPlansFiles: (data.submittedPlansFiles || []).map(file => ({
+                name: file.name || file,
+                type: file.type || '',
+                storageUrl: file.storageUrl || null
+            }))
         };
     }
 
+    async uploadFileToStorage(fileData, fileName, fileType, projectId, folder) {
+        const storage = window.firebaseStorage;
+        if (!storage) {
+            throw new Error('Firebase Storage not available');
+        }
+        
+        // Generate unique filename
+        const sanitizedFilename = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const storagePath = `${folder}/${projectId}/${sanitizedFilename}`;
+        
+        // Create storage reference
+        const storageRef = storage.ref().child(storagePath);
+        
+        // Determine MIME type
+        let mimeType = fileType;
+        if (!mimeType) {
+            if (fileName.toLowerCase().endsWith('.pdf')) mimeType = 'application/pdf';
+            else if (fileName.toLowerCase().match(/\.(jpg|jpeg)$/i)) mimeType = 'image/jpeg';
+            else if (fileName.toLowerCase().endsWith('.png')) mimeType = 'image/png';
+            else if (fileName.toLowerCase().match(/\.(doc|docx)$/i)) mimeType = 'application/msword';
+            else mimeType = 'application/octet-stream';
+        }
+        
+        // Create blob from data
+        const blob = new Blob([fileData], { type: mimeType });
+        
+        // Upload the blob
+        const uploadTask = storageRef.put(blob);
+        
+        // Wait for upload to complete
+        const snapshot = await new Promise((resolve, reject) => {
+            uploadTask.on(
+                'state_changed',
+                (snapshot) => {
+                    // Progress tracking (optional)
+                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                    console.log(`Upload progress for ${fileName}: ${progress.toFixed(0)}%`);
+                },
+                (error) => {
+                    console.error('Upload error:', error);
+                    reject(error);
+                },
+                () => {
+                    resolve(uploadTask.snapshot);
+                }
+            );
+        });
+        
+        // Get download URL
+        const downloadURL = await snapshot.ref.getDownloadURL();
+        console.log(`File uploaded to Firebase Storage: ${fileName} -> ${downloadURL}`);
+        return downloadURL;
+    }
+
     async convertProjectToFirestore(project) {
-        // Use Firebase Storage for PDFs (supports files up to 5GB)
+        // Use Firebase Storage for all files (supports files up to 5GB)
         let approvalLetterStorageUrl = null;
         let approvalLetterSize = 0;
         
@@ -326,49 +388,107 @@ class ProjectManager {
             
             // Upload to Firebase Storage
             try {
-                const storage = window.firebaseStorage;
-                if (!storage) {
-                    throw new Error('Firebase Storage not available');
-                }
-                
-                // Generate unique filename
-                const timestamp = Date.now();
-                const filename = project.approvalLetterFilename || `approval-letter-${timestamp}.pdf`;
-                const sanitizedFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
-                const storagePath = `approval-letters/${project.id || timestamp}/${sanitizedFilename}`;
-                
-                // Create storage reference
-                const storageRef = storage.ref().child(storagePath);
-                
-                // Upload the blob
-                const uploadTask = storageRef.put(new Blob([project.approvalLetterBlob], { type: 'application/pdf' }));
-                
-                // Wait for upload to complete
-                const snapshot = await new Promise((resolve, reject) => {
-                    uploadTask.on(
-                        'state_changed',
-                        (snapshot) => {
-                            // Progress tracking (optional)
-                            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                            console.log(`Upload progress: ${progress.toFixed(0)}%`);
-                        },
-                        (error) => {
-                            console.error('Upload error:', error);
-                            reject(error);
-                        },
-                        () => {
-                            resolve(uploadTask.snapshot);
-                        }
-                    );
-                });
-                
-                // Get download URL
-                approvalLetterStorageUrl = await snapshot.ref.getDownloadURL();
-                console.log('PDF uploaded to Firebase Storage:', approvalLetterStorageUrl);
-                
+                const filename = project.approvalLetterFilename || `approval-letter-${Date.now()}.pdf`;
+                approvalLetterStorageUrl = await this.uploadFileToStorage(
+                    project.approvalLetterBlob,
+                    filename,
+                    'application/pdf',
+                    project.id || Date.now().toString(),
+                    'approval-letters'
+                );
             } catch (error) {
                 console.error('Error uploading PDF to Firebase Storage:', error);
                 throw new Error(`Failed to upload PDF: ${error.message}`);
+            }
+        }
+
+        // Upload site conditions files to Firebase Storage
+        const siteConditionsFilesWithUrls = [];
+        if (project.siteConditionsFiles && project.siteConditionsFiles.length > 0) {
+            for (const file of project.siteConditionsFiles) {
+                if (file.data && (file.data instanceof ArrayBuffer || file.data instanceof Uint8Array)) {
+                    try {
+                        const fileData = file.data instanceof ArrayBuffer ? file.data : file.data.buffer;
+                        const fileName = file.name || `site-condition-${Date.now()}.png`;
+                        const storageUrl = await this.uploadFileToStorage(
+                            fileData,
+                            fileName,
+                            file.type,
+                            project.id || Date.now().toString(),
+                            'site-conditions'
+                        );
+                        siteConditionsFilesWithUrls.push({
+                            name: file.name || fileName,
+                            type: file.type || '',
+                            storageUrl: storageUrl
+                        });
+                    } catch (error) {
+                        console.error('Error uploading site conditions file:', error);
+                        // Continue with other files even if one fails
+                        siteConditionsFilesWithUrls.push({
+                            name: file.name || file,
+                            type: file.type || ''
+                        });
+                    }
+                } else if (file.storageUrl) {
+                    // Already has a storage URL, keep it
+                    siteConditionsFilesWithUrls.push({
+                        name: file.name || file,
+                        type: file.type || '',
+                        storageUrl: file.storageUrl
+                    });
+                } else {
+                    // No data, just metadata
+                    siteConditionsFilesWithUrls.push({
+                        name: file.name || file,
+                        type: file.type || ''
+                    });
+                }
+            }
+        }
+
+        // Upload submitted plans files to Firebase Storage
+        const submittedPlansFilesWithUrls = [];
+        if (project.submittedPlansFiles && project.submittedPlansFiles.length > 0) {
+            for (const file of project.submittedPlansFiles) {
+                if (file.data && (file.data instanceof ArrayBuffer || file.data instanceof Uint8Array)) {
+                    try {
+                        const fileData = file.data instanceof ArrayBuffer ? file.data : file.data.buffer;
+                        const fileName = file.name || `submitted-plan-${Date.now()}.pdf`;
+                        const storageUrl = await this.uploadFileToStorage(
+                            fileData,
+                            fileName,
+                            file.type,
+                            project.id || Date.now().toString(),
+                            'submitted-plans'
+                        );
+                        submittedPlansFilesWithUrls.push({
+                            name: file.name || fileName,
+                            type: file.type || '',
+                            storageUrl: storageUrl
+                        });
+                    } catch (error) {
+                        console.error('Error uploading submitted plans file:', error);
+                        // Continue with other files even if one fails
+                        submittedPlansFilesWithUrls.push({
+                            name: file.name || file,
+                            type: file.type || ''
+                        });
+                    }
+                } else if (file.storageUrl) {
+                    // Already has a storage URL, keep it
+                    submittedPlansFilesWithUrls.push({
+                        name: file.name || file,
+                        type: file.type || '',
+                        storageUrl: file.storageUrl
+                    });
+                } else {
+                    // No data, just metadata
+                    submittedPlansFilesWithUrls.push({
+                        name: file.name || file,
+                        type: file.type || ''
+                    });
+                }
             }
         }
 
@@ -395,14 +515,8 @@ class ProjectManager {
             depositWaiverReason: project.depositWaiverReason || '',
             reviewComments: project.reviewComments || '',
             approvalReason: project.approvalReason || '',
-            siteConditionsFiles: project.siteConditionsFiles ? project.siteConditionsFiles.map(file => ({
-                name: file.name || file,
-                type: file.type || ''
-            })) : [],
-            submittedPlansFiles: project.submittedPlansFiles ? project.submittedPlansFiles.map(file => ({
-                name: file.name || file,
-                type: file.type || ''
-            })) : [],
+            siteConditionsFiles: siteConditionsFilesWithUrls,
+            submittedPlansFiles: submittedPlansFilesWithUrls,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         };
     }
