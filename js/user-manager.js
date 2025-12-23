@@ -228,7 +228,8 @@ class UserManager {
     }
 
     canWrite() {
-        return this.isApproved();
+        // Only admins can write - members are read-only
+        return this.isAdmin();
     }
 }
 

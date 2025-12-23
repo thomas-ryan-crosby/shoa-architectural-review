@@ -33,8 +33,9 @@ class ProjectManager {
     checkAuthForWrites() {
         // Update UI based on auth status
         const isAuthenticated = window.authHandler && window.authHandler.isAuthenticated();
+        const isAdmin = window.userManager && window.userManager.isAdmin();
         
-        // Update "Add Project" button
+        // Update "Add Project" button - only show for admins
         const addProjectBtn = document.getElementById('toggleAddProjectBtn');
         if (addProjectBtn) {
             if (!isAuthenticated) {
@@ -44,8 +45,12 @@ class ProjectManager {
                 const newBtn = addProjectBtn.cloneNode(true);
                 addProjectBtn.parentNode.replaceChild(newBtn, addProjectBtn);
                 newBtn.addEventListener('click', () => this.promptLogin('add project'));
+            } else if (!isAdmin) {
+                // Member (not admin) - hide the button
+                addProjectBtn.style.display = 'none';
             } else {
-                // User is authenticated - restore button with span and toggle functionality
+                // User is admin - restore button with span and toggle functionality
+                addProjectBtn.style.display = 'block';
                 addProjectBtn.innerHTML = '<span id="toggleAddProjectText">+ Add Existing Project</span>';
                 // Remove existing listeners and restore toggle functionality
                 const newBtn = addProjectBtn.cloneNode(true);
@@ -95,15 +100,15 @@ class ProjectManager {
     }
 
     requireAuth() {
-        // Check if user is authenticated and approved
+        // Check if user is authenticated
         if (!window.authHandler || !window.authHandler.isAuthenticated()) {
             this.promptLogin('perform this action');
             return false;
         }
         
-        // Check if user is approved
-        if (window.userManager && !window.userManager.canWrite()) {
-            alert('Your account is pending admin approval. You cannot make changes until your account is approved.');
+        // Check if user is admin (only admins can write)
+        if (window.userManager && !window.userManager.isAdmin()) {
+            alert('Only administrators can make changes. Members have read-only access.');
             return false;
         }
         
@@ -1603,7 +1608,7 @@ class ProjectManager {
         projectList.addEventListener('click', this.rowExpansionHandler);
     }
     
-    renderExpandedDetails(project, isAuthenticated) {
+    renderExpandedDetails(project, isAuthenticated, isAdmin) {
         // Get the detailed content from renderProjectDetailed but without the card wrapper
         const hasLetter = project.approvalLetterBlob || project.approvalLetterStorageUrl || (project.hasApprovalLetter !== false && project.approvalLetterFilename);
         const downloadButton = hasLetter ? `
@@ -1614,7 +1619,7 @@ class ProjectManager {
             <span style="color: #d32f2f; font-size: 0.9rem; font-weight: bold; padding: 8px 0;">Approval not on file</span>
         `;
         
-        const editDeleteButtons = isAuthenticated ? `
+        const editDeleteButtons = isAdmin ? `
             <button type="button" class="btn-small btn-secondary" onclick="window.projectManager.editProject('${project.id}')">
                 Edit
             </button>
@@ -2056,10 +2061,11 @@ class ProjectManager {
         }
 
         const isAuthenticated = window.authHandler && window.authHandler.isAuthenticated();
+        const isAdmin = window.userManager && window.userManager.isAdmin();
         
         // Always use compact view with expandable rows
         const headerRow = this.renderCompactHeader();
-        const dataRows = filteredProjects.map(project => this.renderProjectCompact(project, isAuthenticated)).join('');
+        const dataRows = filteredProjects.map(project => this.renderProjectCompact(project, isAuthenticated, isAdmin)).join('');
         projectList.innerHTML = `
             <div style="background: #ffffff; border: 1px solid #d0d0d0; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.08);">
                 ${headerRow}
@@ -2102,15 +2108,17 @@ class ProjectManager {
                 </button>
             ` : '';
             
-            const editDeleteButtons = isAuthenticated ? `
+            const editDeleteButtons = isAdmin ? `
                 <button type="button" class="btn-small btn-secondary" onclick="window.projectManager.editProject('${project.id}')">
                     Edit
                 </button>
                 <button type="button" class="btn-small btn-danger" onclick="window.projectManager.deleteProject('${project.id}')">
                     Delete
                 </button>
+            ` : isAuthenticated ? `
+                <span style="color: var(--text-light); font-size: 0.85rem; font-style: italic; padding: 8px 0;">Members have read-only access</span>
             ` : `
-                <span style="color: var(--text-light); font-size: 0.85rem; font-style: italic; padding: 8px 0;">Sign in to edit or delete</span>
+                <span style="color: var(--text-light); font-size: 0.85rem; font-style: italic; padding: 8px 0;">Sign in to view</span>
             `;
             
             // Check if approval letter exists (either in memory, Storage URL, or legacy base64)
@@ -2704,7 +2712,7 @@ class ProjectManager {
         document.addEventListener('keydown', handleEscape);
     }
 
-    renderProjectCompact(project, isAuthenticated) {
+    renderProjectCompact(project, isAuthenticated, isAdmin) {
         // Status badge - smaller and more refined
         const statusText = project.status === 'open' ? 'Open' : project.status === 'under_review' ? 'Under Review' : 'Previous';
         const statusBadge = `<span class="project-status-badge ${project.status}" style="padding: 3px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: 600; display: inline-block; white-space: nowrap; text-align: center; min-width: 50px;">${statusText}</span>`;
@@ -2751,8 +2759,8 @@ class ProjectManager {
             <button type="button" class="btn-small btn-primary" onclick="window.projectManager.downloadLetter('${project.id}')" style="padding: 3px 8px; font-size: 0.7rem; white-space: nowrap; border-radius: 3px; font-weight: 500; line-height: 1.2; max-width: 100%; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px;">Download</button>
         ` : '';
         
-        // Edit button - only show if authenticated
-        const editButton = isAuthenticated ? `
+        // Edit button - only show if admin
+        const editButton = isAdmin ? `
             <button type="button" class="btn-small btn-secondary" onclick="window.projectManager.editProject('${project.id}')" style="padding: 3px 8px; font-size: 0.7rem; white-space: nowrap; border-radius: 3px; font-weight: 500; line-height: 1.2; max-width: 100%; overflow: hidden; text-overflow: ellipsis;">Edit</button>
         ` : '';
         
@@ -2829,7 +2837,7 @@ class ProjectManager {
                     <div style="display: flex; align-items: center; justify-content: center; overflow: hidden; min-width: 0;">${actionsContent}</div>
                 </div>
                 <div class="compact-project-row-details" data-project-id="${project.id}" style="display: none; padding: 0; background: #f8f9fa; border-bottom: 1px solid #e8e8e8;">
-                    ${this.renderExpandedDetails(project, isAuthenticated)}
+                    ${this.renderExpandedDetails(project, isAuthenticated, isAdmin)}
                 </div>
             </div>
         `;
