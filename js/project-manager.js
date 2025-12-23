@@ -15,6 +15,7 @@ class ProjectManager {
         this.setupFilters();
         this.setupViewToggle();
         this.setupAddProjectForm();
+        this.setupFilePreviewDelegation();
         
         // Initialize Firebase/Firestore (works without auth for reads)
         await this.initializeFirestore();
