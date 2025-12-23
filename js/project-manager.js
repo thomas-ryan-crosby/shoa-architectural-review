@@ -2008,6 +2008,7 @@ class ProjectManager {
                 </div>
                 <div class="project-card-actions">
                     ${downloadButton}
+                    ${saveButton}
                     ${editDeleteButtons}
                 </div>
             </div>
@@ -2080,23 +2081,32 @@ class ProjectManager {
             
             console.log('Setting up file preview delegation on projectList');
             
-        projectsContainer.addEventListener('click', (e) => {
+            projectsContainer.addEventListener('click', (e) => {
             // Handle file preview clicks
             const badge = e.target.closest('.file-badge-clickable');
             if (badge) {
                 e.preventDefault();
                 e.stopPropagation();
                 
+                // Get project ID from badge or parent container
                 const projectId = badge.getAttribute('data-project-id') || badge.closest('[data-project-id]')?.getAttribute('data-project-id');
-                const fileType = badge.getAttribute('data-file-type');
-                const fileIndex = badge.getAttribute('data-file-index');
+                // Get file type and index from parent container (file-badge-with-remove) or badge itself
+                const container = badge.closest('.file-badge-with-remove');
+                const fileType = container?.getAttribute('data-file-type') || badge.getAttribute('data-file-type');
+                const fileIndex = container?.getAttribute('data-file-index') || badge.getAttribute('data-file-index');
                 
-                console.log('File preview clicked:', { projectId, fileType, fileIndex, badge });
+                console.log('File preview clicked:', { projectId, fileType, fileIndex, badge, container });
                 
                 const project = this.projects.find(p => p.id === projectId);
                 if (!project) {
                     console.error('Project not found:', projectId);
                     alert('Project not found');
+                    return;
+                }
+                
+                if (!fileType) {
+                    console.error('File type not found for preview');
+                    alert('Unable to determine file type');
                     return;
                 }
                 
