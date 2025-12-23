@@ -13,7 +13,7 @@ class ProjectManager {
     async init() {
         // Initialize UI components (no auth required for viewing)
         this.setupFilters();
-        this.setupViewToggle();
+        // View toggle removed - using expandable rows instead
         this.setupAddProjectForm();
         this.setupFilePreviewDelegation();
         
