@@ -349,31 +349,377 @@ footer {
     border-top: 1px solid var(--border-color);
 }
 
-/* Responsive Design */
+/* Responsive Design - Mobile First Approach */
+
+/* Tablet and below (768px) */
 @media (max-width: 768px) {
     body {
         padding: 10px;
+        font-size: 16px; /* Prevent zoom on iOS */
     }
 
+    .container {
+        border-radius: 0;
+        box-shadow: none;
+    }
+
+    /* Header - Stack vertically on mobile */
     header {
-        padding: 30px 20px;
+        padding: 20px 15px;
+    }
+
+    header > div {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 15px !important;
     }
 
     header h1 {
-        font-size: 1.5rem;
+        font-size: 1.3rem;
+        margin-bottom: 5px;
+        text-align: left;
+    }
+
+    .subtitle {
+        font-size: 0.85rem;
+        text-align: left;
+    }
+
+    /* User widget and buttons - stack on mobile */
+    header > div > div:last-child {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch !important;
+        gap: 10px !important;
+    }
+
+    #userEmailWidget {
+        width: 100%;
+        justify-content: flex-start;
+        padding: 10px 12px;
+    }
+
+    #userEmailWidget #userEmail {
+        max-width: none;
+    }
+
+    header .btn-secondary {
+        width: 100%;
+        padding: 12px;
+    }
+
+    .standards-button {
+        width: 100%;
+        margin-top: 10px;
+        padding: 12px;
     }
 
     main {
-        padding: 30px 20px;
+        padding: 20px 15px;
+    }
+
+    .form-section {
+        margin-bottom: 30px;
+        padding-bottom: 20px;
     }
 
     .form-section h2 {
         font-size: 1.25rem;
     }
 
-    .btn-primary {
+    /* Deposit Summary - Stack on mobile */
+    .deposit-summary > div {
+        flex-direction: column !important;
+        gap: 15px !important;
+    }
+
+    .deposit-summary > div > div:last-child {
+        text-align: left !important;
+    }
+
+    /* Filters - Stack vertically */
+    .project-filters {
+        flex-direction: column;
         width: 100%;
+    }
+
+    .filter-btn {
+        width: 100%;
+        padding: 12px;
+        font-size: 0.9rem;
+    }
+
+    /* Buttons - Full width and touch-friendly */
+    .btn-primary,
+    .btn-secondary,
+    .btn-danger,
+    .btn-small {
+        width: 100%;
+        padding: 14px 20px;
+        font-size: 1rem;
+        min-height: 44px; /* Touch target size */
+        margin-bottom: 10px;
+    }
+
+    .btn-small {
+        padding: 10px 16px;
+        font-size: 0.9rem;
+    }
+
+    /* Forms - Better mobile experience */
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        font-size: 16px; /* Prevent zoom on iOS */
+        padding: 12px;
+        min-height: 44px;
+    }
+
+    .form-group label {
+        font-size: 0.9rem;
+        margin-bottom: 6px;
+    }
+
+    /* Add Project Form */
+    .add-project-form {
+        padding: 20px 15px;
+    }
+
+    /* Compact table - Horizontal scroll on mobile */
+    .compact-project-header,
+    .compact-project-row {
+        grid-template-columns: 40px 80px 1.5fr 0.8fr 0.8fr 0.9fr 80px 70px 60px 100px !important;
+        min-width: 800px;
+        font-size: 0.75rem;
+        padding: 8px 10px;
+    }
+
+    .compact-project-header {
+        font-size: 0.65rem;
+    }
+
+    /* Wrap table in scrollable container */
+    #projectList > div {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Project cards - Better mobile layout */
+    .project-card {
+        margin-bottom: 15px;
+    }
+
+    .project-card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .project-card-header h3 {
+        font-size: 1.1rem;
+    }
+
+    .project-info {
+        grid-template-columns: 1fr !important;
+        gap: 12px;
+    }
+
+    .info-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+
+    .info-label {
+        font-size: 0.85rem;
+    }
+
+    .info-value {
+        font-size: 0.95rem;
+    }
+
+    /* File badges - Stack on mobile */
+    .file-badges,
+    .file-badge-with-remove {
+        width: 100%;
+        margin-bottom: 8px;
+    }
+
+    /* Modal optimizations */
+    .modal-content {
+        max-width: 100%;
+        max-height: 100vh;
+        border-radius: 0;
+        margin: 0;
+    }
+
+    .modal-header {
+        padding: 20px 15px;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .modal-header h2 {
+        font-size: 1.2rem;
+    }
+
+    .modal-body {
+        padding: 20px 15px;
+        max-height: calc(100vh - 200px);
+    }
+
+    .modal-footer {
         padding: 15px;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .modal-footer button {
+        width: 100%;
+        margin: 0;
+    }
+
+    /* Login modal */
+    .login-box {
+        max-width: 100%;
+        padding: 30px 20px;
+        margin: 20px;
+    }
+
+    .login-box h1 {
+        font-size: 1.5rem;
+    }
+
+    .login-box h2 {
+        font-size: 1rem;
+    }
+
+    /* File upload areas - Touch friendly */
+    [id$="DropZone"] {
+        padding: 40px 20px !important;
+        min-height: 150px;
+    }
+
+    /* Expandable row details */
+    .compact-project-row-details {
+        padding: 15px !important;
+    }
+
+    .compact-project-row-details .project-info {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Action buttons in cards */
+    .project-card-actions {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .project-card-actions button {
+        width: 100%;
+    }
+}
+
+/* Small mobile devices (480px and below) */
+@media (max-width: 480px) {
+    body {
+        padding: 5px;
+    }
+
+    header {
+        padding: 15px 10px;
+    }
+
+    header h1 {
+        font-size: 1.1rem;
+    }
+
+    .subtitle {
+        font-size: 0.75rem;
+    }
+
+    main {
+        padding: 15px 10px;
+    }
+
+    .form-section h2 {
+        font-size: 1.1rem;
+    }
+
+    .compact-project-header,
+    .compact-project-row {
+        grid-template-columns: 35px 70px 1.2fr 0.7fr 0.7fr 0.8fr 70px 60px 50px 90px !important;
+        min-width: 700px;
+        font-size: 0.7rem;
+        padding: 6px 8px;
+    }
+
+    .compact-project-header {
+        font-size: 0.6rem;
+    }
+
+    .login-box {
+        padding: 25px 15px;
+        margin: 10px;
+    }
+
+    .login-box h1 {
+        font-size: 1.3rem;
+    }
+
+    /* Smaller text on very small screens */
+    .info-label,
+    .info-value {
+        font-size: 0.85rem;
+    }
+}
+
+/* Landscape mobile optimization */
+@media (max-width: 768px) and (orientation: landscape) {
+    .modal-content {
+        max-height: 95vh;
+    }
+
+    .modal-body {
+        max-height: calc(95vh - 150px);
+    }
+
+    .login-box {
+        max-width: 500px;
+    }
+}
+
+/* Touch-friendly improvements for all mobile */
+@media (hover: none) and (pointer: coarse) {
+    /* Remove hover effects on touch devices */
+    button:hover,
+    .btn-primary:hover,
+    .btn-secondary:hover {
+        transform: none;
+    }
+
+    /* Increase touch targets */
+    button,
+    .btn-primary,
+    .btn-secondary,
+    .filter-btn,
+    .expand-row-btn {
+        min-height: 44px;
+        min-width: 44px;
+    }
+
+    /* File remove buttons - larger on touch */
+    .file-remove-btn {
+        width: 28px !important;
+        height: 28px !important;
+        font-size: 16px !important;
+    }
+
+    /* Expand button - larger */
+    .expand-row-btn {
+        width: 36px;
+        height: 36px;
+        font-size: 1.4rem;
     }
 }
 
