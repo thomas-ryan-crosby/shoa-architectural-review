@@ -1538,6 +1538,31 @@ class ProjectManager {
         projectList.addEventListener('click', (e) => {
             const expandBtn = e.target.closest('.expand-row-btn');
             const row = e.target.closest('.compact-project-row');
+            const mobileCard = e.target.closest('.compact-project-mobile-card');
+            
+            // Handle clicks on mobile card (entire card is clickable except buttons)
+            if (mobileCard && !expandBtn && !e.target.closest('button')) {
+                e.stopPropagation();
+                const projectId = mobileCard.getAttribute('data-project-id');
+                if (!projectId) return;
+                
+                const wrapper = document.querySelector(`.compact-project-row-wrapper[data-project-id="${projectId}"]`);
+                const details = document.querySelector(`.compact-project-row-details[data-project-id="${projectId}"]`);
+                const expandIcon = wrapper?.querySelector('.expand-icon');
+                
+                if (wrapper && details && expandIcon) {
+                    const isExpanded = details.style.display !== 'none';
+                    
+                    if (isExpanded) {
+                        details.style.display = 'none';
+                        expandIcon.textContent = '▶';
+                    } else {
+                        details.style.display = 'block';
+                        expandIcon.textContent = '▼';
+                    }
+                }
+                return;
+            }
             
             if (expandBtn || row) {
                 e.stopPropagation();
