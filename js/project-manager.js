@@ -2365,7 +2365,7 @@ class ProjectManager {
         this.setupEditSubmittedPlansDragAndDrop();
     }
 
-    setupEditModalHandlers(dialog, modalContent) {
+    setupEditModalHandlers(dialog, modalContent, projectId, project) {
         // Helper function to close dialog
         const closeDialog = () => {
             if (dialog && dialog.parentNode) {
