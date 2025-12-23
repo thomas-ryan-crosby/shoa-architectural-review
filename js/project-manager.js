@@ -1817,8 +1817,9 @@ class ProjectManager {
                                     const fileType = file.type || '';
                                     const isImage = fileType.startsWith('image/') || /\.(jpg|jpeg|png)$/i.test(fileName);
                                     const isPDF = fileType === 'application/pdf' || /\.pdf$/i.test(fileName);
+                                    const fileId = `site-conditions-${project.id}-${index}`;
                                     return `
-                                        <div style="display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 4px; font-size: 0.85rem;">
+                                        <div class="file-badge-clickable" data-file-id="${fileId}" data-project-id="${project.id}" data-file-index="${index}" data-file-type="siteConditions" style="display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 4px; font-size: 0.85rem; cursor: pointer; transition: all 0.2s ease;" onmouseover="this.style.background='#e8f5e9'; this.style.borderColor='#4caf50';" onmouseout="this.style.background='#f5f5f5'; this.style.borderColor='#ddd';">
                                             <span style="font-size: 1rem;">${isImage ? '🖼️' : isPDF ? '📄' : '📎'}</span>
                                             <span style="color: #333;">${fileName}</span>
                                         </div>
@@ -1838,8 +1839,9 @@ class ProjectManager {
                                     const isImage = fileType.startsWith('image/') || /\.(jpg|jpeg|png)$/i.test(fileName);
                                     const isPDF = fileType === 'application/pdf' || /\.pdf$/i.test(fileName);
                                     const isDoc = /\.(doc|docx)$/i.test(fileName);
+                                    const fileId = `submitted-plans-${project.id}-${index}`;
                                     return `
-                                        <div style="display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 4px; font-size: 0.85rem;">
+                                        <div class="file-badge-clickable" data-file-id="${fileId}" data-project-id="${project.id}" data-file-index="${index}" data-file-type="submittedPlans" style="display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 4px; font-size: 0.85rem; cursor: pointer; transition: all 0.2s ease;" onmouseover="this.style.background='#e8f5e9'; this.style.borderColor='#4caf50';" onmouseout="this.style.background='#f5f5f5'; this.style.borderColor='#ddd';">
                                             <span style="font-size: 1rem;">${isImage ? '🖼️' : isPDF ? '📄' : isDoc ? '📝' : '📎'}</span>
                                             <span style="color: #333;">${fileName}</span>
                                         </div>
@@ -1853,7 +1855,7 @@ class ProjectManager {
                         <div class="file-info" style="margin-top: 20px;">
                             <h4>Architectural Approval Letter</h4>
                             <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">
-                                <div style="display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: #e8f5e9; border: 1px solid #4caf50; border-radius: 4px; font-size: 0.85rem;">
+                                <div class="file-badge-clickable" data-project-id="${project.id}" data-file-type="approvalLetter" style="display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: #e8f5e9; border: 1px solid #4caf50; border-radius: 4px; font-size: 0.85rem; cursor: pointer; transition: all 0.2s ease;" onmouseover="this.style.background='#c8e6c9'; this.style.borderColor='#2c5530';" onmouseout="this.style.background='#e8f5e9'; this.style.borderColor='#4caf50';">
                                     <span style="font-size: 1rem;">📋</span>
                                     <span style="color: #2c5530; font-weight: 500;">${project.approvalLetterFilename || 'Approval Letter.pdf'}</span>
                                 </div>
