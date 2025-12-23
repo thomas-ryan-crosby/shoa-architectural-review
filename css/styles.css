@@ -485,23 +485,32 @@ footer {
         padding: 20px 15px;
     }
 
-    /* Compact table - Horizontal scroll on mobile */
-    .compact-project-header,
-    .compact-project-row {
-        grid-template-columns: 40px 80px 1.5fr 0.8fr 0.8fr 0.9fr 80px 70px 60px 100px !important;
-        min-width: 800px;
-        font-size: 0.75rem;
-        padding: 8px 10px;
-    }
-
+    /* Compact table - Convert to cards on mobile */
     .compact-project-header {
-        font-size: 0.65rem;
+        display: none !important; /* Hide table header on mobile */
     }
 
-    /* Wrap table in scrollable container */
-    #projectList > div {
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
+    .compact-project-row {
+        display: none !important; /* Hide table rows on mobile */
+    }
+
+    .compact-project-mobile-card {
+        display: block !important; /* Show mobile cards */
+    }
+
+    /* Mobile card styling */
+    .compact-project-mobile-card .btn-small {
+        width: auto;
+        min-width: 80px;
+        padding: 8px 12px;
+        font-size: 0.85rem;
+        margin: 0;
+    }
+
+    .compact-project-mobile-card .expand-row-btn {
+        width: 36px;
+        height: 36px;
+        font-size: 1.2rem;
     }
 
     /* Project cards - Better mobile layout */
@@ -646,16 +655,14 @@ footer {
         font-size: 1.1rem;
     }
 
-    .compact-project-header,
-    .compact-project-row {
-        grid-template-columns: 35px 70px 1.2fr 0.7fr 0.7fr 0.8fr 70px 60px 50px 90px !important;
-        min-width: 700px;
-        font-size: 0.7rem;
-        padding: 6px 8px;
+    /* Ensure mobile cards are shown on very small screens */
+    .compact-project-mobile-card {
+        display: block !important;
     }
 
-    .compact-project-header {
-        font-size: 0.6rem;
+    .compact-project-mobile-card .btn-small {
+        font-size: 0.8rem;
+        padding: 6px 10px;
     }
 
     .login-box {

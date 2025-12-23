@@ -2708,7 +2708,7 @@ class ProjectManager {
         const hasLetter = project.approvalLetterBlob || project.approvalLetterStorageUrl || (project.hasApprovalLetter !== false && project.approvalLetterFilename);
         const approvalStatus = hasLetter ? 
             '<span style="color: #4caf50; font-size: 0.8rem; font-weight: 600;">✓</span>' : 
-            '<span style="color: #d32f2f; font-size: 0.75rem; font-weight: 700;">✗</span>';
+            '<span style="color: #d32f2f; font-size: 0.75rem; font-weight: 700;">✗</span>`;
         
         // Download button - smaller, more compact, with overflow protection
         const downloadButton = hasLetter && isAuthenticated ? `
@@ -2734,8 +2734,52 @@ class ProjectManager {
             </button>
         `;
         
+        // Mobile card layout (shown on mobile, hidden on desktop)
+        const mobileCard = `
+            <div class="compact-project-mobile-card" data-project-id="${project.id}" style="display: none; background: #ffffff; border: 1px solid #e8e8e8; border-radius: 8px; padding: 15px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                    <div style="flex: 1;">
+                        <div style="font-weight: 600; color: #2c5530; font-size: 1rem; margin-bottom: 4px;">${project.homeownerName || 'N/A'}</div>
+                        ${project.address ? `<div style="color: #666; font-size: 0.85rem; margin-bottom: 8px;">${project.address}</div>` : ''}
+                        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
+                            ${statusBadge}
+                            ${hasLetter ? '<span style="color: #4caf50; font-size: 0.85rem;">✓ Letter</span>' : '<span style="color: #d32f2f; font-size: 0.85rem;">✗ No Letter</span>'}
+                        </div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
+                        ${expandButton}
+                        ${downloadButton}
+                        ${editButton}
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding-top: 12px; border-top: 1px solid #f0f0f0; font-size: 0.85rem;">
+                    <div>
+                        <div style="color: #666; font-size: 0.75rem; margin-bottom: 4px;">Lot</div>
+                        <div style="font-weight: 500;">${project.lot || 'N/A'}</div>
+                    </div>
+                    <div>
+                        <div style="color: #666; font-size: 0.75rem; margin-bottom: 4px;">Project Type</div>
+                        <div style="font-weight: 500;">${project.projectType || 'N/A'}</div>
+                    </div>
+                    <div>
+                        <div style="color: #666; font-size: 0.75rem; margin-bottom: 4px;">Contractor</div>
+                        <div style="font-weight: 500;">${project.contractorName || 'N/A'}</div>
+                    </div>
+                    <div>
+                        <div style="color: #666; font-size: 0.75rem; margin-bottom: 4px;">Date Approved</div>
+                        <div style="font-weight: 500; ${project.noApprovalOnRecord ? 'color: #d32f2f;' : ''}">${project.noApprovalOnRecord ? 'No Record' : (project.dateApproved || 'N/A')}</div>
+                    </div>
+                    <div>
+                        <div style="color: #666; font-size: 0.75rem; margin-bottom: 4px;">Deposit</div>
+                        <div style="font-weight: 500;">${depositStatus}</div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
         return `
             <div class="compact-project-row-wrapper" data-project-id="${project.id}">
+                ${mobileCard}
                 <div class="compact-project-row" data-project-id="${project.id}" style="display: grid; grid-template-columns: 40px 70px 1.6fr 0.9fr 0.9fr 1.1fr 95px 100px 75px 120px; gap: 10px; padding: 10px 14px; background: #ffffff; border-bottom: 1px solid #e8e8e8; align-items: center; transition: background-color 0.15s ease; font-size: 0.8rem; cursor: pointer;" onmouseover="this.style.backgroundColor='#f8f9fa';" onmouseout="this.style.backgroundColor='#ffffff';">
                     <div style="display: flex; align-items: center; justify-content: center; overflow: hidden;">${expandButton}</div>
                     <div style="display: flex; align-items: center; justify-content: center; overflow: hidden;">${statusBadge}</div>
