@@ -41,9 +41,15 @@
                     <p class="subtitle">Generate professional approval letters for architectural reviews</p>
                 </div>
                 <div style="display: flex; align-items: center; gap: 15px;">
-                    <span id="userEmail" style="color: var(--text-light); font-size: 0.9rem;"></span>
-                    <button type="button" id="loginBtn" class="btn-secondary" style="padding: 8px 16px; font-size: 0.9rem; display: none;">Sign In</button>
-                    <button type="button" id="logoutBtn" class="btn-secondary" style="padding: 8px 16px; font-size: 0.9rem; display: none;">Sign Out</button>
+                    <div id="userEmailWidget" style="display: none; align-items: center; gap: 8px; background: rgba(255, 255, 255, 0.15); padding: 8px 14px; border-radius: 20px; backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2);">
+                        <span style="font-size: 1.1rem;">👤</span>
+                        <div style="display: flex; flex-direction: column; line-height: 1.2;">
+                            <span style="font-size: 0.7rem; opacity: 0.9; text-transform: uppercase; letter-spacing: 0.5px;">Logged In As</span>
+                            <span id="userEmail" style="font-size: 0.85rem; font-weight: 500; color: var(--white); max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title=""></span>
+                        </div>
+                    </div>
+                    <button type="button" id="loginBtn" class="btn-secondary" style="padding: 8px 16px; font-size: 0.9rem; display: none; background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.3); color: var(--white);">Sign In</button>
+                    <button type="button" id="logoutBtn" class="btn-secondary" style="padding: 8px 16px; font-size: 0.9rem; display: none; background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.3); color: var(--white);">Sign Out</button>
                 </div>
             </div>
             <button type="button" id="standardsButton" class="standards-button">Refresher on SHOA Arch Standards</button>

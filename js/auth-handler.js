@@ -71,16 +71,29 @@ class AuthHandler {
         if (mainApp) mainApp.style.display = 'block';
         
         // Update user email display and login/logout buttons
+        const userEmailWidget = document.getElementById('userEmailWidget');
         const userEmail = document.getElementById('userEmail');
         const loginBtn = document.getElementById('loginBtn');
         const logoutBtn = document.getElementById('logoutBtn');
         
         if (this.user) {
-            if (userEmail) userEmail.textContent = this.user.email;
+            if (userEmailWidget) {
+                userEmailWidget.style.display = 'flex';
+            }
+            if (userEmail) {
+                userEmail.textContent = this.user.email;
+                userEmail.setAttribute('title', this.user.email); // Tooltip with full email
+            }
             if (loginBtn) loginBtn.style.display = 'none';
             if (logoutBtn) logoutBtn.style.display = 'block';
         } else {
-            if (userEmail) userEmail.textContent = '';
+            if (userEmailWidget) {
+                userEmailWidget.style.display = 'none';
+            }
+            if (userEmail) {
+                userEmail.textContent = '';
+                userEmail.removeAttribute('title');
+            }
             if (loginBtn) loginBtn.style.display = 'block';
             if (logoutBtn) logoutBtn.style.display = 'none';
         }
