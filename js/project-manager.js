@@ -95,6 +95,7 @@ class ProjectManager {
     }
 
     requireAuth() {
+        // Check if user is authenticated and approved
         if (!window.authHandler || !window.authHandler.isAuthenticated()) {
             this.promptLogin('perform this action');
             return false;

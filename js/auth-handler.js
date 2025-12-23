@@ -19,9 +19,19 @@ class AuthHandler {
         if (loginScreen) loginScreen.style.display = 'none';
 
         // Listen for auth state changes
-        window.firebaseAuth.onAuthStateChanged((user) => {
+        window.firebaseAuth.onAuthStateChanged(async (user) => {
             if (user) {
                 this.user = user;
+                // Load user data and check status
+                if (window.userManager) {
+                    await window.userManager.loadUserData(user.email);
+                    // Check if user is approved
+                    if (!window.userManager.isApproved()) {
+                        alert('Your account is pending admin approval. You can view projects but cannot make changes until approved.');
+                        await window.firebaseAuth.signOut();
+                        return;
+                    }
+                }
                 this.showApp();
                 console.log('User signed in:', user.email);
             } else {
@@ -61,6 +71,34 @@ class AuthHandler {
         const loginScreen = document.getElementById('loginScreen');
         if (loginScreen) {
             loginScreen.style.display = 'none';
+        }
+    }
+
+    showRegister() {
+        const registerScreen = document.getElementById('registerScreen');
+        if (registerScreen) {
+            registerScreen.style.display = 'flex';
+            // Close on backdrop click
+            registerScreen.addEventListener('click', (e) => {
+                if (e.target === registerScreen) {
+                    this.hideRegister();
+                }
+            });
+            // Close on Escape key
+            const handleEscape = (e) => {
+                if (e.key === 'Escape') {
+                    this.hideRegister();
+                    document.removeEventListener('keydown', handleEscape);
+                }
+            };
+            document.addEventListener('keydown', handleEscape);
+        }
+    }
+
+    hideRegister() {
+        const registerScreen = document.getElementById('registerScreen');
+        if (registerScreen) {
+            registerScreen.style.display = 'none';
         }
     }
 
