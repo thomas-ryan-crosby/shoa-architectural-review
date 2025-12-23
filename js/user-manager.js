@@ -171,15 +171,23 @@ class UserManager {
         }
 
         try {
-            const snapshot = await this.db.collection('users')
-                .where('status', '==', 'pending')
-                .orderBy('createdAt', 'desc')
-                .get();
-
-            return snapshot.docs.map(doc => ({
+            // Get all users and filter in JavaScript to avoid index requirement
+            const snapshot = await this.db.collection('users').get();
+            const allUsers = snapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data()
             }));
+            
+            // Filter for pending users and sort by createdAt
+            const pendingUsers = allUsers
+                .filter(user => user.status === 'pending')
+                .sort((a, b) => {
+                    const aDate = a.createdAt ? (a.createdAt.toDate ? a.createdAt.toDate() : new Date(a.createdAt)) : new Date(0);
+                    const bDate = b.createdAt ? (b.createdAt.toDate ? b.createdAt.toDate() : new Date(b.createdAt)) : new Date(0);
+                    return bDate - aDate; // Descending order (newest first)
+                });
+            
+            return pendingUsers;
         } catch (error) {
             console.error('Error getting pending users:', error);
             return [];
