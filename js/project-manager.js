@@ -2187,32 +2187,54 @@ class ProjectManager {
                     return;
                 }
                 
-                if (confirm(`Are you sure you want to remove this file? You'll need to save the project for the change to take effect.`)) {
-                    // Mark file for removal (will be handled when saving)
-                    if (!project.filesToRemove) {
-                        project.filesToRemove = { siteConditions: [], submittedPlans: [], approvalLetter: false };
-                    }
+                if (confirm(`Are you sure you want to remove this file?`)) {
+                    // Remove file immediately from the project
+                    let fileRemoved = false;
                     
                     if (fileType === 'approvalLetter') {
-                        project.filesToRemove.approvalLetter = true;
+                        // Remove approval letter
+                        project.approvalLetterBlob = null;
+                        project.approvalLetterStorageUrl = null;
+                        project.approvalLetterFilename = '';
+                        project.hasApprovalLetter = false;
+                        fileRemoved = true;
                     } else if (fileType === 'siteConditions' && fileIndex !== null) {
-                        project.filesToRemove.siteConditions.push(parseInt(fileIndex));
+                        // Remove site conditions file at index
+                        const indexToRemove = parseInt(fileIndex);
+                        if (project.siteConditionsFiles && project.siteConditionsFiles.length > indexToRemove) {
+                            project.siteConditionsFiles = project.siteConditionsFiles.filter((file, index) => index !== indexToRemove);
+                            fileRemoved = true;
+                            console.log(`Removed site conditions file at index ${indexToRemove}. Remaining files:`, project.siteConditionsFiles);
+                        }
                     } else if (fileType === 'submittedPlans' && fileIndex !== null) {
-                        project.filesToRemove.submittedPlans.push(parseInt(fileIndex));
+                        // Remove submitted plans file at index
+                        const indexToRemove = parseInt(fileIndex);
+                        if (project.submittedPlansFiles && project.submittedPlansFiles.length > indexToRemove) {
+                            project.submittedPlansFiles = project.submittedPlansFiles.filter((file, index) => index !== indexToRemove);
+                            fileRemoved = true;
+                            console.log(`Removed submitted plans file at index ${indexToRemove}. Remaining files:`, project.submittedPlansFiles);
+                        }
                     }
                     
-                    console.log('Files to remove:', project.filesToRemove);
-                    
-                    // Remove from display immediately
-                    const badgeContainer = removeBtn.closest('.file-badge-with-remove');
-                    if (badgeContainer) {
-                        badgeContainer.style.opacity = '0.5';
-                        badgeContainer.style.textDecoration = 'line-through';
-                        removeBtn.style.display = 'none';
+                    if (fileRemoved) {
+                        // Immediately save to Firestore
+                        try {
+                            const firestoreData = await this.convertProjectToFirestore(project);
+                            await this.db.collection(this.collectionName).doc(projectId).update(firestoreData);
+                            console.log('File removed and project updated in Firestore:', projectId);
+                            
+                            // Re-render projects to show updated state
+                            this.renderProjects();
+                        } catch (error) {
+                            console.error('Error removing file:', error);
+                            alert('Error removing file: ' + error.message);
+                            // Revert the change on error
+                            this.renderProjects();
+                        }
+                    } else {
+                        console.error('File not found or could not be removed');
+                        alert('File could not be removed');
                     }
-                    
-                    // Re-render the project to show the Save Changes button
-                    this.renderProjects();
                 }
                 return;
             }
