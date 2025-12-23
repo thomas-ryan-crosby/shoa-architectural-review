@@ -174,6 +174,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     loginError.textContent = result.error;
                     loginError.style.display = 'block';
                 }
+            } else {
+                // Close login modal on successful login
+                if (window.authHandler) {
+                    window.authHandler.hideLogin();
+                }
             }
         });
     }
@@ -182,6 +187,16 @@ document.addEventListener('DOMContentLoaded', () => {
         loginBtn.addEventListener('click', () => {
             if (window.authHandler) {
                 window.authHandler.showLogin();
+            }
+        });
+    }
+    
+    // Close login modal button
+    const closeLoginBtn = document.getElementById('closeLoginBtn');
+    if (closeLoginBtn) {
+        closeLoginBtn.addEventListener('click', () => {
+            if (window.authHandler) {
+                window.authHandler.hideLogin();
             }
         });
     }
