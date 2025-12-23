@@ -1619,6 +1619,9 @@ class ProjectManager {
             <span style="color: #d32f2f; font-size: 0.9rem; font-weight: bold; padding: 8px 0;">Approval not on file</span>
         `;
         
+        // Use renderProjectDetailed but pass isAdmin for file removal buttons
+        const detailedContent = this.renderProjectDetailed(project, isAuthenticated, isAdmin);
+        
         const editDeleteButtons = isAdmin ? `
             <button type="button" class="btn-small btn-secondary" onclick="window.projectManager.editProject('${project.id}')">
                 Edit
@@ -1644,7 +1647,7 @@ class ProjectManager {
                                 <span style="font-size: 1rem;">${icon}</span>
                                 <span style="color: #333;">${fileName}</span>
                             </div>
-                            ${isAuthenticated ? `
+                            ${isAdmin ? `
                                 <button type="button" class="file-remove-btn" data-project-id="${project.id}" data-file-type="${fileTypeDataAttr}" data-file-index="${index}" style="background: #dc3545; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; line-height: 1; transition: all 0.2s ease;" onmouseover="this.style.background='#c82333'; this.style.transform='scale(1.1)';" onmouseout="this.style.background='#dc3545'; this.style.transform='scale(1)';" title="Remove file">×</button>
                             ` : ''}
                         </div>
@@ -2094,7 +2097,7 @@ class ProjectManager {
         `;
     }
 
-    renderProjectDetailed(project, isAuthenticated) {
+    renderProjectDetailed(project, isAuthenticated, isAdmin) {
             // Check if there are files marked for removal
             const hasFilesToRemove = project.filesToRemove && (
                 project.filesToRemove.siteConditions.length > 0 ||
@@ -2217,7 +2220,7 @@ class ProjectManager {
                                                 <span style="font-size: 1rem;">${isImage ? '🖼️' : isPDF ? '📄' : '📎'}</span>
                                                 <span style="color: #333;">${fileName}</span>
                                             </div>
-                                            ${isAuthenticated ? `
+                                            ${isAdmin ? `
                                                 <button type="button" class="file-remove-btn" data-project-id="${project.id}" data-file-index="${index}" data-file-type="siteConditions" style="background: #dc3545; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; line-height: 1; transition: all 0.2s ease;" onmouseover="this.style.background='#c82333'; this.style.transform='scale(1.1)';" onmouseout="this.style.background='#dc3545'; this.style.transform='scale(1)';" title="Remove file">×</button>
                                             ` : ''}
                                         </div>
@@ -2248,7 +2251,7 @@ class ProjectManager {
                                                 <span style="font-size: 1rem;">${isImage ? '🖼️' : isPDF ? '📄' : isDoc ? '📝' : '📎'}</span>
                                                 <span style="color: #333;">${fileName}</span>
                                             </div>
-                                            ${isAuthenticated ? `
+                                            ${isAdmin ? `
                                                 <button type="button" class="file-remove-btn" data-project-id="${project.id}" data-file-index="${index}" data-file-type="submittedPlans" style="background: #dc3545; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; line-height: 1; transition: all 0.2s ease;" onmouseover="this.style.background='#c82333'; this.style.transform='scale(1.1)';" onmouseout="this.style.background='#dc3545'; this.style.transform='scale(1)';" title="Remove file">×</button>
                                             ` : ''}
                                         </div>
@@ -2271,7 +2274,7 @@ class ProjectManager {
                                         <span style="font-size: 1rem;">📋</span>
                                         <span style="color: #2c5530; font-weight: 500;">${project.approvalLetterFilename || 'Approval Letter.pdf'}</span>
                                     </div>
-                                    ${isAuthenticated ? `
+                                    ${isAdmin ? `
                                         <button type="button" class="file-remove-btn" data-project-id="${project.id}" data-file-type="approvalLetter" style="background: #dc3545; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; line-height: 1; transition: all 0.2s ease;" onmouseover="this.style.background='#c82333'; this.style.transform='scale(1.1)';" onmouseout="this.style.background='#dc3545'; this.style.transform='scale(1)';" title="Remove file">×</button>
                                     ` : ''}
                                 </div>
@@ -2397,6 +2400,12 @@ class ProjectManager {
             if (removeBtn) {
                 e.preventDefault();
                 e.stopPropagation();
+                
+                // Check if user is admin (only admins can remove files)
+                if (!window.userManager || !window.userManager.isAdmin()) {
+                    alert('Only administrators can remove files. Members have read-only access.');
+                    return;
+                }
                 
                 const projectId = removeBtn.getAttribute('data-project-id') || removeBtn.closest('[data-project-id]')?.getAttribute('data-project-id');
                 const fileType = removeBtn.getAttribute('data-file-type');
