@@ -93,21 +93,9 @@ class PDFGenerator {
             if (result && result.success) {
                 // If attachments were added via pdf-lib, download already happened
                 this.showLoading(false);
-                this.showSuccess('Approval letter generated successfully!');
+                this.showSuccess('Approval letter generated and downloaded successfully! You can now upload it to the project if needed.');
                 
-                // Save project if project manager is available
-                if (window.projectManager && result.blob) {
-                    try {
-                        await window.projectManager.addProject({
-                            ...formData,
-                            approvalLetterBlob: result.blob,
-                            approvalLetterFilename: result.filename
-                        });
-                    } catch (error) {
-                        console.error('Error saving project to Firestore:', error);
-                        alert('Project saved locally, but could not sync to Firestore. Please check your Firebase configuration.');
-                    }
-                }
+                // Don't auto-save to project - user must intentionally upload it
                 
                 setTimeout(() => {
                     if (window.formHandler) window.formHandler.resetForm();
@@ -121,24 +109,10 @@ class PDFGenerator {
             const pdfBlob = doc.output('blob');
             doc.save(filename);
             
-            // Save project if project manager is available
-            if (window.projectManager) {
-                // Convert blob to array buffer for storage
-                const arrayBuffer = await pdfBlob.arrayBuffer();
-                try {
-                    await window.projectManager.addProject({
-                        ...formData,
-                        approvalLetterBlob: arrayBuffer,
-                        approvalLetterFilename: filename
-                    });
-                } catch (error) {
-                    console.error('Error saving project to Firestore:', error);
-                    alert('Project saved locally, but could not sync to Firestore. Please check your Firebase configuration.');
-                }
-            }
+            // Don't auto-save to project - user must intentionally upload it
             
             this.showLoading(false);
-            this.showSuccess('Approval letter generated successfully!');
+            this.showSuccess('Approval letter generated and downloaded successfully! You can now upload it to the project if needed.');
             
             // Reset form after successful generation
             setTimeout(() => {
@@ -702,21 +676,30 @@ class PDFGenerator {
     }
 
     showLoading(show) {
+        // These elements may not exist when called from project manager
+        // Handle gracefully if they don't exist
         const overlay = document.getElementById('loadingOverlay');
         const btn = document.getElementById('generateBtn');
-        const btnText = btn.querySelector('.btn-text');
-        const btnLoading = btn.querySelector('.btn-loading');
         
-        if (show) {
-            overlay.style.display = 'flex';
-            btn.disabled = true;
-            btnText.style.display = 'none';
-            btnLoading.style.display = 'flex';
-        } else {
-            overlay.style.display = 'none';
-            btn.disabled = false;
-            btnText.style.display = 'block';
-            btnLoading.style.display = 'none';
+        if (overlay) {
+            overlay.style.display = show ? 'flex' : 'none';
+        }
+        
+        if (btn) {
+            const btnText = btn.querySelector('.btn-text');
+            const btnLoading = btn.querySelector('.btn-loading');
+            
+            if (btnText && btnLoading) {
+                if (show) {
+                    btn.disabled = true;
+                    btnText.style.display = 'none';
+                    btnLoading.style.display = 'flex';
+                } else {
+                    btn.disabled = false;
+                    btnText.style.display = 'block';
+                    btnLoading.style.display = 'none';
+                }
+            }
         }
     }
 
