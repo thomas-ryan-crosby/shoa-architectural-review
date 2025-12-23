@@ -21,28 +21,41 @@ class FormHandler {
     }
 
     init() {
+        // Check if form exists (it may not exist if Generate Letter tab was removed)
+        if (!this.form) {
+            console.warn('FormHandler: reviewForm not found. Form may have been removed.');
+            return;
+        }
+
         // Handle project type change
-        this.projectTypeSelect.addEventListener('change', () => {
-            this.handleProjectTypeChange();
-        });
+        if (this.projectTypeSelect) {
+            this.projectTypeSelect.addEventListener('change', () => {
+                this.handleProjectTypeChange();
+            });
+        }
 
         // Handle review comments type change
-        this.reviewCommentsTypeSelect.addEventListener('change', () => {
+        if (this.reviewCommentsTypeSelect) {
+            this.reviewCommentsTypeSelect.addEventListener('change', () => {
             this.handleReviewCommentsTypeChange();
         });
 
         // Handle approval reason type change
-        this.approvalReasonTypeSelect.addEventListener('change', () => {
-            this.handleApprovalReasonTypeChange();
-        });
+        if (this.approvalReasonTypeSelect) {
+            this.approvalReasonTypeSelect.addEventListener('change', () => {
+                this.handleApprovalReasonTypeChange();
+            });
+        }
 
         // Handle form submission
-        this.form.addEventListener('submit', (e) => {
-            e.preventDefault();
-            if (this.validateForm()) {
-                this.handleSubmit();
-            }
-        });
+        if (this.form) {
+            this.form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                if (this.validateForm()) {
+                    this.handleSubmit();
+                }
+            });
+        }
 
         // Real-time validation
         this.setupRealTimeValidation();
