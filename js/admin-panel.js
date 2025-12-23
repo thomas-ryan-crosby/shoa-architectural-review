@@ -147,7 +147,8 @@ class AdminPanel {
                     approveBtn.disabled = true;
                     approveBtn.textContent = 'Processing...';
                     
-                    const result = await window.userManager.approveUser(email, role);
+                    const currentAdminEmail = window.authHandler?.getCurrentUser()?.email || 'system';
+                    const result = await window.userManager.approveUser(email, currentAdminEmail, role);
                     
                     if (result.success) {
                         alert('User approved successfully!');
@@ -170,7 +171,8 @@ class AdminPanel {
                     rejectBtn.disabled = true;
                     rejectBtn.textContent = 'Processing...';
                     
-                    const result = await window.userManager.rejectUser(email);
+                    const currentAdminEmail = window.authHandler?.getCurrentUser()?.email || 'system';
+                    const result = await window.userManager.rejectUser(email, currentAdminEmail);
                     
                     if (result.success) {
                         alert('User rejected.');
@@ -195,7 +197,8 @@ class AdminPanel {
                 if (confirm(`Change ${email} role to ${newRole}?`)) {
                     roleSelect.disabled = true;
                     
-                    const result = await window.userManager.updateUserRole(email, newRole);
+                    const currentAdminEmail = window.authHandler?.getCurrentUser()?.email || 'system';
+                    const result = await window.userManager.updateUserRole(email, newRole, currentAdminEmail);
                     
                     if (result.success) {
                         alert('User role updated successfully!');

@@ -646,9 +646,25 @@ class PDFGenerator {
     }
 
     formatDate(date) {
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        const year = date.getFullYear();
+        // Handle string dates (ISO format) or Date objects
+        let dateObj;
+        if (typeof date === 'string') {
+            dateObj = new Date(date);
+        } else if (date instanceof Date) {
+            dateObj = date;
+        } else {
+            // Fallback to today if invalid
+            dateObj = new Date();
+        }
+        
+        // Check if date is valid
+        if (isNaN(dateObj.getTime())) {
+            dateObj = new Date(); // Fallback to today
+        }
+        
+        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const day = String(dateObj.getDate()).padStart(2, '0');
+        const year = dateObj.getFullYear();
         return `${month}/${day}/${year}`;
     }
 
