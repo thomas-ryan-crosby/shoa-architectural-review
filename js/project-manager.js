@@ -1934,9 +1934,14 @@ class ProjectManager {
                                     const isPDF = fileType === 'application/pdf' || /\.pdf$/i.test(fileName);
                                     const fileId = `site-conditions-${project.id}-${index}`;
                                     return `
-                                        <div class="file-badge-clickable" data-file-id="${fileId}" data-project-id="${project.id}" data-file-index="${index}" data-file-type="siteConditions" style="display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 4px; font-size: 0.85rem; cursor: pointer; transition: all 0.2s ease;" onmouseover="this.style.background='#e8f5e9'; this.style.borderColor='#4caf50';" onmouseout="this.style.background='#f5f5f5'; this.style.borderColor='#ddd';">
-                                            <span style="font-size: 1rem;">${isImage ? '🖼️' : isPDF ? '📄' : '📎'}</span>
-                                            <span style="color: #333;">${fileName}</span>
+                                        <div class="file-badge-with-remove" data-file-id="${fileId}" data-project-id="${project.id}" data-file-index="${index}" data-file-type="siteConditions" style="display: flex; align-items: center; gap: 4px; padding: 6px 8px 6px 12px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 4px; font-size: 0.85rem;">
+                                            <div class="file-badge-clickable" style="display: flex; align-items: center; gap: 6px; cursor: pointer; flex: 1; transition: all 0.2s ease;" onmouseover="this.style.color='#2c5530';" onmouseout="this.style.color='#333';">
+                                                <span style="font-size: 1rem;">${isImage ? '🖼️' : isPDF ? '📄' : '📎'}</span>
+                                                <span style="color: #333;">${fileName}</span>
+                                            </div>
+                                            ${isAuthenticated ? `
+                                                <button type="button" class="file-remove-btn" data-file-index="${index}" data-file-type="siteConditions" style="background: #dc3545; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; line-height: 1; transition: all 0.2s ease;" onmouseover="this.style.background='#c82333'; this.style.transform='scale(1.1)';" onmouseout="this.style.background='#dc3545'; this.style.transform='scale(1)';" title="Remove file">×</button>
+                                            ` : ''}
                                         </div>
                                     `;
                                 }).join('') :
@@ -1960,9 +1965,14 @@ class ProjectManager {
                                     const isDoc = /\.(doc|docx)$/i.test(fileName);
                                     const fileId = `submitted-plans-${project.id}-${index}`;
                                     return `
-                                        <div class="file-badge-clickable" data-file-id="${fileId}" data-project-id="${project.id}" data-file-index="${index}" data-file-type="submittedPlans" style="display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 4px; font-size: 0.85rem; cursor: pointer; transition: all 0.2s ease;" onmouseover="this.style.background='#e8f5e9'; this.style.borderColor='#4caf50';" onmouseout="this.style.background='#f5f5f5'; this.style.borderColor='#ddd';">
-                                            <span style="font-size: 1rem;">${isImage ? '🖼️' : isPDF ? '📄' : isDoc ? '📝' : '📎'}</span>
-                                            <span style="color: #333;">${fileName}</span>
+                                        <div class="file-badge-with-remove" data-file-id="${fileId}" data-project-id="${project.id}" data-file-index="${index}" data-file-type="submittedPlans" style="display: flex; align-items: center; gap: 4px; padding: 6px 8px 6px 12px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 4px; font-size: 0.85rem;">
+                                            <div class="file-badge-clickable" style="display: flex; align-items: center; gap: 6px; cursor: pointer; flex: 1; transition: all 0.2s ease;" onmouseover="this.style.color='#2c5530';" onmouseout="this.style.color='#333';">
+                                                <span style="font-size: 1rem;">${isImage ? '🖼️' : isPDF ? '📄' : isDoc ? '📝' : '📎'}</span>
+                                                <span style="color: #333;">${fileName}</span>
+                                            </div>
+                                            ${isAuthenticated ? `
+                                                <button type="button" class="file-remove-btn" data-file-index="${index}" data-file-type="submittedPlans" style="background: #dc3545; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; line-height: 1; transition: all 0.2s ease;" onmouseover="this.style.background='#c82333'; this.style.transform='scale(1.1)';" onmouseout="this.style.background='#dc3545'; this.style.transform='scale(1)';" title="Remove file">×</button>
+                                            ` : ''}
                                         </div>
                                     `;
                                 }).join('') :
@@ -1978,9 +1988,14 @@ class ProjectManager {
                         <h4>Architectural Approval Letter</h4>
                         <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">
                             ${project.approvalLetterFilename || project.approvalLetterStorageUrl || project.hasApprovalLetter ? `
-                                <div class="file-badge-clickable" data-project-id="${project.id}" data-file-type="approvalLetter" style="display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: #e8f5e9; border: 1px solid #4caf50; border-radius: 4px; font-size: 0.85rem; cursor: pointer; transition: all 0.2s ease;" onmouseover="this.style.background='#c8e6c9'; this.style.borderColor='#2c5530';" onmouseout="this.style.background='#e8f5e9'; this.style.borderColor='#4caf50';">
-                                    <span style="font-size: 1rem;">📋</span>
-                                    <span style="color: #2c5530; font-weight: 500;">${project.approvalLetterFilename || 'Approval Letter.pdf'}</span>
+                                <div class="file-badge-with-remove" data-project-id="${project.id}" data-file-type="approvalLetter" style="display: flex; align-items: center; gap: 4px; padding: 6px 8px 6px 12px; background: #e8f5e9; border: 1px solid #4caf50; border-radius: 4px; font-size: 0.85rem;">
+                                    <div class="file-badge-clickable" style="display: flex; align-items: center; gap: 6px; cursor: pointer; flex: 1; transition: all 0.2s ease;" onmouseover="this.style.color='#1e3d22';" onmouseout="this.style.color='#2c5530';">
+                                        <span style="font-size: 1rem;">📋</span>
+                                        <span style="color: #2c5530; font-weight: 500;">${project.approvalLetterFilename || 'Approval Letter.pdf'}</span>
+                                    </div>
+                                    ${isAuthenticated ? `
+                                        <button type="button" class="file-remove-btn" data-file-type="approvalLetter" style="background: #dc3545; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; line-height: 1; transition: all 0.2s ease;" onmouseover="this.style.background='#c82333'; this.style.transform='scale(1.1)';" onmouseout="this.style.background='#dc3545'; this.style.transform='scale(1)';" title="Remove file">×</button>
+                                    ` : ''}
                                 </div>
                             ` : `
                                 <div style="display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; font-size: 0.85rem;">
