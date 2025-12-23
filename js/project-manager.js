@@ -3330,14 +3330,27 @@ class ProjectManager {
             };
 
             // Handle approval letter
-            if (approvalLetterBlob !== null) {
-                updates.approvalLetterBlob = approvalLetterBlob;
-                updates.approvalLetterFilename = approvalLetterFilename;
-            } else if (filesToRemove.approvalLetter) {
-                // Approval letter is being removed
+            if (filesToRemove.approvalLetter) {
+                // Approval letter is being removed - clear all approval letter fields
                 updates.approvalLetterBlob = null;
+                updates.approvalLetterStorageUrl = null;
                 updates.approvalLetterFilename = '';
                 updates.hasApprovalLetter = false;
+            } else if (approvalLetterBlob !== null) {
+                // New approval letter uploaded
+                updates.approvalLetterBlob = approvalLetterBlob;
+                updates.approvalLetterFilename = approvalLetterFilename;
+            } else {
+                // Keep existing approval letter (preserve storageUrl if it exists)
+                if (project.approvalLetterStorageUrl) {
+                    updates.approvalLetterStorageUrl = project.approvalLetterStorageUrl;
+                }
+                if (project.approvalLetterFilename) {
+                    updates.approvalLetterFilename = project.approvalLetterFilename;
+                }
+                if (project.hasApprovalLetter !== undefined) {
+                    updates.hasApprovalLetter = project.hasApprovalLetter;
+                }
             }
 
             try {
