@@ -268,5 +268,135 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    // Registration form handling
+    const registerForm = document.getElementById('registerForm');
+    const showRegisterBtn = document.getElementById('showRegisterBtn');
+    const closeRegisterBtn = document.getElementById('closeRegisterBtn');
+    const showLoginFromRegisterBtn = document.getElementById('showLoginFromRegisterBtn');
+    const registerError = document.getElementById('registerError');
+    const registerSuccess = document.getElementById('registerSuccess');
+
+    // Show registration modal
+    if (showRegisterBtn) {
+        showRegisterBtn.addEventListener('click', () => {
+            if (window.authHandler) {
+                window.authHandler.hideLogin();
+                window.authHandler.showRegister();
+            }
+        });
+    }
+
+    // Close registration modal
+    if (closeRegisterBtn) {
+        closeRegisterBtn.addEventListener('click', () => {
+            if (window.authHandler) {
+                window.authHandler.hideRegister();
+            }
+        });
+    }
+
+    // Show login from register modal
+    if (showLoginFromRegisterBtn) {
+        showLoginFromRegisterBtn.addEventListener('click', () => {
+            if (window.authHandler) {
+                window.authHandler.hideRegister();
+                window.authHandler.showLogin();
+            }
+        });
+    }
+
+    // Also handle the "showLoginBtn" in the register screen (if it exists)
+    const showLoginBtn = document.getElementById('showLoginBtn');
+    if (showLoginBtn) {
+        showLoginBtn.addEventListener('click', () => {
+            if (window.authHandler) {
+                window.authHandler.hideRegister();
+                window.authHandler.showLogin();
+            }
+        });
+    }
+
+    // Handle registration form submission
+    if (registerForm) {
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const name = document.getElementById('registerName').value.trim();
+            const email = document.getElementById('registerEmail').value.trim();
+            const password = document.getElementById('registerPassword').value;
+            const passwordConfirm = document.getElementById('registerPasswordConfirm').value;
+
+            // Clear previous errors
+            if (registerError) {
+                registerError.style.display = 'none';
+                registerError.textContent = '';
+            }
+            if (registerSuccess) {
+                registerSuccess.style.display = 'none';
+                registerSuccess.textContent = '';
+            }
+
+            // Validate passwords match
+            if (password !== passwordConfirm) {
+                if (registerError) {
+                    registerError.textContent = 'Passwords do not match.';
+                    registerError.style.display = 'block';
+                }
+                return;
+            }
+
+            // Validate password length
+            if (password.length < 6) {
+                if (registerError) {
+                    registerError.textContent = 'Password must be at least 6 characters long.';
+                    registerError.style.display = 'block';
+                }
+                return;
+            }
+
+            const submitBtn = registerForm.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Creating account...';
+
+            // Register user via UserManager
+            if (window.userManager) {
+                const result = await window.userManager.registerUser(email, password, name);
+                
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+
+                if (result.success) {
+                    // Show success message
+                    if (registerSuccess) {
+                        registerSuccess.textContent = result.message || 'Registration successful! Your account is pending admin approval.';
+                        registerSuccess.style.display = 'block';
+                    }
+                    // Clear form
+                    registerForm.reset();
+                    // Close registration modal after a delay
+                    setTimeout(() => {
+                        if (window.authHandler) {
+                            window.authHandler.hideRegister();
+                        }
+                    }, 2000);
+                } else {
+                    // Show error message
+                    if (registerError) {
+                        registerError.textContent = result.error || 'Registration failed. Please try again.';
+                        registerError.style.display = 'block';
+                    }
+                }
+            } else {
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+                if (registerError) {
+                    registerError.textContent = 'User manager not available. Please refresh the page and try again.';
+                    registerError.style.display = 'block';
+                }
+            }
+        });
+    }
 });
 
