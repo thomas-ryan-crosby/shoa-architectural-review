@@ -1019,4 +1019,35 @@ footer {
     font-size: 1rem;
 }
 
+/* User Email Widget */
+#userEmailWidget {
+    transition: all 0.3s ease;
+    cursor: default;
+}
+
+#userEmailWidget:hover {
+    background: rgba(255, 255, 255, 0.25) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+#userEmailWidget #userEmail {
+    transition: color 0.2s ease;
+}
+
+#userEmailWidget:hover #userEmail {
+    color: var(--white) !important;
+}
+
+/* Sign In/Out buttons in header */
+header .btn-secondary {
+    transition: all 0.3s ease;
+}
+
+header .btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.3) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
 
