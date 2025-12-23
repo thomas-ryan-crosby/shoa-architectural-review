@@ -3434,16 +3434,75 @@ class ProjectManager {
                 approvedOn: noApprovalOnRecord ? null : (dateApproved || new Date().toISOString().split('T')[0])
             };
 
-            // Convert site conditions files to File objects
+            // Helper function to download file from Firebase Storage and convert to File object
+            const downloadFileFromStorage = async (fileInfo) => {
+                if (!fileInfo.storageUrl) return null;
+                
+                try {
+                    const storage = window.firebaseStorage;
+                    if (!storage) return null;
+                    
+                    // Extract path from storage URL
+                    const url = new URL(fileInfo.storageUrl);
+                    const pathMatch = url.pathname.match(/\/o\/(.+)/);
+                    if (!pathMatch) return null;
+                    
+                    const encodedPath = pathMatch[1];
+                    const decodedPath = decodeURIComponent(encodedPath);
+                    const storageRef = storage.ref(decodedPath);
+                    
+                    // Get download URL
+                    const downloadURL = await storageRef.getDownloadURL();
+                    
+                    // Fetch the file
+                    const response = await fetch(downloadURL);
+                    if (!response.ok) throw new Error('Failed to fetch file');
+                    
+                    const blob = await response.blob();
+                    
+                    // Convert blob to File object
+                    return new File([blob], fileInfo.name || 'file', { type: fileInfo.type || blob.type });
+                } catch (error) {
+                    console.error('Error downloading file from storage:', error);
+                    return null;
+                }
+            };
+
+            // Combine existing project files with newly uploaded files
             const siteConditionsFileArray = [];
+            const submittedPlansFileArray = [];
+            
+            // Download existing site conditions files from project
+            if (project.siteConditionsFiles && project.siteConditionsFiles.length > 0) {
+                for (const fileInfo of project.siteConditionsFiles) {
+                    if (fileInfo.storageUrl) {
+                        const file = await downloadFileFromStorage(fileInfo);
+                        if (file) {
+                            siteConditionsFileArray.push(file);
+                        }
+                    }
+                }
+            }
+            
+            // Download existing submitted plans files from project
+            if (project.submittedPlansFiles && project.submittedPlansFiles.length > 0) {
+                for (const fileInfo of project.submittedPlansFiles) {
+                    if (fileInfo.storageUrl) {
+                        const file = await downloadFileFromStorage(fileInfo);
+                        if (file) {
+                            submittedPlansFileArray.push(file);
+                        }
+                    }
+                }
+            }
+            
+            // Add newly uploaded files from form (if any)
             if (siteConditionsFiles.length > 0) {
                 for (const file of Array.from(siteConditionsFiles)) {
                     siteConditionsFileArray.push(file);
                 }
             }
-
-            // Convert submitted plans files to File objects
-            const submittedPlansFileArray = [];
+            
             if (submittedPlansFiles.length > 0) {
                 for (const file of Array.from(submittedPlansFiles)) {
                     submittedPlansFileArray.push(file);
@@ -3792,16 +3851,75 @@ class ProjectManager {
                 approvedOn: noApprovalOnRecord ? null : (dateApproved || new Date().toISOString().split('T')[0])
             };
 
-            // Convert site conditions files to File objects
+            // Helper function to download file from Firebase Storage and convert to File object
+            const downloadFileFromStorage = async (fileInfo) => {
+                if (!fileInfo.storageUrl) return null;
+                
+                try {
+                    const storage = window.firebaseStorage;
+                    if (!storage) return null;
+                    
+                    // Extract path from storage URL
+                    const url = new URL(fileInfo.storageUrl);
+                    const pathMatch = url.pathname.match(/\/o\/(.+)/);
+                    if (!pathMatch) return null;
+                    
+                    const encodedPath = pathMatch[1];
+                    const decodedPath = decodeURIComponent(encodedPath);
+                    const storageRef = storage.ref(decodedPath);
+                    
+                    // Get download URL
+                    const downloadURL = await storageRef.getDownloadURL();
+                    
+                    // Fetch the file
+                    const response = await fetch(downloadURL);
+                    if (!response.ok) throw new Error('Failed to fetch file');
+                    
+                    const blob = await response.blob();
+                    
+                    // Convert blob to File object
+                    return new File([blob], fileInfo.name || 'file', { type: fileInfo.type || blob.type });
+                } catch (error) {
+                    console.error('Error downloading file from storage:', error);
+                    return null;
+                }
+            };
+
+            // Combine existing project files with newly uploaded files
             const siteConditionsFileArray = [];
+            const submittedPlansFileArray = [];
+            
+            // Download existing site conditions files from project
+            if (project.siteConditionsFiles && project.siteConditionsFiles.length > 0) {
+                for (const fileInfo of project.siteConditionsFiles) {
+                    if (fileInfo.storageUrl) {
+                        const file = await downloadFileFromStorage(fileInfo);
+                        if (file) {
+                            siteConditionsFileArray.push(file);
+                        }
+                    }
+                }
+            }
+            
+            // Download existing submitted plans files from project
+            if (project.submittedPlansFiles && project.submittedPlansFiles.length > 0) {
+                for (const fileInfo of project.submittedPlansFiles) {
+                    if (fileInfo.storageUrl) {
+                        const file = await downloadFileFromStorage(fileInfo);
+                        if (file) {
+                            submittedPlansFileArray.push(file);
+                        }
+                    }
+                }
+            }
+            
+            // Add newly uploaded files from form (if any)
             if (siteConditionsFiles.length > 0) {
                 for (const file of Array.from(siteConditionsFiles)) {
                     siteConditionsFileArray.push(file);
                 }
             }
-
-            // Convert submitted plans files to File objects
-            const submittedPlansFileArray = [];
+            
             if (submittedPlansFiles.length > 0) {
                 for (const file of Array.from(submittedPlansFiles)) {
                     submittedPlansFileArray.push(file);
