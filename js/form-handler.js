@@ -62,40 +62,49 @@ class FormHandler {
     }
 
     handleProjectTypeChange() {
+        if (!this.projectTypeSelect) return;
         const selectedType = this.projectTypeSelect.value;
         if (selectedType === 'Other') {
-            this.otherProjectTypeGroup.style.display = 'block';
-            this.otherProjectTypeInput.required = true;
+            if (this.otherProjectTypeGroup) this.otherProjectTypeGroup.style.display = 'block';
+            if (this.otherProjectTypeInput) this.otherProjectTypeInput.required = true;
         } else {
-            this.otherProjectTypeGroup.style.display = 'none';
-            this.otherProjectTypeInput.required = false;
-            this.otherProjectTypeInput.value = '';
+            if (this.otherProjectTypeGroup) this.otherProjectTypeGroup.style.display = 'none';
+            if (this.otherProjectTypeInput) {
+                this.otherProjectTypeInput.required = false;
+                this.otherProjectTypeInput.value = '';
+            }
             this.clearError('otherProjectType');
         }
     }
 
     handleReviewCommentsTypeChange() {
+        if (!this.reviewCommentsTypeSelect) return;
         const selectedType = this.reviewCommentsTypeSelect.value;
         if (selectedType === 'other') {
-            this.otherReviewCommentsGroup.style.display = 'block';
-            this.reviewCommentsInput.required = true;
+            if (this.otherReviewCommentsGroup) this.otherReviewCommentsGroup.style.display = 'block';
+            if (this.reviewCommentsInput) this.reviewCommentsInput.required = true;
         } else {
-            this.otherReviewCommentsGroup.style.display = 'none';
-            this.reviewCommentsInput.required = false;
-            this.reviewCommentsInput.value = '';
+            if (this.otherReviewCommentsGroup) this.otherReviewCommentsGroup.style.display = 'none';
+            if (this.reviewCommentsInput) {
+                this.reviewCommentsInput.required = false;
+                this.reviewCommentsInput.value = '';
+            }
             this.clearError('reviewComments');
         }
     }
 
     handleApprovalReasonTypeChange() {
+        if (!this.approvalReasonTypeSelect) return;
         const selectedType = this.approvalReasonTypeSelect.value;
         if (selectedType === 'other') {
-            this.otherApprovalReasonGroup.style.display = 'block';
-            this.approvalReasonInput.required = true;
+            if (this.otherApprovalReasonGroup) this.otherApprovalReasonGroup.style.display = 'block';
+            if (this.approvalReasonInput) this.approvalReasonInput.required = true;
         } else {
-            this.otherApprovalReasonGroup.style.display = 'none';
-            this.approvalReasonInput.required = false;
-            this.approvalReasonInput.value = '';
+            if (this.otherApprovalReasonGroup) this.otherApprovalReasonGroup.style.display = 'none';
+            if (this.approvalReasonInput) {
+                this.approvalReasonInput.required = false;
+                this.approvalReasonInput.value = '';
+            }
             this.clearError('approvalReason');
         }
     }
@@ -113,23 +122,29 @@ class FormHandler {
         });
 
         // Special handling for conditional fields
-        this.otherProjectTypeInput.addEventListener('blur', () => {
-            if (this.projectTypeSelect.value === 'Other') {
-                this.validateField('otherProjectType');
-            }
-        });
+        if (this.otherProjectTypeInput) {
+            this.otherProjectTypeInput.addEventListener('blur', () => {
+                if (this.projectTypeSelect && this.projectTypeSelect.value === 'Other') {
+                    this.validateField('otherProjectType');
+                }
+            });
+        }
 
-        this.reviewCommentsInput.addEventListener('blur', () => {
-            if (this.reviewCommentsTypeSelect.value === 'other') {
-                this.validateField('reviewComments');
-            }
-        });
+        if (this.reviewCommentsInput) {
+            this.reviewCommentsInput.addEventListener('blur', () => {
+                if (this.reviewCommentsTypeSelect && this.reviewCommentsTypeSelect.value === 'other') {
+                    this.validateField('reviewComments');
+                }
+            });
+        }
 
-        this.approvalReasonInput.addEventListener('blur', () => {
-            if (this.approvalReasonTypeSelect.value === 'other') {
-                this.validateField('approvalReason');
-            }
-        });
+        if (this.approvalReasonInput) {
+            this.approvalReasonInput.addEventListener('blur', () => {
+                if (this.approvalReasonTypeSelect && this.approvalReasonTypeSelect.value === 'other') {
+                    this.validateField('approvalReason');
+                }
+            });
+        }
     }
 
     validateField(fieldId) {
@@ -148,7 +163,7 @@ class FormHandler {
         }
 
         // Special validation for "Other" project type
-        if (fieldId === 'otherProjectType' && this.projectTypeSelect.value === 'Other') {
+        if (fieldId === 'otherProjectType' && this.projectTypeSelect && this.projectTypeSelect.value === 'Other') {
             if (!field.value.trim()) {
                 isValid = false;
                 errorMessage = 'Please specify the project type';
@@ -156,7 +171,7 @@ class FormHandler {
         }
 
         // Special validation for "Other" review comments
-        if (fieldId === 'reviewComments' && this.reviewCommentsTypeSelect.value === 'other') {
+        if (fieldId === 'reviewComments' && this.reviewCommentsTypeSelect && this.reviewCommentsTypeSelect.value === 'other') {
             if (!field.value.trim()) {
                 isValid = false;
                 errorMessage = 'Please specify the review comments';
@@ -164,7 +179,7 @@ class FormHandler {
         }
 
         // Special validation for "Other" approval reason
-        if (fieldId === 'approvalReason' && this.approvalReasonTypeSelect.value === 'other') {
+        if (fieldId === 'approvalReason' && this.approvalReasonTypeSelect && this.approvalReasonTypeSelect.value === 'other') {
             if (!field.value.trim()) {
                 isValid = false;
                 errorMessage = 'Please specify the approval reason';
@@ -195,21 +210,21 @@ class FormHandler {
         });
 
         // Validate "Other" project type if selected
-        if (this.projectTypeSelect.value === 'Other') {
+        if (this.projectTypeSelect && this.projectTypeSelect.value === 'Other') {
             if (!this.validateField('otherProjectType')) {
                 isValid = false;
             }
         }
 
         // Validate "Other" review comments if selected
-        if (this.reviewCommentsTypeSelect.value === 'other') {
+        if (this.reviewCommentsTypeSelect && this.reviewCommentsTypeSelect.value === 'other') {
             if (!this.validateField('reviewComments')) {
                 isValid = false;
             }
         }
 
         // Validate "Other" approval reason if selected
-        if (this.approvalReasonTypeSelect.value === 'other') {
+        if (this.approvalReasonTypeSelect && this.approvalReasonTypeSelect.value === 'other') {
             if (!this.validateField('approvalReason')) {
                 isValid = false;
             }
@@ -236,13 +251,13 @@ class FormHandler {
             : this.projectTypeSelect.value;
 
         // Get review comments - use default or custom
-        const reviewComments = this.reviewCommentsTypeSelect.value === 'other'
-            ? this.reviewCommentsInput.value.trim()
+        const reviewComments = (this.reviewCommentsTypeSelect && this.reviewCommentsTypeSelect.value === 'other')
+            ? (this.reviewCommentsInput ? this.reviewCommentsInput.value.trim() : '')
             : 'The plan was reviewed for Sanctuary Setback Requirements.';
 
         // Get approval reason - use default or custom
-        const approvalReason = this.approvalReasonTypeSelect.value === 'other'
-            ? this.approvalReasonInput.value.trim()
+        const approvalReason = (this.approvalReasonTypeSelect && this.approvalReasonTypeSelect.value === 'other')
+            ? (this.approvalReasonInput ? this.approvalReasonInput.value.trim() : '')
             : 'The project meets Sanctuary Setback Requirements. No variances are required. Approved.';
 
         // Get approved on date, or use today's date if not provided
