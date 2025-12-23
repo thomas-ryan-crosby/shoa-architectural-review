@@ -2,7 +2,9 @@
 
 Since the CORS configuration option may not be visible in the Google Cloud Console UI, you can configure it using the command line.
 
-## Method 1: Using gsutil (Recommended)
+## Method 1: Using gcloud storage (Recommended - Newer Method)
+
+According to [Google Cloud Documentation](https://docs.cloud.google.com/livestream/docs/how-to/configure-cors), the recommended way to configure CORS is using the `gcloud storage` command.
 
 ### Step 1: Install Google Cloud SDK
 
@@ -27,10 +29,15 @@ Since the CORS configuration option may not be visible in the Google Cloud Conso
 
 2. **Run this command:**
    ```bash
-   gsutil cors set cors.json gs://sanctuary-hoa-arch-review.firebasestorage.app
+   gcloud storage buckets update gs://sanctuary-hoa-arch-review.firebasestorage.app --cors-file=cors.json
    ```
 
 3. **Verify it worked:**
+   ```bash
+   gcloud storage buckets describe gs://sanctuary-hoa-arch-review.firebasestorage.app --format="value(cors)"
+   ```
+   
+   Or use the older gsutil command if gcloud storage doesn't work:
    ```bash
    gsutil cors get gs://sanctuary-hoa-arch-review.firebasestorage.app
    ```
@@ -51,10 +58,9 @@ If you have Firebase CLI installed:
    firebase login
    ```
 
-3. **Use gsutil through Firebase:**
+3. **Configure CORS:**
    ```bash
-   firebase functions:config:get
-   gsutil cors set cors.json gs://sanctuary-hoa-arch-review.firebasestorage.app
+   gcloud storage buckets update gs://sanctuary-hoa-arch-review.firebasestorage.app --cors-file=cors.json
    ```
 
 ## Method 3: Direct API Call (Advanced)
@@ -63,9 +69,10 @@ If neither of the above work, you can use the Google Cloud Storage JSON API dire
 
 ## Troubleshooting
 
-### "Command not found: gsutil"
+### "Command not found: gcloud" or "Command not found: gsutil"
 - Make sure Google Cloud SDK is installed and in your PATH
 - On Windows, you may need to restart your terminal after installation
+- Try using `gsutil` if `gcloud storage` doesn't work (older method)
 
 ### "Access Denied" or "Permission Denied"
 - Make sure you're authenticated: `gcloud auth login`

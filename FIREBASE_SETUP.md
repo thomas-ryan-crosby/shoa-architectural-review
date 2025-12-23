@@ -132,12 +132,22 @@ To allow downloads from your web app, you need to configure CORS for Firebase St
 
 4. **Configure CORS:**
    - Navigate to your project directory (where `cors.json` is located)
-   - Run this command:
+   - Run this command (using the newer `gcloud storage` command):
+   ```bash
+   gcloud storage buckets update gs://sanctuary-hoa-arch-review.firebasestorage.app --cors-file=cors.json
+   ```
+   
+   **Alternative (if the above doesn't work):** Use the older `gsutil` command:
    ```bash
    gsutil cors set cors.json gs://sanctuary-hoa-arch-review.firebasestorage.app
    ```
 
 5. **Verify it worked:**
+   ```bash
+   gcloud storage buckets describe gs://sanctuary-hoa-arch-review.firebasestorage.app --format="value(cors)"
+   ```
+   
+   Or with gsutil:
    ```bash
    gsutil cors get gs://sanctuary-hoa-arch-review.firebasestorage.app
    ```
