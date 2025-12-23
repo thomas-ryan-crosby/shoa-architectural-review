@@ -1543,7 +1543,13 @@ class ProjectManager {
         const projectList = document.getElementById('projectList');
         if (!projectList) return;
         
-        projectList.addEventListener('click', (e) => {
+        // Remove any existing listener to prevent duplicates
+        if (this.rowExpansionHandler) {
+            projectList.removeEventListener('click', this.rowExpansionHandler);
+        }
+        
+        // Create new handler
+        this.rowExpansionHandler = (e) => {
             const expandBtn = e.target.closest('.expand-row-btn');
             const row = e.target.closest('.compact-project-row');
             const mobileCard = e.target.closest('.compact-project-mobile-card');
@@ -1579,7 +1585,7 @@ class ProjectManager {
                 
                 const wrapper = document.querySelector(`.compact-project-row-wrapper[data-project-id="${projectId}"]`);
                 const details = document.querySelector(`.compact-project-row-details[data-project-id="${projectId}"]`);
-                const expandIcon = wrapper?.querySelector('.expand-icon');
+                const expandIcon = expandBtn ? expandBtn.querySelector('.expand-icon') : wrapper?.querySelector('.expand-icon');
                 
                 if (wrapper && details && expandIcon) {
                     const isExpanded = details.style.display !== 'none';
@@ -1595,9 +1601,14 @@ class ProjectManager {
                         expandIcon.textContent = '▼';
                         expandIcon.style.transform = 'rotate(0deg)';
                     }
+                } else {
+                    console.warn('Could not find elements for expansion:', { wrapper: !!wrapper, details: !!details, expandIcon: !!expandIcon, projectId });
                 }
             }
-        });
+        };
+        
+        // Attach the handler
+        projectList.addEventListener('click', this.rowExpansionHandler);
     }
     
     renderExpandedDetails(project, isAuthenticated) {

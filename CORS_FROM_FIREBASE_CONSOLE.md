@@ -74,3 +74,4 @@ You're currently in Firebase Console Storage. Here's how to configure CORS:
 
 3. **Make sure you're using the correct Google account** that has access to the Firebase project
 
+

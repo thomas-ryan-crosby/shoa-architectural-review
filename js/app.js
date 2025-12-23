@@ -40,8 +40,20 @@ class App {
 
         // Setup standards modal
         this.setupStandardsModal();
+        
+        // Setup admin panel button
+        this.setupAdminPanelButton();
 
         console.log('Sanctuary HOA Architectural Review Generator initialized');
+    }
+    
+    setupAdminPanelButton() {
+        const adminPanelBtn = document.getElementById('adminPanelBtn');
+        if (adminPanelBtn && window.adminPanel) {
+            adminPanelBtn.addEventListener('click', () => {
+                window.adminPanel.show();
+            });
+        }
     }
 
     setupStandardsModal() {

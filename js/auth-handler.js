@@ -113,6 +113,7 @@ class AuthHandler {
         const userEmail = document.getElementById('userEmail');
         const loginBtn = document.getElementById('loginBtn');
         const logoutBtn = document.getElementById('logoutBtn');
+        const adminPanelBtn = document.getElementById('adminPanelBtn');
         
         if (this.user) {
             if (userEmailWidget) {
@@ -124,6 +125,13 @@ class AuthHandler {
             }
             if (loginBtn) loginBtn.style.display = 'none';
             if (logoutBtn) logoutBtn.style.display = 'block';
+            
+            // Show Admin Panel button if user is admin
+            if (adminPanelBtn && window.userManager && window.userManager.isAdmin()) {
+                adminPanelBtn.style.display = 'block';
+            } else if (adminPanelBtn) {
+                adminPanelBtn.style.display = 'none';
+            }
         } else {
             if (userEmailWidget) {
                 userEmailWidget.style.display = 'none';
@@ -134,6 +142,7 @@ class AuthHandler {
             }
             if (loginBtn) loginBtn.style.display = 'block';
             if (logoutBtn) logoutBtn.style.display = 'none';
+            if (adminPanelBtn) adminPanelBtn.style.display = 'none';
         }
 
         // Update project manager UI for write operations

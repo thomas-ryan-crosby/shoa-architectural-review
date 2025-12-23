@@ -61,3 +61,4 @@ If you still see permission errors:
 4. Check the Firebase Console Rules tab to confirm the rules are saved
 5. Check the browser console for any other errors
 
+
