@@ -76,6 +76,18 @@ service firebase.storage {
       allow read: if request.auth != null; // Only authenticated users can download
       allow write: if request.auth != null; // Only authenticated users can upload
     }
+    
+    // Site conditions folder - require auth for upload, allow read for authenticated users
+    match /site-conditions/{projectId}/{fileName} {
+      allow read: if request.auth != null; // Only authenticated users can download
+      allow write: if request.auth != null; // Only authenticated users can upload
+    }
+    
+    // Submitted plans folder - require auth for upload, allow read for authenticated users
+    match /submitted-plans/{projectId}/{fileName} {
+      allow read: if request.auth != null; // Only authenticated users can download
+      allow write: if request.auth != null; // Only authenticated users can upload
+    }
   }
 }
 ```
