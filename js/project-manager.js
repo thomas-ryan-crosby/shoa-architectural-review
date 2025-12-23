@@ -3231,11 +3231,14 @@ class ProjectManager {
             console.log('Current submitted plans files:', project.submittedPlansFiles);
             
             // Read site conditions files - filter out removed ones and preserve storageUrl for existing files
+            console.log('Filtering site conditions files. filesToRemove.siteConditions:', filesToRemove.siteConditions);
+            console.log('Current project.siteConditionsFiles:', project.siteConditionsFiles);
+            
             let siteConditionsArrayBuffers = (project.siteConditionsFiles || []).filter((file, index) => {
                 // Keep files that are not marked for removal
-                const keep = !filesToRemove.siteConditions.includes(index);
-                console.log(`Site conditions file ${index} (${file.name}): ${keep ? 'KEEP' : 'REMOVE'}`);
-                return keep;
+                const shouldRemove = filesToRemove.siteConditions.includes(index);
+                console.log(`Site conditions file ${index} (${file.name || file}): shouldRemove=${shouldRemove}, filesToRemove.siteConditions=`, filesToRemove.siteConditions);
+                return !shouldRemove;
             }).map(file => {
                 // Preserve the file structure (name, type, storageUrl) for existing files
                 return {
@@ -3244,6 +3247,8 @@ class ProjectManager {
                     storageUrl: file.storageUrl || null
                 };
             });
+            
+            console.log('After filtering, siteConditionsArrayBuffers length:', siteConditionsArrayBuffers.length);
             
             // Add new files (these will have data property for upload)
             if (siteConditionsFiles.length > 0) {
@@ -3262,11 +3267,14 @@ class ProjectManager {
             }
 
             // Read submitted plans files - filter out removed ones and preserve storageUrl for existing files
+            console.log('Filtering submitted plans files. filesToRemove.submittedPlans:', filesToRemove.submittedPlans);
+            console.log('Current project.submittedPlansFiles:', project.submittedPlansFiles);
+            
             let submittedPlansArrayBuffers = (project.submittedPlansFiles || []).filter((file, index) => {
                 // Keep files that are not marked for removal
-                const keep = !filesToRemove.submittedPlans.includes(index);
-                console.log(`Submitted plans file ${index} (${file.name}): ${keep ? 'KEEP' : 'REMOVE'}`);
-                return keep;
+                const shouldRemove = filesToRemove.submittedPlans.includes(index);
+                console.log(`Submitted plans file ${index} (${file.name || file}): shouldRemove=${shouldRemove}, filesToRemove.submittedPlans=`, filesToRemove.submittedPlans);
+                return !shouldRemove;
             }).map(file => {
                 // Preserve the file structure (name, type, storageUrl) for existing files
                 return {
@@ -3275,6 +3283,8 @@ class ProjectManager {
                     storageUrl: file.storageUrl || null
                 };
             });
+            
+            console.log('After filtering, submittedPlansArrayBuffers length:', submittedPlansArrayBuffers.length);
             
             // Add new files (these will have data property for upload)
             if (submittedPlansFiles.length > 0) {
