@@ -61,11 +61,11 @@ service cloud.firestore {
     match /users/{userId} {
       // Users can read their own data
       allow read: if request.auth != null && request.auth.token.email == userId;
-      // Users can create their own registration (pending status)
-      allow create: if request.auth != null && request.auth.token.email == userId && request.resource.data.status == 'pending';
       // Allow authenticated users to read all users (for admin panel)
       // In production, you may want to restrict this to admins only
       allow list: if request.auth != null;
+      // Users can create their own document (for registration or initial admin setup)
+      allow create: if request.auth != null && request.auth.token.email == userId;
       // Only admins can update user status and roles
       // Note: This requires checking if the current user is an admin
       // For now, allow authenticated users to update (admin check is done in application code)
