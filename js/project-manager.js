@@ -1940,7 +1940,7 @@ class ProjectManager {
                                                 <span style="color: #333;">${fileName}</span>
                                             </div>
                                             ${isAuthenticated ? `
-                                                <button type="button" class="file-remove-btn" data-file-index="${index}" data-file-type="siteConditions" style="background: #dc3545; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; line-height: 1; transition: all 0.2s ease;" onmouseover="this.style.background='#c82333'; this.style.transform='scale(1.1)';" onmouseout="this.style.background='#dc3545'; this.style.transform='scale(1)';" title="Remove file">×</button>
+                                                <button type="button" class="file-remove-btn" data-project-id="${project.id}" data-file-index="${index}" data-file-type="siteConditions" style="background: #dc3545; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; line-height: 1; transition: all 0.2s ease;" onmouseover="this.style.background='#c82333'; this.style.transform='scale(1.1)';" onmouseout="this.style.background='#dc3545'; this.style.transform='scale(1)';" title="Remove file">×</button>
                                             ` : ''}
                                         </div>
                                     `;
@@ -1971,7 +1971,7 @@ class ProjectManager {
                                                 <span style="color: #333;">${fileName}</span>
                                             </div>
                                             ${isAuthenticated ? `
-                                                <button type="button" class="file-remove-btn" data-file-index="${index}" data-file-type="submittedPlans" style="background: #dc3545; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; line-height: 1; transition: all 0.2s ease;" onmouseover="this.style.background='#c82333'; this.style.transform='scale(1.1)';" onmouseout="this.style.background='#dc3545'; this.style.transform='scale(1)';" title="Remove file">×</button>
+                                                <button type="button" class="file-remove-btn" data-project-id="${project.id}" data-file-index="${index}" data-file-type="submittedPlans" style="background: #dc3545; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; line-height: 1; transition: all 0.2s ease;" onmouseover="this.style.background='#c82333'; this.style.transform='scale(1.1)';" onmouseout="this.style.background='#dc3545'; this.style.transform='scale(1)';" title="Remove file">×</button>
                                             ` : ''}
                                         </div>
                                     `;
@@ -1994,7 +1994,7 @@ class ProjectManager {
                                         <span style="color: #2c5530; font-weight: 500;">${project.approvalLetterFilename || 'Approval Letter.pdf'}</span>
                                     </div>
                                     ${isAuthenticated ? `
-                                        <button type="button" class="file-remove-btn" data-file-type="approvalLetter" style="background: #dc3545; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; line-height: 1; transition: all 0.2s ease;" onmouseover="this.style.background='#c82333'; this.style.transform='scale(1.1)';" onmouseout="this.style.background='#dc3545'; this.style.transform='scale(1)';" title="Remove file">×</button>
+                                        <button type="button" class="file-remove-btn" data-project-id="${project.id}" data-file-type="approvalLetter" style="background: #dc3545; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; line-height: 1; transition: all 0.2s ease;" onmouseover="this.style.background='#c82333'; this.style.transform='scale(1.1)';" onmouseout="this.style.background='#dc3545'; this.style.transform='scale(1)';" title="Remove file">×</button>
                                     ` : ''}
                                 </div>
                             ` : `
@@ -2022,12 +2022,21 @@ class ProjectManager {
     attachFileRemoveHandlers(project) {
         // Attach remove handlers to all file remove buttons
         const removeButtons = document.querySelectorAll(`[data-project-id="${project.id}"].file-remove-btn`);
-        removeButtons.forEach(btn => {
-            btn.addEventListener('click', (e) => {
+        console.log(`Attaching remove handlers for project ${project.id}, found ${removeButtons.length} buttons`);
+        
+        removeButtons.forEach((btn, index) => {
+            const fileType = btn.getAttribute('data-file-type');
+            const fileIndex = btn.getAttribute('data-file-index');
+            console.log(`Remove button ${index}:`, { fileType, fileIndex, element: btn });
+            
+            // Remove any existing listeners first
+            const newBtn = btn.cloneNode(true);
+            btn.parentNode.replaceChild(newBtn, btn);
+            
+            newBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                const fileType = btn.getAttribute('data-file-type');
-                const fileIndex = btn.getAttribute('data-file-index');
+                console.log('Remove button clicked:', { fileType, fileIndex, projectId: project.id });
                 
                 if (confirm(`Are you sure you want to remove this file? You'll need to save the project for the change to take effect.`)) {
                     // Mark file for removal (will be handled when saving)
@@ -2043,12 +2052,14 @@ class ProjectManager {
                         project.filesToRemove.submittedPlans.push(parseInt(fileIndex));
                     }
                     
+                    console.log('Files to remove:', project.filesToRemove);
+                    
                     // Remove from display immediately
-                    const badgeContainer = btn.closest('.file-badge-with-remove');
+                    const badgeContainer = newBtn.closest('.file-badge-with-remove');
                     if (badgeContainer) {
                         badgeContainer.style.opacity = '0.5';
                         badgeContainer.style.textDecoration = 'line-through';
-                        btn.style.display = 'none';
+                        newBtn.style.display = 'none';
                     }
                 }
             });
