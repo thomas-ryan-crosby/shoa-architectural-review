@@ -1898,6 +1898,7 @@ class ProjectManager {
                 e.stopPropagation();
                 const fileType = badge.getAttribute('data-file-type');
                 const fileIndex = badge.getAttribute('data-file-index');
+                console.log('Preview clicked:', { fileType, fileIndex, projectId: project.id });
                 this.previewFile(project, fileType, fileIndex);
             });
         });
@@ -1949,7 +1950,10 @@ class ProjectManager {
             } else if (fileType === 'siteConditions' || fileType === 'submittedPlans') {
                 // Handle site conditions or submitted plans
                 const files = fileType === 'siteConditions' ? project.siteConditionsFiles : project.submittedPlansFiles;
+                console.log('Preview file:', { fileType, fileIndex, filesLength: files?.length, file: files?.[fileIndex] });
+                
                 if (!files || files.length === 0 || !files[fileIndex]) {
+                    console.error('File not found:', { files, fileIndex });
                     alert('File not found.');
                     return;
                 }
@@ -1958,12 +1962,16 @@ class ProjectManager {
                 fileName = file.name || file;
                 fileMimeType = file.type || '';
                 
+                console.log('File object:', { fileName, fileMimeType, hasData: !!file.data, hasStorageUrl: !!file.storageUrl, fileKeys: Object.keys(file) });
+                
                 // Check if file has data (ArrayBuffer)
-                if (file.data && file.data instanceof ArrayBuffer) {
+                if (file.data && (file.data instanceof ArrayBuffer || file.data instanceof Uint8Array)) {
                     // Create blob URL from ArrayBuffer
                     try {
-                        const blob = new Blob([file.data], { type: fileMimeType || 'application/octet-stream' });
+                        const dataArray = file.data instanceof ArrayBuffer ? [file.data] : [file.data.buffer];
+                        const blob = new Blob(dataArray, { type: fileMimeType || 'application/octet-stream' });
                         fileData = URL.createObjectURL(blob);
+                        console.log('Created blob URL from ArrayBuffer');
                     } catch (error) {
                         console.error('Error creating blob from ArrayBuffer:', error);
                         alert('Error loading file data. The file may need to be re-uploaded.');
@@ -1981,8 +1989,10 @@ class ProjectManager {
                                 const decodedPath = decodeURIComponent(encodedPath);
                                 const storageRef = storage.ref(decodedPath);
                                 fileData = await storageRef.getDownloadURL();
+                                console.log('Got download URL from Storage');
                             } else {
                                 fileData = file.storageUrl;
+                                console.log('Using storage URL directly');
                             }
                         } catch (error) {
                             console.error('Error getting download URL:', error);
@@ -1996,8 +2006,8 @@ class ProjectManager {
                 } else {
                     // File data not available - this happens when files are loaded from Firestore
                     // which only stores metadata, not the actual file data
-                    console.warn('File data not available for preview:', fileName);
-                    alert(`File preview is not available for "${fileName}". The file data is not stored in the database. Please re-upload the file to enable preview.`);
+                    console.warn('File data not available for preview:', { fileName, file });
+                    alert(`File preview is not available for "${fileName}". The file data is not stored in the database. Files need to be uploaded to Firebase Storage to enable preview. Please re-upload the file.`);
                     return;
                 }
             } else {
