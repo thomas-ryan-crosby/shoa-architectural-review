@@ -2080,14 +2080,14 @@ class ProjectManager {
             
             console.log('Setting up file preview delegation on projectList');
             
-            projectsContainer.addEventListener('click', (e) => {
-                const badge = e.target.closest('.file-badge-clickable');
-                if (!badge) return;
-                
+        projectsContainer.addEventListener('click', (e) => {
+            // Handle file preview clicks
+            const badge = e.target.closest('.file-badge-clickable');
+            if (badge) {
                 e.preventDefault();
                 e.stopPropagation();
                 
-                const projectId = badge.getAttribute('data-project-id');
+                const projectId = badge.getAttribute('data-project-id') || badge.closest('[data-project-id]')?.getAttribute('data-project-id');
                 const fileType = badge.getAttribute('data-file-type');
                 const fileIndex = badge.getAttribute('data-file-index');
                 
@@ -2101,7 +2101,55 @@ class ProjectManager {
                 }
                 
                 this.previewFile(project, fileType, fileIndex);
-            });
+                return;
+            }
+            
+            // Handle file remove button clicks
+            const removeBtn = e.target.closest('.file-remove-btn');
+            if (removeBtn) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const projectId = removeBtn.getAttribute('data-project-id') || removeBtn.closest('[data-project-id]')?.getAttribute('data-project-id');
+                const fileType = removeBtn.getAttribute('data-file-type');
+                const fileIndex = removeBtn.getAttribute('data-file-index');
+                
+                console.log('File remove clicked:', { projectId, fileType, fileIndex, btn: removeBtn });
+                
+                const project = this.projects.find(p => p.id === projectId);
+                if (!project) {
+                    console.error('Project not found:', projectId);
+                    alert('Project not found');
+                    return;
+                }
+                
+                if (confirm(`Are you sure you want to remove this file? You'll need to save the project for the change to take effect.`)) {
+                    // Mark file for removal (will be handled when saving)
+                    if (!project.filesToRemove) {
+                        project.filesToRemove = { siteConditions: [], submittedPlans: [], approvalLetter: false };
+                    }
+                    
+                    if (fileType === 'approvalLetter') {
+                        project.filesToRemove.approvalLetter = true;
+                    } else if (fileType === 'siteConditions' && fileIndex !== null) {
+                        project.filesToRemove.siteConditions.push(parseInt(fileIndex));
+                    } else if (fileType === 'submittedPlans' && fileIndex !== null) {
+                        project.filesToRemove.submittedPlans.push(parseInt(fileIndex));
+                    }
+                    
+                    console.log('Files to remove:', project.filesToRemove);
+                    
+                    // Remove from display immediately
+                    const badgeContainer = removeBtn.closest('.file-badge-with-remove');
+                    if (badgeContainer) {
+                        badgeContainer.style.opacity = '0.5';
+                        badgeContainer.style.textDecoration = 'line-through';
+                        removeBtn.style.display = 'none';
+                    }
+                }
+                return;
+            }
+        });
         }, 100);
     }
     
