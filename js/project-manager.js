@@ -3435,6 +3435,8 @@ class ProjectManager {
             };
 
             // Helper function to download file from Firebase Storage and convert to File object
+            // Helper function to download file from Firebase Storage and convert to format expected by PDF generator
+            // Returns object with {name, type, data} where data is ArrayBuffer
             const downloadFileFromStorage = async (fileInfo) => {
                 if (!fileInfo.storageUrl) return null;
                 
@@ -3454,14 +3456,87 @@ class ProjectManager {
                     // Get download URL
                     const downloadURL = await storageRef.getDownloadURL();
                     
-                    // Fetch the file
-                    const response = await fetch(downloadURL);
-                    if (!response.ok) throw new Error('Failed to fetch file');
+                    // Use XMLHttpRequest instead of fetch to potentially bypass CORS
+                    // Or use image loading for images
+                    const fileType = fileInfo.type || '';
+                    const fileName = fileInfo.name || 'file';
                     
-                    const blob = await response.blob();
-                    
-                    // Convert blob to File object
-                    return new File([blob], fileInfo.name || 'file', { type: fileInfo.type || blob.type });
+                    if (fileType.startsWith('image/')) {
+                        // For images, use image loading which bypasses CORS
+                        return await new Promise((resolve, reject) => {
+                            const img = new Image();
+                            img.crossOrigin = 'anonymous';
+                            
+                            img.onload = async () => {
+                                try {
+                                    // Convert image to canvas
+                                    const canvas = document.createElement('canvas');
+                                    canvas.width = img.width;
+                                    canvas.height = img.height;
+                                    const ctx = canvas.getContext('2d');
+                                    ctx.drawImage(img, 0, 0);
+                                    
+                                    // Convert canvas to blob, then to ArrayBuffer
+                                    canvas.toBlob(async (blob) => {
+                                        if (!blob) {
+                                            reject(new Error('Failed to convert image to blob'));
+                                            return;
+                                        }
+                                        const arrayBuffer = await blob.arrayBuffer();
+                                        resolve({
+                                            name: fileName,
+                                            type: fileType,
+                                            data: arrayBuffer
+                                        });
+                                    }, fileType);
+                                } catch (error) {
+                                    reject(error);
+                                }
+                            };
+                            
+                            img.onerror = () => {
+                                // Fallback: try direct URL fetch with XMLHttpRequest
+                                const xhr = new XMLHttpRequest();
+                                xhr.open('GET', downloadURL, true);
+                                xhr.responseType = 'arraybuffer';
+                                xhr.onload = () => {
+                                    if (xhr.status === 200) {
+                                        resolve({
+                                            name: fileName,
+                                            type: fileType,
+                                            data: xhr.response
+                                        });
+                                    } else {
+                                        reject(new Error('Failed to load image'));
+                                    }
+                                };
+                                xhr.onerror = () => reject(new Error('Failed to load image'));
+                                xhr.send();
+                            };
+                            
+                            img.src = downloadURL;
+                        });
+                    } else {
+                        // For PDFs and other files, use XMLHttpRequest
+                        return await new Promise((resolve, reject) => {
+                            const xhr = new XMLHttpRequest();
+                            xhr.open('GET', downloadURL, true);
+                            xhr.responseType = 'arraybuffer';
+                            xhr.onload = () => {
+                                if (xhr.status === 200) {
+                                    resolve({
+                                        name: fileName,
+                                        type: fileType,
+                                        data: xhr.response
+                                    });
+                                } else {
+                                    reject(new Error('Failed to load file'));
+                                }
+                            };
+                            xhr.onerror = () => reject(new Error('Failed to load file'));
+                            xhr.send();
+                        });
+                    }
                 } catch (error) {
                     console.error('Error downloading file from storage:', error);
                     return null;
@@ -3864,6 +3939,8 @@ class ProjectManager {
             };
 
             // Helper function to download file from Firebase Storage and convert to File object
+            // Helper function to download file from Firebase Storage and convert to format expected by PDF generator
+            // Returns object with {name, type, data} where data is ArrayBuffer
             const downloadFileFromStorage = async (fileInfo) => {
                 if (!fileInfo.storageUrl) return null;
                 
@@ -3883,14 +3960,87 @@ class ProjectManager {
                     // Get download URL
                     const downloadURL = await storageRef.getDownloadURL();
                     
-                    // Fetch the file
-                    const response = await fetch(downloadURL);
-                    if (!response.ok) throw new Error('Failed to fetch file');
+                    // Use XMLHttpRequest instead of fetch to potentially bypass CORS
+                    // Or use image loading for images
+                    const fileType = fileInfo.type || '';
+                    const fileName = fileInfo.name || 'file';
                     
-                    const blob = await response.blob();
-                    
-                    // Convert blob to File object
-                    return new File([blob], fileInfo.name || 'file', { type: fileInfo.type || blob.type });
+                    if (fileType.startsWith('image/')) {
+                        // For images, use image loading which bypasses CORS
+                        return await new Promise((resolve, reject) => {
+                            const img = new Image();
+                            img.crossOrigin = 'anonymous';
+                            
+                            img.onload = async () => {
+                                try {
+                                    // Convert image to canvas
+                                    const canvas = document.createElement('canvas');
+                                    canvas.width = img.width;
+                                    canvas.height = img.height;
+                                    const ctx = canvas.getContext('2d');
+                                    ctx.drawImage(img, 0, 0);
+                                    
+                                    // Convert canvas to blob, then to ArrayBuffer
+                                    canvas.toBlob(async (blob) => {
+                                        if (!blob) {
+                                            reject(new Error('Failed to convert image to blob'));
+                                            return;
+                                        }
+                                        const arrayBuffer = await blob.arrayBuffer();
+                                        resolve({
+                                            name: fileName,
+                                            type: fileType,
+                                            data: arrayBuffer
+                                        });
+                                    }, fileType);
+                                } catch (error) {
+                                    reject(error);
+                                }
+                            };
+                            
+                            img.onerror = () => {
+                                // Fallback: try direct URL fetch with XMLHttpRequest
+                                const xhr = new XMLHttpRequest();
+                                xhr.open('GET', downloadURL, true);
+                                xhr.responseType = 'arraybuffer';
+                                xhr.onload = () => {
+                                    if (xhr.status === 200) {
+                                        resolve({
+                                            name: fileName,
+                                            type: fileType,
+                                            data: xhr.response
+                                        });
+                                    } else {
+                                        reject(new Error('Failed to load image'));
+                                    }
+                                };
+                                xhr.onerror = () => reject(new Error('Failed to load image'));
+                                xhr.send();
+                            };
+                            
+                            img.src = downloadURL;
+                        });
+                    } else {
+                        // For PDFs and other files, use XMLHttpRequest
+                        return await new Promise((resolve, reject) => {
+                            const xhr = new XMLHttpRequest();
+                            xhr.open('GET', downloadURL, true);
+                            xhr.responseType = 'arraybuffer';
+                            xhr.onload = () => {
+                                if (xhr.status === 200) {
+                                    resolve({
+                                        name: fileName,
+                                        type: fileType,
+                                        data: xhr.response
+                                    });
+                                } else {
+                                    reject(new Error('Failed to load file'));
+                                }
+                            };
+                            xhr.onerror = () => reject(new Error('Failed to load file'));
+                            xhr.send();
+                        });
+                    }
                 } catch (error) {
                     console.error('Error downloading file from storage:', error);
                     return null;
