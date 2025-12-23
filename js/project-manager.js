@@ -1949,7 +1949,7 @@ class ProjectManager {
             } else if (fileType === 'siteConditions' || fileType === 'submittedPlans') {
                 // Handle site conditions or submitted plans
                 const files = fileType === 'siteConditions' ? project.siteConditionsFiles : project.submittedPlansFiles;
-                if (!files || !files[fileIndex]) {
+                if (!files || files.length === 0 || !files[fileIndex]) {
                     alert('File not found.');
                     return;
                 }
@@ -1958,10 +1958,17 @@ class ProjectManager {
                 fileName = file.name || file;
                 fileMimeType = file.type || '';
                 
-                if (file.data) {
+                // Check if file has data (ArrayBuffer)
+                if (file.data && file.data instanceof ArrayBuffer) {
                     // Create blob URL from ArrayBuffer
-                    const blob = new Blob([file.data], { type: fileMimeType || 'application/octet-stream' });
-                    fileData = URL.createObjectURL(blob);
+                    try {
+                        const blob = new Blob([file.data], { type: fileMimeType || 'application/octet-stream' });
+                        fileData = URL.createObjectURL(blob);
+                    } catch (error) {
+                        console.error('Error creating blob from ArrayBuffer:', error);
+                        alert('Error loading file data. The file may need to be re-uploaded.');
+                        return;
+                    }
                 } else if (file.storageUrl) {
                     // Get download URL from Firebase Storage (if files are stored there)
                     const storage = window.firebaseStorage;
@@ -1979,7 +1986,7 @@ class ProjectManager {
                             }
                         } catch (error) {
                             console.error('Error getting download URL:', error);
-                            alert('Error loading file. Please try again.');
+                            alert('Error loading file from storage. Please try again.');
                             return;
                         }
                     } else {
@@ -1987,7 +1994,10 @@ class ProjectManager {
                         return;
                     }
                 } else {
-                    alert('File data not available.');
+                    // File data not available - this happens when files are loaded from Firestore
+                    // which only stores metadata, not the actual file data
+                    console.warn('File data not available for preview:', fileName);
+                    alert(`File preview is not available for "${fileName}". The file data is not stored in the database. Please re-upload the file to enable preview.`);
                     return;
                 }
             } else {
