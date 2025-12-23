@@ -1832,6 +1832,19 @@ class ProjectManager {
     }
 
     renderProjectDetailed(project, isAuthenticated) {
+            // Check if there are files marked for removal
+            const hasFilesToRemove = project.filesToRemove && (
+                project.filesToRemove.siteConditions.length > 0 ||
+                project.filesToRemove.submittedPlans.length > 0 ||
+                project.filesToRemove.approvalLetter
+            );
+            
+            const saveButton = (isAuthenticated && hasFilesToRemove) ? `
+                <button type="button" class="btn-small btn-primary" onclick="window.projectManager.saveProjectWithRemovedFiles('${project.id}')" style="background: #ff9800; border-color: #ff9800;">
+                    Save Changes
+                </button>
+            ` : '';
+            
             const editDeleteButtons = isAuthenticated ? `
                 <button type="button" class="btn-small btn-secondary" onclick="window.projectManager.editProject('${project.id}')">
                     Edit
