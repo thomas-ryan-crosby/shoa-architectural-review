@@ -1869,6 +1869,205 @@ class ProjectManager {
                 </div>
             </div>
         `;
+        
+        // Attach click handlers for file previews after rendering
+        setTimeout(() => {
+            this.attachFilePreviewHandlers(project);
+        }, 0);
+    }
+    
+    attachFilePreviewHandlers(project) {
+        // Attach handlers to all file badges
+        const fileBadges = document.querySelectorAll(`[data-project-id="${project.id}"].file-badge-clickable`);
+        fileBadges.forEach(badge => {
+            badge.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const fileType = badge.getAttribute('data-file-type');
+                const fileIndex = badge.getAttribute('data-file-index');
+                this.previewFile(project, fileType, fileIndex);
+            });
+        });
+    }
+    
+    async previewFile(project, fileType, fileIndex) {
+        try {
+            let fileData = null;
+            let fileName = '';
+            let fileMimeType = '';
+            
+            if (fileType === 'approvalLetter') {
+                // Handle approval letter
+                fileName = project.approvalLetterFilename || 'Approval Letter.pdf';
+                fileMimeType = 'application/pdf';
+                
+                if (project.approvalLetterStorageUrl) {
+                    // Get download URL from Firebase Storage
+                    const storage = window.firebaseStorage;
+                    if (storage) {
+                        try {
+                            const url = new URL(project.approvalLetterStorageUrl);
+                            const pathMatch = url.pathname.match(/\/o\/(.+)/);
+                            if (pathMatch) {
+                                const encodedPath = pathMatch[1];
+                                const decodedPath = decodeURIComponent(encodedPath);
+                                const storageRef = storage.ref(decodedPath);
+                                fileData = await storageRef.getDownloadURL();
+                            } else {
+                                fileData = project.approvalLetterStorageUrl;
+                            }
+                        } catch (error) {
+                            console.error('Error getting download URL:', error);
+                            alert('Error loading file. Please try again.');
+                            return;
+                        }
+                    } else {
+                        alert('Firebase Storage not available.');
+                        return;
+                    }
+                } else if (project.approvalLetterBlob) {
+                    // Create blob URL from ArrayBuffer
+                    const blob = new Blob([project.approvalLetterBlob], { type: 'application/pdf' });
+                    fileData = URL.createObjectURL(blob);
+                } else {
+                    alert('File not available.');
+                    return;
+                }
+            } else if (fileType === 'siteConditions' || fileType === 'submittedPlans') {
+                // Handle site conditions or submitted plans
+                const files = fileType === 'siteConditions' ? project.siteConditionsFiles : project.submittedPlansFiles;
+                if (!files || !files[fileIndex]) {
+                    alert('File not found.');
+                    return;
+                }
+                
+                const file = files[fileIndex];
+                fileName = file.name || file;
+                fileMimeType = file.type || '';
+                
+                if (file.data) {
+                    // Create blob URL from ArrayBuffer
+                    const blob = new Blob([file.data], { type: fileMimeType || 'application/octet-stream' });
+                    fileData = URL.createObjectURL(blob);
+                } else if (file.storageUrl) {
+                    // Get download URL from Firebase Storage (if files are stored there)
+                    const storage = window.firebaseStorage;
+                    if (storage) {
+                        try {
+                            const url = new URL(file.storageUrl);
+                            const pathMatch = url.pathname.match(/\/o\/(.+)/);
+                            if (pathMatch) {
+                                const encodedPath = pathMatch[1];
+                                const decodedPath = decodeURIComponent(encodedPath);
+                                const storageRef = storage.ref(decodedPath);
+                                fileData = await storageRef.getDownloadURL();
+                            } else {
+                                fileData = file.storageUrl;
+                            }
+                        } catch (error) {
+                            console.error('Error getting download URL:', error);
+                            alert('Error loading file. Please try again.');
+                            return;
+                        }
+                    } else {
+                        alert('Firebase Storage not available.');
+                        return;
+                    }
+                } else {
+                    alert('File data not available.');
+                    return;
+                }
+            } else {
+                alert('Unknown file type.');
+                return;
+            }
+            
+            // Show preview modal
+            this.showFilePreview(fileName, fileData, fileMimeType);
+        } catch (error) {
+            console.error('Error previewing file:', error);
+            alert('Error loading file: ' + error.message);
+        }
+    }
+    
+    showFilePreview(fileName, fileData, fileMimeType) {
+        // Create modal
+        const modal = document.createElement('div');
+        modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center;';
+        modal.id = 'filePreviewModal';
+        
+        const isImage = fileMimeType.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(fileName);
+        const isPDF = fileMimeType === 'application/pdf' || /\.pdf$/i.test(fileName);
+        const isDocument = /\.(doc|docx|xls|xlsx|ppt|pptx)$/i.test(fileName);
+        
+        let content = '';
+        
+        if (isImage) {
+            content = `
+                <div style="max-width: 90vw; max-height: 90vh; position: relative;">
+                    <img src="${fileData}" alt="${fileName}" style="max-width: 100%; max-height: 90vh; object-fit: contain; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+                </div>
+            `;
+        } else if (isPDF) {
+            content = `
+                <div style="width: 90vw; height: 90vh; position: relative;">
+                    <iframe src="${fileData}" style="width: 100%; height: 100%; border: none; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);"></iframe>
+                </div>
+            `;
+        } else {
+            // For other file types, show download option
+            content = `
+                <div style="background: white; padding: 40px; border-radius: 8px; text-align: center; max-width: 500px;">
+                    <div style="font-size: 4rem; margin-bottom: 20px;">📄</div>
+                    <h3 style="margin: 0 0 20px 0; color: #333;">${fileName}</h3>
+                    <p style="color: #666; margin-bottom: 30px;">This file type cannot be previewed in the browser.</p>
+                    <a href="${fileData}" download="${fileName}" style="display: inline-block; padding: 12px 24px; background: #2c5530; color: white; text-decoration: none; border-radius: 6px; font-weight: 500;">Download File</a>
+                </div>
+            `;
+        }
+        
+        modal.innerHTML = `
+            <div style="position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
+                ${content}
+                <button id="closePreviewBtn" style="position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.9); border: none; border-radius: 50%; width: 40px; height: 40px; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); transition: all 0.2s ease;" onmouseover="this.style.background='white'; this.style.transform='scale(1.1)';" onmouseout="this.style.background='rgba(255,255,255,0.9)'; this.style.transform='scale(1)';">
+                    ×
+                </button>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Store fileData for cleanup
+        const cleanup = () => {
+            if (fileData && fileData.startsWith('blob:')) {
+                URL.revokeObjectURL(fileData);
+            }
+        };
+        
+        // Close on button click
+        const closeBtn = document.getElementById('closePreviewBtn');
+        closeBtn.addEventListener('click', () => {
+            document.body.removeChild(modal);
+            cleanup();
+        });
+        
+        // Close on backdrop click
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                document.body.removeChild(modal);
+                cleanup();
+            }
+        });
+        
+        // Close on Escape key
+        const handleEscape = (e) => {
+            if (e.key === 'Escape') {
+                document.body.removeChild(modal);
+                cleanup();
+                document.removeEventListener('keydown', handleEscape);
+            }
+        };
+        document.addEventListener('keydown', handleEscape);
     }
 
     renderProjectCompact(project, isAuthenticated) {
