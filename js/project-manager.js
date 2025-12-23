@@ -3214,13 +3214,26 @@ class ProjectManager {
             // Handle file removals
             const filesToRemove = project.filesToRemove || { siteConditions: [], submittedPlans: [], approvalLetter: false };
             
-            // Read site conditions files - filter out removed ones and add new ones
+            console.log('Files to remove:', filesToRemove);
+            console.log('Current site conditions files:', project.siteConditionsFiles);
+            console.log('Current submitted plans files:', project.submittedPlansFiles);
+            
+            // Read site conditions files - filter out removed ones and preserve storageUrl for existing files
             let siteConditionsArrayBuffers = (project.siteConditionsFiles || []).filter((file, index) => {
                 // Keep files that are not marked for removal
-                return !filesToRemove.siteConditions.includes(index);
+                const keep = !filesToRemove.siteConditions.includes(index);
+                console.log(`Site conditions file ${index} (${file.name}): ${keep ? 'KEEP' : 'REMOVE'}`);
+                return keep;
+            }).map(file => {
+                // Preserve the file structure (name, type, storageUrl) for existing files
+                return {
+                    name: file.name || file,
+                    type: file.type || '',
+                    storageUrl: file.storageUrl || null
+                };
             });
             
-            // Add new files
+            // Add new files (these will have data property for upload)
             if (siteConditionsFiles.length > 0) {
                 for (const file of Array.from(siteConditionsFiles)) {
                     try {
@@ -3236,13 +3249,22 @@ class ProjectManager {
                 }
             }
 
-            // Read submitted plans files - filter out removed ones and add new ones
+            // Read submitted plans files - filter out removed ones and preserve storageUrl for existing files
             let submittedPlansArrayBuffers = (project.submittedPlansFiles || []).filter((file, index) => {
                 // Keep files that are not marked for removal
-                return !filesToRemove.submittedPlans.includes(index);
+                const keep = !filesToRemove.submittedPlans.includes(index);
+                console.log(`Submitted plans file ${index} (${file.name}): ${keep ? 'KEEP' : 'REMOVE'}`);
+                return keep;
+            }).map(file => {
+                // Preserve the file structure (name, type, storageUrl) for existing files
+                return {
+                    name: file.name || file,
+                    type: file.type || '',
+                    storageUrl: file.storageUrl || null
+                };
             });
             
-            // Add new files
+            // Add new files (these will have data property for upload)
             if (submittedPlansFiles.length > 0) {
                 for (const file of Array.from(submittedPlansFiles)) {
                     try {
@@ -3257,6 +3279,9 @@ class ProjectManager {
                     }
                 }
             }
+            
+            console.log('Final site conditions files:', siteConditionsArrayBuffers);
+            console.log('Final submitted plans files:', submittedPlansArrayBuffers);
             
             // Handle approval letter removal or new upload
             let approvalLetterBlob = null;
