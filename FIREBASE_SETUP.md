@@ -111,24 +111,47 @@ service firebase.storage {
 
 ### Storage CORS Configuration (REQUIRED for Downloads)
 
-To allow downloads from your web app, you need to configure CORS for Firebase Storage. **The easiest way is through the Google Cloud Console (no installation required):**
+To allow downloads from your web app, you need to configure CORS for Firebase Storage. **The CORS configuration option is often not visible in the Google Cloud Console UI, so we'll use the command line method:**
+
+#### Method 1: Using gsutil (Recommended)
+
+1. **Install Google Cloud SDK:**
+   - Visit: https://cloud.google.com/sdk/docs/install
+   - Download and install for your operating system
+   - After installation, restart your terminal/command prompt
+
+2. **Authenticate:**
+   ```bash
+   gcloud auth login
+   ```
+
+3. **Set your project:**
+   ```bash
+   gcloud config set project sanctuary-hoa-arch-review
+   ```
+
+4. **Configure CORS:**
+   - Navigate to your project directory (where `cors.json` is located)
+   - Run this command:
+   ```bash
+   gsutil cors set cors.json gs://sanctuary-hoa-arch-review.firebasestorage.app
+   ```
+
+5. **Verify it worked:**
+   ```bash
+   gsutil cors get gs://sanctuary-hoa-arch-review.firebasestorage.app
+   ```
+   You should see the CORS configuration printed out.
+
+#### Method 2: Try Google Cloud Console (If Available)
+
+If you can see the CORS option in Google Cloud Console:
 
 1. **Go to Google Cloud Console:**
-   - Visit: https://console.cloud.google.com/
+   - Visit: https://console.cloud.google.com/storage/browser/sanctuary-hoa-arch-review.firebasestorage.app?project=sanctuary-hoa-arch-review
    - Sign in with the same Google account used for Firebase
 
-2. **Select Your Project:**
-   - Click the project dropdown at the top
-   - Select: **sanctuary-hoa-arch-review**
-
-3. **Navigate to Cloud Storage:**
-   - In the left menu, click **"Cloud Storage"** (under "Storage")
-   - Click **"Buckets"**
-
-4. **Select Your Storage Bucket:**
-   - Click on: **sanctuary-hoa-arch-review.firebasestorage.app**
-
-5. **Configure CORS:**
+2. **Configure CORS:**
    - Click the **"Configuration"** tab at the top
    - Scroll to **"CORS configuration"** section
    - Click **"Edit CORS configuration"** button
@@ -145,13 +168,7 @@ To allow downloads from your web app, you need to configure CORS for Firebase St
    ```
    - Click **"Save"**
 
-6. **Test:** Try downloading an approval letter - it should work now!
-
-**Alternative (Command Line):** If you have Google Cloud SDK installed, you can use:
-```bash
-gsutil cors set cors.json gs://sanctuary-hoa-arch-review.firebasestorage.app
-```
-(The `cors.json` file is already in your project directory)
+**Note:** The `cors.json` file is already in your project directory. See `CONFIGURE_CORS_CLI.md` for detailed instructions and troubleshooting.
 
 **Note:** If testing locally, add `http://localhost:8000` to the origin array in the CORS config.
 
