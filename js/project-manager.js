@@ -2040,6 +2040,72 @@ class ProjectManager {
         }
     }
 
+    calculateMetrics() {
+        const totalProjects = this.projects.length;
+        let depositsOnRecord = 0;
+        let siteConditionsCount = 0;
+        let submittedPlansCount = 0;
+        let approvalLettersCount = 0;
+
+        this.projects.forEach(project => {
+            // Count deposits (if deposit is not waived and has a value)
+            if (!project.depositWaived && project.builderDeposit && project.builderDeposit > 0) {
+                depositsOnRecord++;
+            }
+
+            // Count site conditions (if has files)
+            if (project.siteConditionsFiles && project.siteConditionsFiles.length > 0) {
+                siteConditionsCount++;
+            }
+
+            // Count submitted plans (if has files)
+            if (project.submittedPlansFiles && project.submittedPlansFiles.length > 0) {
+                submittedPlansCount++;
+            }
+
+            // Count approval letters (if has letter)
+            if (project.hasApprovalLetter || project.approvalLetterStorageUrl || project.approvalLetterBlob) {
+                approvalLettersCount++;
+            }
+        });
+
+        return {
+            total: totalProjects,
+            deposits: depositsOnRecord,
+            siteConditions: siteConditionsCount,
+            submittedPlans: submittedPlansCount,
+            approvalLetters: approvalLettersCount
+        };
+    }
+
+    renderMetrics() {
+        const metrics = this.calculateMetrics();
+
+        // Update deposits metric
+        const depositsElement = document.getElementById('metricDeposits');
+        if (depositsElement) {
+            depositsElement.textContent = `${metrics.deposits} / ${metrics.total}`;
+        }
+
+        // Update site conditions metric
+        const siteConditionsElement = document.getElementById('metricSiteConditions');
+        if (siteConditionsElement) {
+            siteConditionsElement.textContent = `${metrics.siteConditions} / ${metrics.total}`;
+        }
+
+        // Update submitted plans metric
+        const submittedPlansElement = document.getElementById('metricSubmittedPlans');
+        if (submittedPlansElement) {
+            submittedPlansElement.textContent = `${metrics.submittedPlans} / ${metrics.total}`;
+        }
+
+        // Update approval letters metric
+        const approvalLettersElement = document.getElementById('metricApprovalLetters');
+        if (approvalLettersElement) {
+            approvalLettersElement.textContent = `${metrics.approvalLetters} / ${metrics.total}`;
+        }
+    }
+
     renderProjects() {
         const projectList = document.getElementById('projectList');
         const noProjects = document.getElementById('noProjects');
@@ -2048,6 +2114,9 @@ class ProjectManager {
 
         // Update deposit summary
         this.updateDepositSummary();
+
+        // Update metrics dashboard
+        this.renderMetrics();
 
         const filteredProjects = this.getFilteredProjects();
 

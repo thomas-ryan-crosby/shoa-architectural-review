@@ -996,6 +996,69 @@ footer {
 }
 
 /* Project List */
+.metrics-dashboard {
+    background: var(--card-bg);
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+}
+
+.metric-card {
+    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+    transition: all 0.3s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    border-color: var(--primary-color);
+}
+
+.metric-label {
+    font-size: 0.85rem;
+    color: var(--text-light);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+}
+
+.metric-value {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: var(--primary-color);
+    margin-bottom: 4px;
+    line-height: 1.2;
+}
+
+.metric-description {
+    font-size: 0.75rem;
+    color: var(--text-light);
+    margin-top: 4px;
+}
+
+@media (max-width: 768px) {
+    .metrics-dashboard {
+        padding: 15px;
+    }
+    
+    .metrics-dashboard > div {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .metric-value {
+        font-size: 1.5rem;
+    }
+}
+
 .project-list {
     display: grid;
     gap: 20px;
