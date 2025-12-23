@@ -2048,8 +2048,14 @@ class ProjectManager {
         let approvalLettersCount = 0;
 
         this.projects.forEach(project => {
-            // Count deposits (if deposit is not waived and has a value)
-            if (!project.depositWaived && project.builderDeposit && project.builderDeposit > 0) {
+            // Count deposits as "good" if:
+            // - depositAmountReceived has a value (filled), OR
+            // - depositWaived is true
+            // Only missing if neither condition is met
+            const hasDepositAmount = project.depositAmountReceived && project.depositAmountReceived > 0;
+            const isDepositWaived = project.depositWaived === true;
+            
+            if (hasDepositAmount || isDepositWaived) {
                 depositsOnRecord++;
             }
 
@@ -2084,25 +2090,25 @@ class ProjectManager {
         // Update deposits metric
         const depositsElement = document.getElementById('metricDeposits');
         if (depositsElement) {
-            depositsElement.textContent = `${metrics.deposits} / ${metrics.total}`;
+            depositsElement.textContent = `${metrics.deposits}/${metrics.total}`;
         }
 
         // Update site conditions metric
         const siteConditionsElement = document.getElementById('metricSiteConditions');
         if (siteConditionsElement) {
-            siteConditionsElement.textContent = `${metrics.siteConditions} / ${metrics.total}`;
+            siteConditionsElement.textContent = `${metrics.siteConditions}/${metrics.total}`;
         }
 
         // Update submitted plans metric
         const submittedPlansElement = document.getElementById('metricSubmittedPlans');
         if (submittedPlansElement) {
-            submittedPlansElement.textContent = `${metrics.submittedPlans} / ${metrics.total}`;
+            submittedPlansElement.textContent = `${metrics.submittedPlans}/${metrics.total}`;
         }
 
         // Update approval letters metric
         const approvalLettersElement = document.getElementById('metricApprovalLetters');
         if (approvalLettersElement) {
-            approvalLettersElement.textContent = `${metrics.approvalLetters} / ${metrics.total}`;
+            approvalLettersElement.textContent = `${metrics.approvalLetters}/${metrics.total}`;
         }
     }
 

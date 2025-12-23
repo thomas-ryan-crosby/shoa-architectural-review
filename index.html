@@ -110,28 +110,31 @@
                     </div>
                     
                     <!-- Metrics Dashboard -->
-                    <div id="metricsDashboard" class="metrics-dashboard" style="background: var(--card-bg); padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 2px solid var(--border-color); box-shadow: 0 2px 4px rgba(0,0,0,0.08);">
-                        <h3 style="margin: 0 0 20px 0; color: var(--text-primary); font-size: 1.1rem; font-weight: 600;">Project Metrics</h3>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
-                            <div class="metric-card">
-                                <div class="metric-label">Deposits on Record</div>
-                                <div class="metric-value" id="metricDeposits">0 / 0</div>
-                                <div class="metric-description">Projects with deposits</div>
+                    <div id="metricsDashboard" class="metrics-dashboard">
+                        <div class="metrics-row">
+                            <div class="metric-circle">
+                                <div class="metric-circle-inner">
+                                    <div class="metric-value-circle" id="metricDeposits">0/0</div>
+                                    <div class="metric-label-circle">Deposits</div>
+                                </div>
                             </div>
-                            <div class="metric-card">
-                                <div class="metric-label">Current Site Conditions</div>
-                                <div class="metric-value" id="metricSiteConditions">0 / 0</div>
-                                <div class="metric-description">Projects with site photos</div>
+                            <div class="metric-circle">
+                                <div class="metric-circle-inner">
+                                    <div class="metric-value-circle" id="metricSiteConditions">0/0</div>
+                                    <div class="metric-label-circle">Site Conditions</div>
+                                </div>
                             </div>
-                            <div class="metric-card">
-                                <div class="metric-label">Submitted Plans</div>
-                                <div class="metric-value" id="metricSubmittedPlans">0 / 0</div>
-                                <div class="metric-description">Projects with plans</div>
+                            <div class="metric-circle">
+                                <div class="metric-circle-inner">
+                                    <div class="metric-value-circle" id="metricSubmittedPlans">0/0</div>
+                                    <div class="metric-label-circle">Plans</div>
+                                </div>
                             </div>
-                            <div class="metric-card">
-                                <div class="metric-label">Approval Letters</div>
-                                <div class="metric-value" id="metricApprovalLetters">0 / 0</div>
-                                <div class="metric-description">Projects with letters</div>
+                            <div class="metric-circle">
+                                <div class="metric-circle-inner">
+                                    <div class="metric-value-circle" id="metricApprovalLetters">0/0</div>
+                                    <div class="metric-label-circle">Letters</div>
+                                </div>
                             </div>
                         </div>
                     </div>
