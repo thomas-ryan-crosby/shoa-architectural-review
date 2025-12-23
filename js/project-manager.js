@@ -2732,8 +2732,8 @@ class ProjectManager {
         // Approval letter status - refined
         const hasLetter = project.approvalLetterBlob || project.approvalLetterStorageUrl || (project.hasApprovalLetter !== false && project.approvalLetterFilename);
         const approvalStatus = hasLetter ? 
-            '<span style="color: #4caf50; font-size: 0.8rem; font-weight: 600;">✓</span>' : 
-            '<span style="color: #d32f2f; font-size: 0.75rem; font-weight: 700;">✗</span>`;
+            '<span style="color: #4caf50; font-size: 0.8rem; font-weight: 600;">&#10003;</span>' : 
+            '<span style="color: #d32f2f; font-size: 0.75rem; font-weight: 700;">&#10007;</span>';
         
         // Download button - smaller, more compact, with overflow protection
         const downloadButton = hasLetter && isAuthenticated ? `
@@ -2768,7 +2768,7 @@ class ProjectManager {
                         ${project.address ? `<div style="color: #666; font-size: 0.85rem; margin-bottom: 8px;">${project.address}</div>` : ''}
                         <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
                             ${statusBadge}
-                            ${hasLetter ? '<span style="color: #4caf50; font-size: 0.85rem;">✓ Letter</span>' : '<span style="color: #d32f2f; font-size: 0.85rem;">✗ No Letter</span>'}
+                            ${hasLetter ? '<span style="color: #4caf50; font-size: 0.85rem;">&#10003; Letter</span>' : '<span style="color: #d32f2f; font-size: 0.85rem;">&#10007; No Letter</span>'}
                         </div>
                     </div>
                     <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
