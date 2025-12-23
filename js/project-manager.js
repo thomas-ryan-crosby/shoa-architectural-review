@@ -1883,24 +1883,38 @@ class ProjectManager {
             </div>
         `;
         
-        // Attach click handlers for file previews after rendering
-        setTimeout(() => {
-            this.attachFilePreviewHandlers(project);
-        }, 0);
+        // Use event delegation for file preview clicks (more reliable)
+        // The handler is set up once in init() and will handle all clicks
     }
     
-    attachFilePreviewHandlers(project) {
-        // Attach handlers to all file badges
-        const fileBadges = document.querySelectorAll(`[data-project-id="${project.id}"].file-badge-clickable`);
-        fileBadges.forEach(badge => {
-            badge.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                const fileType = badge.getAttribute('data-file-type');
-                const fileIndex = badge.getAttribute('data-file-index');
-                console.log('Preview clicked:', { fileType, fileIndex, projectId: project.id });
-                this.previewFile(project, fileType, fileIndex);
-            });
+    setupFilePreviewDelegation() {
+        // Use event delegation on the projects container
+        const projectsContainer = document.getElementById('projectsList');
+        if (!projectsContainer) {
+            console.warn('Projects container not found for file preview delegation');
+            return;
+        }
+        
+        projectsContainer.addEventListener('click', (e) => {
+            const badge = e.target.closest('.file-badge-clickable');
+            if (!badge) return;
+            
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const projectId = badge.getAttribute('data-project-id');
+            const fileType = badge.getAttribute('data-file-type');
+            const fileIndex = badge.getAttribute('data-file-index');
+            
+            console.log('File preview clicked:', { projectId, fileType, fileIndex });
+            
+            const project = this.projects.find(p => p.id === projectId);
+            if (!project) {
+                console.error('Project not found:', projectId);
+                return;
+            }
+            
+            this.previewFile(project, fileType, fileIndex);
         });
     }
     
