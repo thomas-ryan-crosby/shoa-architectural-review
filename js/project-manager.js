@@ -1727,10 +1727,22 @@ class ProjectManager {
             throw new Error('Project not found');
         }
 
+        console.log('Before update - project.siteConditionsFiles:', project.siteConditionsFiles);
+        console.log('Before update - project.submittedPlansFiles:', project.submittedPlansFiles);
+        console.log('Updates being applied:', {
+            siteConditionsFiles: updates.siteConditionsFiles,
+            submittedPlansFiles: updates.submittedPlansFiles
+        });
+
         Object.assign(project, updates);
+
+        console.log('After update - project.siteConditionsFiles:', project.siteConditionsFiles);
+        console.log('After update - project.submittedPlansFiles:', project.submittedPlansFiles);
 
         try {
             const firestoreData = await this.convertProjectToFirestore(project);
+            console.log('Firestore data to save - siteConditionsFiles:', firestoreData.siteConditionsFiles);
+            console.log('Firestore data to save - submittedPlansFiles:', firestoreData.submittedPlansFiles);
             await this.db.collection(this.collectionName).doc(projectId).update(firestoreData);
             console.log('Project updated in Firestore:', projectId);
             this.renderProjects();
@@ -3280,8 +3292,8 @@ class ProjectManager {
                 }
             }
             
-            console.log('Final site conditions files:', siteConditionsArrayBuffers);
-            console.log('Final submitted plans files:', submittedPlansArrayBuffers);
+            console.log('Final site conditions files (after filtering):', siteConditionsArrayBuffers);
+            console.log('Final submitted plans files (after filtering):', submittedPlansArrayBuffers);
             
             // Handle approval letter removal or new upload
             let approvalLetterBlob = null;
@@ -3353,8 +3365,12 @@ class ProjectManager {
                 }
             }
 
+            console.log('About to save updates with siteConditionsFiles:', updates.siteConditionsFiles);
+            console.log('About to save updates with submittedPlansFiles:', updates.submittedPlansFiles);
+            
             try {
                 await this.updateProject(projectId, updates);
+                console.log('Project updated successfully, files should be removed');
                 // Clear filesToRemove after successful save
                 if (project.filesToRemove) {
                     project.filesToRemove = { siteConditions: [], submittedPlans: [], approvalLetter: false };
