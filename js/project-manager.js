@@ -2013,8 +2013,46 @@ class ProjectManager {
             </div>
         `;
         
-        // Use event delegation for file preview clicks (more reliable)
-        // The handler is set up once in init() and will handle all clicks
+        // Attach click handlers for file previews and remove buttons after rendering
+        setTimeout(() => {
+            this.attachFileRemoveHandlers(project);
+        }, 0);
+    }
+    
+    attachFileRemoveHandlers(project) {
+        // Attach remove handlers to all file remove buttons
+        const removeButtons = document.querySelectorAll(`[data-project-id="${project.id}"].file-remove-btn`);
+        removeButtons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const fileType = btn.getAttribute('data-file-type');
+                const fileIndex = btn.getAttribute('data-file-index');
+                
+                if (confirm(`Are you sure you want to remove this file? You'll need to save the project for the change to take effect.`)) {
+                    // Mark file for removal (will be handled when saving)
+                    if (!project.filesToRemove) {
+                        project.filesToRemove = { siteConditions: [], submittedPlans: [], approvalLetter: false };
+                    }
+                    
+                    if (fileType === 'approvalLetter') {
+                        project.filesToRemove.approvalLetter = true;
+                    } else if (fileType === 'siteConditions' && fileIndex !== null) {
+                        project.filesToRemove.siteConditions.push(parseInt(fileIndex));
+                    } else if (fileType === 'submittedPlans' && fileIndex !== null) {
+                        project.filesToRemove.submittedPlans.push(parseInt(fileIndex));
+                    }
+                    
+                    // Remove from display immediately
+                    const badgeContainer = btn.closest('.file-badge-with-remove');
+                    if (badgeContainer) {
+                        badgeContainer.style.opacity = '0.5';
+                        badgeContainer.style.textDecoration = 'line-through';
+                        btn.style.display = 'none';
+                    }
+                }
+            });
+        });
     }
     
     setupFilePreviewDelegation() {
@@ -3059,10 +3097,17 @@ class ProjectManager {
                 return;
             }
 
-            // Read site conditions files if provided
-            let siteConditionsArrayBuffers = project.siteConditionsFiles || [];
+            // Handle file removals
+            const filesToRemove = project.filesToRemove || { siteConditions: [], submittedPlans: [], approvalLetter: false };
+            
+            // Read site conditions files - filter out removed ones and add new ones
+            let siteConditionsArrayBuffers = (project.siteConditionsFiles || []).filter((file, index) => {
+                // Keep files that are not marked for removal
+                return !filesToRemove.siteConditions.includes(index);
+            });
+            
+            // Add new files
             if (siteConditionsFiles.length > 0) {
-                siteConditionsArrayBuffers = [];
                 for (const file of Array.from(siteConditionsFiles)) {
                     try {
                         const arrayBuffer = await this.readFileAsArrayBuffer(file);
@@ -3077,10 +3122,14 @@ class ProjectManager {
                 }
             }
 
-            // Read submitted plans files if provided
-            let submittedPlansArrayBuffers = project.submittedPlansFiles || [];
+            // Read submitted plans files - filter out removed ones and add new ones
+            let submittedPlansArrayBuffers = (project.submittedPlansFiles || []).filter((file, index) => {
+                // Keep files that are not marked for removal
+                return !filesToRemove.submittedPlans.includes(index);
+            });
+            
+            // Add new files
             if (submittedPlansFiles.length > 0) {
-                submittedPlansArrayBuffers = [];
                 for (const file of Array.from(submittedPlansFiles)) {
                     try {
                         const arrayBuffer = await this.readFileAsArrayBuffer(file);
@@ -3093,6 +3142,29 @@ class ProjectManager {
                         console.error('Error reading submitted plans file:', error);
                     }
                 }
+            }
+            
+            // Handle approval letter removal or new upload
+            let approvalLetterBlob = null;
+            let approvalLetterFilename = '';
+            if (filesToRemove.approvalLetter) {
+                // Approval letter is marked for removal
+                approvalLetterBlob = null;
+                approvalLetterFilename = '';
+            } else if (approvalLetterFile) {
+                // New approval letter file uploaded
+                try {
+                    approvalLetterBlob = await approvalLetterFile.arrayBuffer();
+                    approvalLetterFilename = approvalLetterFile.name;
+                } catch (error) {
+                    console.error('Error reading approval letter file:', error);
+                    alert('Error reading approval letter file: ' + error.message);
+                    return;
+                }
+            } else {
+                // Keep existing approval letter
+                approvalLetterBlob = project.approvalLetterBlob || null;
+                approvalLetterFilename = project.approvalLetterFilename || '';
             }
 
             const updates = {
@@ -3118,22 +3190,26 @@ class ProjectManager {
                 depositWaiverReason: depositWaiverReason
             };
 
-            // Handle file upload if provided
-            if (approvalLetterFile) {
-                try {
-                    const arrayBuffer = await approvalLetterFile.arrayBuffer();
-                    updates.approvalLetterBlob = arrayBuffer;
-                    updates.approvalLetterFilename = approvalLetterFile.name;
-                } catch (error) {
-                    console.error('Error reading file:', error);
-                    alert('Error reading approval letter file: ' + error.message);
-                    return;
-                }
+            // Handle approval letter
+            if (approvalLetterBlob !== null) {
+                updates.approvalLetterBlob = approvalLetterBlob;
+                updates.approvalLetterFilename = approvalLetterFilename;
+            } else if (filesToRemove.approvalLetter) {
+                // Approval letter is being removed
+                updates.approvalLetterBlob = null;
+                updates.approvalLetterFilename = '';
+                updates.hasApprovalLetter = false;
             }
 
             try {
                 await this.updateProject(projectId, updates);
+                // Clear filesToRemove after successful save
+                if (project.filesToRemove) {
+                    project.filesToRemove = { siteConditions: [], submittedPlans: [], approvalLetter: false };
+                }
                 closeDialog();
+                // Refresh projects to show updated file list
+                this.renderProjects();
             } catch (error) {
                 console.error('Error updating project:', error);
                 alert('Failed to update project: ' + error.message);
