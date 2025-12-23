@@ -56,6 +56,24 @@ service cloud.firestore {
       allow read: if true; // Anyone can view projects
       allow write: if request.auth != null; // Only authenticated users can modify
     }
+    
+    // Users collection - for user management and approvals
+    match /users/{userId} {
+      // Users can read their own data
+      allow read: if request.auth != null && request.auth.token.email == userId;
+      // Users can create their own registration (pending status)
+      allow create: if request.auth != null && request.auth.token.email == userId && request.resource.data.status == 'pending';
+      // Only admins can update user status and roles
+      allow update: if request.auth != null && 
+        exists(/databases/$(database)/documents/users/$(request.auth.token.email)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.token.email)).data.role == 'admin' &&
+        get(/databases/$(database)/documents/users/$(request.auth.token.email)).data.status == 'approved';
+      // Only admins can read all users
+      allow list: if request.auth != null && 
+        exists(/databases/$(database)/documents/users/$(request.auth.token.email)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.token.email)).data.role == 'admin' &&
+        get(/databases/$(database)/documents/users/$(request.auth.token.email)).data.status == 'approved';
+    }
   }
 }
 ```

@@ -100,6 +100,13 @@ class ProjectManager {
             this.promptLogin('perform this action');
             return false;
         }
+        
+        // Check if user is approved
+        if (window.userManager && !window.userManager.canWrite()) {
+            alert('Your account is pending admin approval. You cannot make changes until your account is approved.');
+            return false;
+        }
+        
         return true;
     }
 
