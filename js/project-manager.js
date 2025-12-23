@@ -1808,11 +1808,11 @@ class ProjectManager {
                         `}
                     </div>
                     
-                    ${project.siteConditionsFiles && project.siteConditionsFiles.length > 0 ? `
-                        <div class="file-info" style="margin-top: 20px;">
-                            <h4>Current Site Conditions Files</h4>
-                            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">
-                                ${project.siteConditionsFiles.map((file, index) => {
+                    <div class="file-info" style="margin-top: 20px;">
+                        <h4>Current Site Conditions</h4>
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">
+                            ${project.siteConditionsFiles && project.siteConditionsFiles.length > 0 ? 
+                                project.siteConditionsFiles.map((file, index) => {
                                     const fileName = file.name || file;
                                     const fileType = file.type || '';
                                     const isImage = fileType.startsWith('image/') || /\.(jpg|jpeg|png)$/i.test(fileName);
@@ -1824,16 +1824,20 @@ class ProjectManager {
                                             <span style="color: #333;">${fileName}</span>
                                         </div>
                                     `;
-                                }).join('')}
-                            </div>
+                                }).join('') :
+                                `<div style="display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; font-size: 0.85rem;">
+                                    <span style="font-size: 1rem;">⚠️</span>
+                                    <span style="color: #856404; font-weight: 500;">File Needed</span>
+                                </div>`
+                            }
                         </div>
-                    ` : ''}
+                    </div>
                     
-                    ${project.submittedPlansFiles && project.submittedPlansFiles.length > 0 ? `
-                        <div class="file-info" style="margin-top: 20px;">
-                            <h4>Submitted Plans</h4>
-                            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">
-                                ${project.submittedPlansFiles.map((file, index) => {
+                    <div class="file-info" style="margin-top: 20px;">
+                        <h4>Submitted Plans</h4>
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">
+                            ${project.submittedPlansFiles && project.submittedPlansFiles.length > 0 ? 
+                                project.submittedPlansFiles.map((file, index) => {
                                     const fileName = file.name || file;
                                     const fileType = file.type || '';
                                     const isImage = fileType.startsWith('image/') || /\.(jpg|jpeg|png)$/i.test(fileName);
@@ -1846,22 +1850,31 @@ class ProjectManager {
                                             <span style="color: #333;">${fileName}</span>
                                         </div>
                                     `;
-                                }).join('')}
-                            </div>
+                                }).join('') :
+                                `<div style="display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; font-size: 0.85rem;">
+                                    <span style="font-size: 1rem;">⚠️</span>
+                                    <span style="color: #856404; font-weight: 500;">File Needed</span>
+                                </div>`
+                            }
                         </div>
-                    ` : ''}
+                    </div>
                     
-                    ${project.approvalLetterFilename || project.approvalLetterStorageUrl || project.hasApprovalLetter ? `
-                        <div class="file-info" style="margin-top: 20px;">
-                            <h4>Architectural Approval Letter</h4>
-                            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">
+                    <div class="file-info" style="margin-top: 20px;">
+                        <h4>Architectural Approval Letter</h4>
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">
+                            ${project.approvalLetterFilename || project.approvalLetterStorageUrl || project.hasApprovalLetter ? `
                                 <div class="file-badge-clickable" data-project-id="${project.id}" data-file-type="approvalLetter" style="display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: #e8f5e9; border: 1px solid #4caf50; border-radius: 4px; font-size: 0.85rem; cursor: pointer; transition: all 0.2s ease;" onmouseover="this.style.background='#c8e6c9'; this.style.borderColor='#2c5530';" onmouseout="this.style.background='#e8f5e9'; this.style.borderColor='#4caf50';">
                                     <span style="font-size: 1rem;">📋</span>
                                     <span style="color: #2c5530; font-weight: 500;">${project.approvalLetterFilename || 'Approval Letter.pdf'}</span>
                                 </div>
-                            </div>
+                            ` : `
+                                <div style="display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; font-size: 0.85rem;">
+                                    <span style="font-size: 1rem;">⚠️</span>
+                                    <span style="color: #856404; font-weight: 500;">File Needed</span>
+                                </div>
+                            `}
                         </div>
-                    ` : ''}
+                    </div>
                 </div>
                 <div class="project-card-actions">
                     ${downloadButton}
