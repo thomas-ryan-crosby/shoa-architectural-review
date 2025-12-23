@@ -38,9 +38,30 @@ class AuthHandler {
 
     showLogin() {
         const loginScreen = document.getElementById('loginScreen');
-        const mainApp = document.getElementById('mainApp');
-        if (loginScreen) loginScreen.style.display = 'flex';
-        // Don't hide main app - allow viewing without login
+        if (loginScreen) {
+            loginScreen.style.display = 'flex';
+            // Close on backdrop click
+            loginScreen.addEventListener('click', (e) => {
+                if (e.target === loginScreen) {
+                    this.hideLogin();
+                }
+            });
+            // Close on Escape key
+            const handleEscape = (e) => {
+                if (e.key === 'Escape') {
+                    this.hideLogin();
+                    document.removeEventListener('keydown', handleEscape);
+                }
+            };
+            document.addEventListener('keydown', handleEscape);
+        }
+    }
+    
+    hideLogin() {
+        const loginScreen = document.getElementById('loginScreen');
+        if (loginScreen) {
+            loginScreen.style.display = 'none';
+        }
     }
 
     showApp() {

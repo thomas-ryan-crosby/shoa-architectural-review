@@ -2426,6 +2426,16 @@ class ProjectManager {
     }
     
     async previewFile(project, fileType, fileIndex) {
+        // Check authentication first
+        const isAuthenticated = window.authHandler && window.authHandler.isAuthenticated();
+        if (!isAuthenticated) {
+            alert('You must be signed in to preview files. Please sign in to continue.');
+            if (window.authHandler) {
+                window.authHandler.showLogin();
+            }
+            return;
+        }
+        
         try {
             let fileData = null;
             let fileName = '';
