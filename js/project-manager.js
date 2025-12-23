@@ -1938,25 +1938,51 @@ class ProjectManager {
                 fileName = project.approvalLetterFilename || 'Approval Letter.pdf';
                 fileMimeType = 'application/pdf';
                 
+                console.log('Previewing approval letter:', {
+                    projectId: project.id,
+                    hasStorageUrl: !!project.approvalLetterStorageUrl,
+                    hasBlob: !!project.approvalLetterBlob,
+                    hasApprovalLetter: project.hasApprovalLetter,
+                    storageUrl: project.approvalLetterStorageUrl,
+                    filename: project.approvalLetterFilename
+                });
+                
                 if (project.approvalLetterStorageUrl) {
                     // Get download URL from Firebase Storage
                     const storage = window.firebaseStorage;
                     if (storage) {
                         try {
-                            const url = new URL(project.approvalLetterStorageUrl);
-                            const pathMatch = url.pathname.match(/\/o\/(.+)/);
-                            if (pathMatch) {
-                                const encodedPath = pathMatch[1];
-                                const decodedPath = decodeURIComponent(encodedPath);
-                                const storageRef = storage.ref(decodedPath);
-                                fileData = await storageRef.getDownloadURL();
-                            } else {
+                            // Check if it's already a full download URL
+                            if (project.approvalLetterStorageUrl.startsWith('http')) {
+                                // Try to use it directly first
                                 fileData = project.approvalLetterStorageUrl;
+                                console.log('Using storage URL directly:', fileData);
+                            } else {
+                                // It's a path, need to get download URL
+                                const storageRef = storage.ref(project.approvalLetterStorageUrl);
+                                fileData = await storageRef.getDownloadURL();
+                                console.log('Got download URL from Storage:', fileData);
                             }
                         } catch (error) {
                             console.error('Error getting download URL:', error);
-                            alert('Error loading file. Please try again.');
-                            return;
+                            // Try to extract path from URL if it's a full URL
+                            try {
+                                const url = new URL(project.approvalLetterStorageUrl);
+                                const pathMatch = url.pathname.match(/\/o\/(.+)/);
+                                if (pathMatch) {
+                                    const encodedPath = pathMatch[1];
+                                    const decodedPath = decodeURIComponent(encodedPath);
+                                    const storageRef = storage.ref(decodedPath);
+                                    fileData = await storageRef.getDownloadURL();
+                                    console.log('Got download URL from extracted path:', fileData);
+                                } else {
+                                    throw new Error('Could not extract path from URL');
+                                }
+                            } catch (retryError) {
+                                console.error('Retry error:', retryError);
+                                alert('Error loading file from storage. Please try again or re-upload the file.');
+                                return;
+                            }
                         }
                     } else {
                         alert('Firebase Storage not available.');
@@ -1964,10 +1990,18 @@ class ProjectManager {
                     }
                 } else if (project.approvalLetterBlob) {
                     // Create blob URL from ArrayBuffer
-                    const blob = new Blob([project.approvalLetterBlob], { type: 'application/pdf' });
-                    fileData = URL.createObjectURL(blob);
+                    try {
+                        const blob = new Blob([project.approvalLetterBlob], { type: 'application/pdf' });
+                        fileData = URL.createObjectURL(blob);
+                        console.log('Created blob URL from ArrayBuffer');
+                    } catch (error) {
+                        console.error('Error creating blob:', error);
+                        alert('Error loading file data. Please try again.');
+                        return;
+                    }
                 } else {
-                    alert('File not available.');
+                    console.warn('No approval letter data available:', project);
+                    alert(`File preview is not available. The approval letter data is not stored. Please re-upload the approval letter or use the download button if available.`);
                     return;
                 }
             } else if (fileType === 'siteConditions' || fileType === 'submittedPlans') {
