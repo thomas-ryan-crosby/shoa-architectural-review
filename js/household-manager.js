@@ -49,6 +49,13 @@ class HouseholdManager {
                 const targetContent = document.getElementById(`${targetTab}Tab`);
                 if (targetContent) {
                     targetContent.classList.add('active');
+                    
+                    // Setup dues configuration when households tab becomes active
+                    if (targetTab === 'households') {
+                        setTimeout(() => {
+                            this.setupDuesConfiguration();
+                        }, 100);
+                    }
                 }
             });
         });
@@ -932,23 +939,33 @@ class HouseholdManager {
         const duesConfigSection = document.getElementById('duesConfigSection');
         const saveDuesConfigBtn = document.getElementById('saveDuesConfigBtn');
 
-        if (configureDuesBtn && duesConfigSection) {
-            configureDuesBtn.addEventListener('click', () => {
-                const isVisible = duesConfigSection.style.display !== 'none';
-                duesConfigSection.style.display = isVisible ? 'none' : 'block';
-                
-                if (!isVisible) {
-                    // Load current values into inputs
-                    const builtDuesInput = document.getElementById('builtDuesAmount');
-                    const lotOnlyDuesInput = document.getElementById('lotOnlyDuesAmount');
-                    if (builtDuesInput) builtDuesInput.value = this.duesConfig.builtDues || '';
-                    if (lotOnlyDuesInput) lotOnlyDuesInput.value = this.duesConfig.lotOnlyDues || '';
-                }
-            });
+        // Remove existing listeners to prevent duplicates
+        if (configureDuesBtn) {
+            const newBtn = configureDuesBtn.cloneNode(true);
+            configureDuesBtn.parentNode.replaceChild(newBtn, configureDuesBtn);
+            
+            if (duesConfigSection) {
+                newBtn.addEventListener('click', () => {
+                    const isVisible = duesConfigSection.style.display !== 'none';
+                    duesConfigSection.style.display = isVisible ? 'none' : 'block';
+                    
+                    if (!isVisible) {
+                        // Load current values into inputs
+                        const builtDuesInput = document.getElementById('builtDuesAmount');
+                        const lotOnlyDuesInput = document.getElementById('lotOnlyDuesAmount');
+                        if (builtDuesInput) builtDuesInput.value = this.duesConfig.builtDues || '';
+                        if (lotOnlyDuesInput) lotOnlyDuesInput.value = this.duesConfig.lotOnlyDues || '';
+                    }
+                });
+            }
         }
 
+        // Remove existing listener and re-add
         if (saveDuesConfigBtn) {
-            saveDuesConfigBtn.addEventListener('click', async () => {
+            const newSaveBtn = saveDuesConfigBtn.cloneNode(true);
+            saveDuesConfigBtn.parentNode.replaceChild(newSaveBtn, saveDuesConfigBtn);
+            
+            newSaveBtn.addEventListener('click', async () => {
                 await this.saveDuesConfig();
             });
         }
