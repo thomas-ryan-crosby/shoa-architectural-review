@@ -734,7 +734,15 @@ class HouseholdManager {
 
         if (noHouseholds) noHouseholds.style.display = 'none';
 
-        const isAdmin = window.userManager && window.userManager.isAdmin();
+        // Safely get admin status - check once for all rows
+        let isAdminCheck = false;
+        try {
+            if (window.userManager) {
+                isAdminCheck = window.userManager.isAdmin() || false;
+            }
+        } catch (error) {
+            console.warn('Error checking admin status:', error);
+        }
 
         let html = `
             <div class="household-table-wrapper">
@@ -753,7 +761,15 @@ class HouseholdManager {
 
         filtered.forEach(household => {
             const memberCount = household.members ? household.members.length : 0;
-            const canEdit = this.canEditHousehold(household.id);
+            
+            // Safely check edit permissions for each household
+            let canEdit = false;
+            try {
+                canEdit = this.canEditHousehold(household.id) || false;
+            } catch (error) {
+                console.warn(`Error checking edit permission for household ${household.id}:`, error);
+            }
+            
             const status = (household.status || 'built').toLowerCase().trim();
             const statusLabel = (status === 'lotonly' || status === 'lot only') ? 'Lot Only' : 'Built';
             const statusClass = (status === 'lotonly' || status === 'lot only') ? 'status-lotonly' : 'status-built';
@@ -768,7 +784,7 @@ class HouseholdManager {
                         <div class="household-actions">
                             <button type="button" class="btn-icon" onclick="window.householdManager.openHouseholdModal('${household.id}')" title="View Details">👁️</button>
                             ${canEdit ? `<button type="button" class="btn-icon" onclick="window.householdManager.openHouseholdModal('${household.id}')" title="Edit">✏️</button>` : ''}
-                            ${isAdmin ? `<button type="button" class="btn-icon btn-danger" onclick="window.householdManager.deleteHousehold('${household.id}')" title="Delete">🗑️</button>` : ''}
+                            ${isAdminCheck ? `<button type="button" class="btn-icon btn-danger" onclick="window.householdManager.deleteHousehold('${household.id}')" title="Delete">🗑️</button>` : ''}
                         </div>
                     </td>
                 </tr>
