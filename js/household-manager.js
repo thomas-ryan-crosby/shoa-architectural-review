@@ -1192,7 +1192,9 @@ class HouseholdManager {
                 <div class="vehicle-item" style="display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid var(--border-color);">
                     <div>
                         <strong>${this.escapeHtml(vehicle.year || '')} ${this.escapeHtml(vehicle.make || '')} ${this.escapeHtml(vehicle.model || '')}</strong>
-                        <div style="color: var(--text-light); font-size: 0.9rem; margin-top: 4px;">Tag: ${this.escapeHtml(vehicle.tagNumber || '')}</div>
+                        <div style="color: var(--text-light); font-size: 0.9rem; margin-top: 4px;">
+                            Plate: ${this.escapeHtml(vehicle.plateNumber || '')} | ${vehicle.tagType === 'sanctuary' ? 'Sanctuary Tag' : vehicle.tagType === 'causeway' ? 'Causeway Tag' : 'Unknown'}: ${this.escapeHtml(vehicle.tagId || '')}
+                        </div>
                     </div>
                     ${canEdit ? `
                         <div style="display: flex; gap: 5px;">
@@ -1217,7 +1219,9 @@ class HouseholdManager {
         const makeInput = document.getElementById('vehicleMake');
         const modelInput = document.getElementById('vehicleModel');
         const yearInput = document.getElementById('vehicleYear');
-        const tagInput = document.getElementById('vehicleTagNumber');
+        const plateNumberInput = document.getElementById('vehiclePlateNumber');
+        const tagTypeInput = document.getElementById('vehicleTagType');
+        const tagIdInput = document.getElementById('vehicleTagId');
 
         if (householdIdInput) householdIdInput.value = householdId;
         if (vehicleIndexInput) vehicleIndexInput.value = vehicleIndex !== null ? vehicleIndex : '';
@@ -1231,7 +1235,9 @@ class HouseholdManager {
                 if (makeInput) makeInput.value = vehicle.make || '';
                 if (modelInput) modelInput.value = vehicle.model || '';
                 if (yearInput) yearInput.value = vehicle.year || '';
-                if (tagInput) tagInput.value = vehicle.tagNumber || '';
+                if (plateNumberInput) plateNumberInput.value = vehicle.plateNumber || '';
+                if (tagTypeInput) tagTypeInput.value = vehicle.tagType || '';
+                if (tagIdInput) tagIdInput.value = vehicle.tagId || '';
             }
         } else {
             // Add mode
@@ -1255,7 +1261,9 @@ class HouseholdManager {
         const makeInput = document.getElementById('vehicleMake');
         const modelInput = document.getElementById('vehicleModel');
         const yearInput = document.getElementById('vehicleYear');
-        const tagInput = document.getElementById('vehicleTagNumber');
+        const plateNumberInput = document.getElementById('vehiclePlateNumber');
+        const tagTypeInput = document.getElementById('vehicleTagType');
+        const tagIdInput = document.getElementById('vehicleTagId');
 
         if (!householdIdInput || !makeInput || !modelInput || !yearInput || !tagInput) return;
 
@@ -1264,10 +1272,22 @@ class HouseholdManager {
         const make = makeInput.value.trim();
         const model = modelInput.value.trim();
         const year = yearInput.value.trim();
-        const tagNumber = tagInput.value.trim();
+        const plateNumber = plateNumberInput.value.trim();
+        const tagType = tagTypeInput.value.trim();
+        const tagId = tagIdInput.value.trim();
 
-        if (!make || !model || !year || !tagNumber) {
+        if (!make || !model || !year || !plateNumber || !tagType || !tagId) {
             alert('Please fill in all vehicle fields.');
+            return;
+        }
+
+        // Validate tag ID format based on tag type
+        if (tagType === 'sanctuary' && !/^\d{3}$/.test(tagId)) {
+            alert('Sanctuary Tag ID must be exactly 3 digits.');
+            return;
+        }
+        if (tagType === 'causeway' && !/^\d{6}$/.test(tagId)) {
+            alert('Causeway Tag ID must be exactly 6 digits.');
             return;
         }
 
@@ -1278,10 +1298,10 @@ class HouseholdManager {
 
         if (vehicleIndex !== null) {
             // Update existing vehicle
-            vehicles[vehicleIndex] = { make, model, year, tagNumber };
+            vehicles[vehicleIndex] = { make, model, year, plateNumber, tagType, tagId };
         } else {
             // Add new vehicle
-            vehicles.push({ make, model, year, tagNumber });
+            vehicles.push({ make, model, year, plateNumber, tagType, tagId });
         }
 
         await this.updateHousehold(householdId, { vehicles: vehicles });
@@ -1336,7 +1356,9 @@ class HouseholdManager {
                 <div class="vehicle-item" style="display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid var(--border-color);">
                     <div>
                         <strong>${this.escapeHtml(vehicle.year || '')} ${this.escapeHtml(vehicle.make || '')} ${this.escapeHtml(vehicle.model || '')}</strong>
-                        <div style="color: var(--text-light); font-size: 0.9rem; margin-top: 4px;">Tag: ${this.escapeHtml(vehicle.tagNumber || '')}</div>
+                        <div style="color: var(--text-light); font-size: 0.9rem; margin-top: 4px;">
+                            Plate: ${this.escapeHtml(vehicle.plateNumber || '')} | ${vehicle.tagType === 'sanctuary' ? 'Sanctuary Tag' : vehicle.tagType === 'causeway' ? 'Causeway Tag' : 'Unknown'}: ${this.escapeHtml(vehicle.tagId || '')}
+                        </div>
                     </div>
                     ${canEdit ? `
                         <div style="display: flex; gap: 5px;">
@@ -1361,7 +1383,9 @@ class HouseholdManager {
         const makeInput = document.getElementById('vehicleMake');
         const modelInput = document.getElementById('vehicleModel');
         const yearInput = document.getElementById('vehicleYear');
-        const tagInput = document.getElementById('vehicleTagNumber');
+        const plateNumberInput = document.getElementById('vehiclePlateNumber');
+        const tagTypeInput = document.getElementById('vehicleTagType');
+        const tagIdInput = document.getElementById('vehicleTagId');
 
         if (householdIdInput) householdIdInput.value = householdId;
         if (vehicleIndexInput) vehicleIndexInput.value = vehicleIndex !== null ? vehicleIndex : '';
@@ -1375,7 +1399,9 @@ class HouseholdManager {
                 if (makeInput) makeInput.value = vehicle.make || '';
                 if (modelInput) modelInput.value = vehicle.model || '';
                 if (yearInput) yearInput.value = vehicle.year || '';
-                if (tagInput) tagInput.value = vehicle.tagNumber || '';
+                if (plateNumberInput) plateNumberInput.value = vehicle.plateNumber || '';
+                if (tagTypeInput) tagTypeInput.value = vehicle.tagType || '';
+                if (tagIdInput) tagIdInput.value = vehicle.tagId || '';
             }
         } else {
             // Add mode
@@ -1399,7 +1425,9 @@ class HouseholdManager {
         const makeInput = document.getElementById('vehicleMake');
         const modelInput = document.getElementById('vehicleModel');
         const yearInput = document.getElementById('vehicleYear');
-        const tagInput = document.getElementById('vehicleTagNumber');
+        const plateNumberInput = document.getElementById('vehiclePlateNumber');
+        const tagTypeInput = document.getElementById('vehicleTagType');
+        const tagIdInput = document.getElementById('vehicleTagId');
 
         if (!householdIdInput || !makeInput || !modelInput || !yearInput || !tagInput) return;
 
@@ -1408,10 +1436,22 @@ class HouseholdManager {
         const make = makeInput.value.trim();
         const model = modelInput.value.trim();
         const year = yearInput.value.trim();
-        const tagNumber = tagInput.value.trim();
+        const plateNumber = plateNumberInput.value.trim();
+        const tagType = tagTypeInput.value.trim();
+        const tagId = tagIdInput.value.trim();
 
-        if (!make || !model || !year || !tagNumber) {
+        if (!make || !model || !year || !plateNumber || !tagType || !tagId) {
             alert('Please fill in all vehicle fields.');
+            return;
+        }
+
+        // Validate tag ID format based on tag type
+        if (tagType === 'sanctuary' && !/^\d{3}$/.test(tagId)) {
+            alert('Sanctuary Tag ID must be exactly 3 digits.');
+            return;
+        }
+        if (tagType === 'causeway' && !/^\d{6}$/.test(tagId)) {
+            alert('Causeway Tag ID must be exactly 6 digits.');
             return;
         }
 
@@ -1422,10 +1462,10 @@ class HouseholdManager {
 
         if (vehicleIndex !== null) {
             // Update existing vehicle
-            vehicles[vehicleIndex] = { make, model, year, tagNumber };
+            vehicles[vehicleIndex] = { make, model, year, plateNumber, tagType, tagId };
         } else {
             // Add new vehicle
-            vehicles.push({ make, model, year, tagNumber });
+            vehicles.push({ make, model, year, plateNumber, tagType, tagId });
         }
 
         await this.updateHousehold(householdId, { vehicles: vehicles });
