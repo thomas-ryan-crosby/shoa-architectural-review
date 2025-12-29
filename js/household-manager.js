@@ -207,13 +207,6 @@ class HouseholdManager {
 
     setupHouseholdForm() {
         const addHouseholdBtn = document.getElementById('addHouseholdBtn');
-        const updateStatusesBtn = document.getElementById('updateStatusesBtn');
-
-        if (updateStatusesBtn) {
-            updateStatusesBtn.addEventListener('click', async () => {
-                await this.updateHouseholdStatuses();
-            });
-        }
         const saveHouseholdBtn = document.getElementById('saveHouseholdBtn');
         const cancelHouseholdBtn = document.getElementById('cancelHouseholdBtn');
         const closeHouseholdModal = document.getElementById('closeHouseholdModal');
@@ -454,14 +447,9 @@ class HouseholdManager {
         const isAdmin = window.userManager && window.userManager.isAdmin();
 
         const addHouseholdBtn = document.getElementById('addHouseholdBtn');
-        const updateStatusesBtn = document.getElementById('updateStatusesBtn');
 
         if (addHouseholdBtn) {
             addHouseholdBtn.style.display = isAdmin ? 'block' : 'none';
-        }
-
-        if (updateStatusesBtn) {
-            updateStatusesBtn.style.display = isAdmin ? 'block' : 'none';
         }
     }
 
@@ -499,6 +487,9 @@ class HouseholdManager {
             
             // Auto-initialize households from embedded data (only if collection is empty)
             await this.initializeHouseholdsFromData();
+            
+            // Auto-update existing households with status information
+            await this.updateHouseholdStatusesAuto();
         } catch (error) {
             console.error('Error initializing Firestore:', error);
             this.firestoreEnabled = false;
@@ -797,6 +788,60 @@ class HouseholdManager {
             lotOnly,
             withMembers
         };
+    }
+
+    async updateHouseholdStatusesAuto() {
+        if (!this.db || typeof HOUSEHOLD_DATA === 'undefined') return;
+
+        try {
+            // Wait a moment for households to load
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            // Create a map of address+lot to status from HOUSEHOLD_DATA
+            const statusMap = new Map();
+            HOUSEHOLD_DATA.forEach(h => {
+                const key = `${h.address.toLowerCase().trim()}_${h.lotNumber.trim()}`;
+                statusMap.set(key, h.status || 'built');
+            });
+
+            let updated = 0;
+            let skipped = 0;
+
+            // Get current user for update tracking
+            const user = window.firebaseAuth ? window.firebaseAuth.currentUser : null;
+
+            for (const household of this.households) {
+                // Skip if already has status
+                if (household.status) {
+                    skipped++;
+                    continue;
+                }
+
+                // Find matching status from data
+                const key = `${household.address.toLowerCase().trim()}_${household.lotNumber.trim()}`;
+                const status = statusMap.get(key) || 'built';
+
+                // Update household directly in Firestore
+                try {
+                    await this.db.collection(this.collectionName).doc(household.id).update({
+                        status: status,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        updatedBy: user ? user.email : 'system'
+                    });
+                    updated++;
+                } catch (error) {
+                    console.error(`Error updating household ${household.address}:`, error);
+                }
+            }
+
+            if (updated > 0) {
+                console.log(`Auto-updated ${updated} households with status information (${skipped} already had status)`);
+                // Reload households to refresh the display
+                await this.loadHouseholds();
+            }
+        } catch (error) {
+            console.error('Error auto-updating household statuses:', error);
+        }
     }
 
     async updateHouseholdStatuses() {
