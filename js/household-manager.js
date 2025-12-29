@@ -683,18 +683,33 @@ class HouseholdManager {
     }
 
     canEditHousehold(householdId) {
-        if (!window.userManager) return false;
-        if (window.userManager.isAdmin()) return true;
+        try {
+            if (!window.userManager) {
+                console.warn('canEditHousehold: userManager not available');
+                return false;
+            }
+            
+            if (window.userManager.isAdmin && window.userManager.isAdmin()) {
+                return true;
+            }
 
-        // Check if current user is household_admin of this household
-        const user = window.firebaseAuth.currentUser;
-        if (!user) return false;
+            // Check if current user is household_admin of this household
+            if (!window.firebaseAuth || !window.firebaseAuth.currentUser) {
+                return false;
+            }
+            
+            const user = window.firebaseAuth.currentUser;
+            if (!user) return false;
 
-        const household = this.households.find(h => h.id === householdId);
-        if (!household || !household.members) return false;
+            const household = this.households.find(h => h.id === householdId);
+            if (!household || !household.members) return false;
 
-        const member = household.members.find(m => m.email === user.email);
-        return member && member.role === 'household_admin';
+            const member = household.members.find(m => m.email === user.email);
+            return member && member.role === 'household_admin';
+        } catch (error) {
+            console.warn('Error in canEditHousehold:', error);
+            return false;
+        }
     }
 
     renderHouseholds() {
@@ -734,12 +749,14 @@ class HouseholdManager {
         // Safely get admin status - check once for all rows
         let isAdminCheck = false;
         try {
-            if (window.userManager) {
-                isAdminCheck = window.userManager.isAdmin() || false;
+            if (window.userManager && typeof window.userManager.isAdmin === 'function') {
+                isAdminCheck = window.userManager.isAdmin();
             }
         } catch (error) {
             console.warn('Error checking admin status:', error);
         }
+
+        console.log('Rendering households - isAdmin:', isAdminCheck, 'userManager:', !!window.userManager);
 
         let html = `
             <div class="household-table-wrapper">
@@ -762,7 +779,9 @@ class HouseholdManager {
             // Safely check edit permissions for each household
             let canEdit = false;
             try {
-                canEdit = this.canEditHousehold(household.id) || false;
+                if (window.userManager && typeof this.canEditHousehold === 'function') {
+                    canEdit = this.canEditHousehold(household.id);
+                }
             } catch (error) {
                 console.warn(`Error checking edit permission for household ${household.id}:`, error);
             }
@@ -770,6 +789,10 @@ class HouseholdManager {
             const status = (household.status || 'built').toLowerCase().trim();
             const statusLabel = (status === 'lotonly' || status === 'lot only') ? 'Lot Only' : 'Built';
             const statusClass = (status === 'lotonly' || status === 'lot only') ? 'status-lotonly' : 'status-built';
+
+            // Always show buttons for admins - check again to be safe
+            const showEdit = isAdminCheck || canEdit;
+            const showDelete = isAdminCheck;
 
             html += `
                 <tr>
@@ -780,8 +803,8 @@ class HouseholdManager {
                     <td class="actions-cell">
                         <div class="household-actions">
                             <button type="button" class="btn-icon" onclick="window.householdManager.openHouseholdModal('${household.id}')" title="View Details">👁️</button>
-                            ${canEdit ? `<button type="button" class="btn-icon" onclick="window.householdManager.openHouseholdModal('${household.id}')" title="Edit">✏️</button>` : ''}
-                            ${isAdminCheck ? `<button type="button" class="btn-icon btn-danger" onclick="window.householdManager.deleteHousehold('${household.id}')" title="Delete">🗑️</button>` : ''}
+                            ${showEdit ? `<button type="button" class="btn-icon" onclick="window.householdManager.openHouseholdModal('${household.id}')" title="Edit">✏️</button>` : ''}
+                            ${showDelete ? `<button type="button" class="btn-icon btn-danger" onclick="window.householdManager.deleteHousehold('${household.id}')" title="Delete">🗑️</button>` : ''}
                         </div>
                     </td>
                 </tr>
