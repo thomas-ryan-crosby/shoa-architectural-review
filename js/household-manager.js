@@ -207,6 +207,13 @@ class HouseholdManager {
 
     setupHouseholdForm() {
         const addHouseholdBtn = document.getElementById('addHouseholdBtn');
+        const updateStatusesBtn = document.getElementById('updateStatusesBtn');
+
+        if (updateStatusesBtn) {
+            updateStatusesBtn.addEventListener('click', async () => {
+                await this.updateHouseholdStatuses();
+            });
+        }
         const saveHouseholdBtn = document.getElementById('saveHouseholdBtn');
         const cancelHouseholdBtn = document.getElementById('cancelHouseholdBtn');
         const closeHouseholdModal = document.getElementById('closeHouseholdModal');
@@ -447,9 +454,14 @@ class HouseholdManager {
         const isAdmin = window.userManager && window.userManager.isAdmin();
 
         const addHouseholdBtn = document.getElementById('addHouseholdBtn');
+        const updateStatusesBtn = document.getElementById('updateStatusesBtn');
 
         if (addHouseholdBtn) {
             addHouseholdBtn.style.display = isAdmin ? 'block' : 'none';
+        }
+
+        if (updateStatusesBtn) {
+            updateStatusesBtn.style.display = isAdmin ? 'block' : 'none';
         }
     }
 
@@ -726,9 +738,9 @@ class HouseholdManager {
         filtered.forEach(household => {
             const memberCount = household.members ? household.members.length : 0;
             const canEdit = this.canEditHousehold(household.id);
-            const status = household.status || 'built';
-            const statusLabel = status === 'lotonly' ? 'Lot Only' : 'Built';
-            const statusClass = status === 'lotonly' ? 'status-lotonly' : 'status-built';
+            const status = (household.status || 'built').toLowerCase().trim();
+            const statusLabel = (status === 'lotonly' || status === 'lot only') ? 'Lot Only' : 'Built';
+            const statusClass = (status === 'lotonly' || status === 'lot only') ? 'status-lotonly' : 'status-built';
 
             html += `
                 <tr>
@@ -766,8 +778,9 @@ class HouseholdManager {
         let withMembers = 0;
 
         this.households.forEach(household => {
-            const status = household.status || 'built';
-            if (status === 'lotonly') {
+            // Check status - handle both 'lotonly' and 'lot only' variations
+            const status = (household.status || 'built').toLowerCase().trim();
+            if (status === 'lotonly' || status === 'lot only') {
                 lotOnly++;
             } else {
                 built++;
@@ -784,6 +797,52 @@ class HouseholdManager {
             lotOnly,
             withMembers
         };
+    }
+
+    async updateHouseholdStatuses() {
+        if (!this.requireAuth() || !this.db) return;
+
+        if (!confirm('This will update all existing households with status information from the CSV data. Continue?')) {
+            return;
+        }
+
+        try {
+            // Create a map of address+lot to status from HOUSEHOLD_DATA
+            const statusMap = new Map();
+            if (typeof HOUSEHOLD_DATA !== 'undefined') {
+                HOUSEHOLD_DATA.forEach(h => {
+                    const key = `${h.address.toLowerCase().trim()}_${h.lotNumber.trim()}`;
+                    statusMap.set(key, h.status || 'built');
+                });
+            }
+
+            let updated = 0;
+            let skipped = 0;
+
+            for (const household of this.households) {
+                // Skip if already has status
+                if (household.status) {
+                    skipped++;
+                    continue;
+                }
+
+                // Find matching status from data
+                const key = `${household.address.toLowerCase().trim()}_${household.lotNumber.trim()}`;
+                const status = statusMap.get(key) || 'built';
+
+                // Update household
+                await this.updateHousehold(household.id, { status: status });
+                updated++;
+            }
+
+            alert(`Status update complete!\nUpdated: ${updated}\nSkipped (already had status): ${skipped}`);
+            
+            // Reload households
+            await this.loadHouseholds();
+        } catch (error) {
+            console.error('Error updating household statuses:', error);
+            alert('Error updating household statuses. Please try again.');
+        }
     }
 
     renderMetrics() {
