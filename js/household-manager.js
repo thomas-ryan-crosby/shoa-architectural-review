@@ -510,9 +510,6 @@ class HouseholdManager {
             // Auto-initialize households from embedded data (only if collection is empty)
             await this.initializeHouseholdsFromData();
             
-            // Auto-update existing households with status information
-            await this.updateHouseholdStatusesAuto();
-            
             // Load dues configuration
             await this.loadDuesConfig();
         } catch (error) {
@@ -831,72 +828,8 @@ class HouseholdManager {
         };
     }
 
-    async updateHouseholdStatusesAuto() {
-        if (!this.db || typeof HOUSEHOLD_DATA === 'undefined') {
-            return;
-        }
-
-        try {
-            // Wait a moment for households to load
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            
-            // Ensure households are loaded
-            if (this.households.length === 0) {
-                await this.loadHouseholds();
-                await new Promise(resolve => setTimeout(resolve, 1000));
-            }
-
-            // Check if all households already have status - if so, skip update entirely
-            const householdsWithoutStatus = this.households.filter(h => !h.status || !h.status.trim());
-            
-            if (householdsWithoutStatus.length === 0) {
-                // All households have status, no need to update
-                return;
-            }
-
-            console.log(`Updating ${householdsWithoutStatus.length} households with missing status information...`);
-
-            // Create a map of address+lot to status from HOUSEHOLD_DATA
-            const statusMap = new Map();
-            HOUSEHOLD_DATA.forEach(h => {
-                const key = `${h.address.toLowerCase().trim()}_${h.lotNumber.trim()}`;
-                statusMap.set(key, h.status || 'built');
-            });
-
-            let updated = 0;
-            let errors = 0;
-
-            // Get current user for update tracking
-            const user = window.firebaseAuth ? window.firebaseAuth.currentUser : null;
-
-            for (const household of householdsWithoutStatus) {
-                // Find matching status from data
-                const key = `${household.address.toLowerCase().trim()}_${household.lotNumber.trim()}`;
-                const status = statusMap.get(key) || 'built';
-
-                // Update household directly in Firestore
-                try {
-                    await this.db.collection(this.collectionName).doc(household.id).update({
-                        status: status,
-                        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                        updatedBy: user ? user.email : 'system'
-                    });
-                    updated++;
-                } catch (error) {
-                    console.error(`Error updating household ${household.address}:`, error);
-                    errors++;
-                }
-            }
-
-            if (updated > 0) {
-                console.log(`Updated ${updated} households with status information${errors > 0 ? ` (${errors} errors)` : ''}`);
-                // Reload households to refresh the display
-                await this.loadHouseholds();
-            }
-        } catch (error) {
-            console.error('Error auto-updating household statuses:', error);
-        }
-    }
+    // Removed: updateHouseholdStatusesAuto() - status updates should only be done through the edit button
+    // The initial status is set when households are created from HOUSEHOLD_DATA
 
     async updateHouseholdStatuses() {
         if (!this.requireAuth() || !this.db) return;
