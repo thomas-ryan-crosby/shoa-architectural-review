@@ -707,29 +707,45 @@ class HouseholdManager {
 
         const isAdmin = window.userManager && window.userManager.isAdmin();
 
-        let html = '<div class="household-grid">';
+        let html = `
+            <div class="household-table-wrapper">
+                <table class="household-table">
+                    <thead>
+                        <tr>
+                            <th>Address</th>
+                            <th>Lot Number</th>
+                            <th>Members</th>
+                            <th class="actions-column">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
         filtered.forEach(household => {
             const memberCount = household.members ? household.members.length : 0;
             const canEdit = this.canEditHousehold(household.id);
 
             html += `
-                <div class="household-card">
-                    <div class="household-card-header">
-                        <h3>${this.escapeHtml(household.address)}</h3>
+                <tr>
+                    <td class="address-cell">${this.escapeHtml(household.address)}</td>
+                    <td class="lot-cell">${this.escapeHtml(household.lotNumber)}</td>
+                    <td class="members-cell">${memberCount}</td>
+                    <td class="actions-cell">
                         <div class="household-actions">
                             <button type="button" class="btn-icon" onclick="window.householdManager.openHouseholdModal('${household.id}')" title="View Details">👁️</button>
                             ${canEdit ? `<button type="button" class="btn-icon" onclick="window.householdManager.openHouseholdModal('${household.id}')" title="Edit">✏️</button>` : ''}
                             ${isAdmin ? `<button type="button" class="btn-icon btn-danger" onclick="window.householdManager.deleteHousehold('${household.id}')" title="Delete">🗑️</button>` : ''}
                         </div>
-                    </div>
-                    <div class="household-card-body">
-                        <p><strong>Lot Number:</strong> ${this.escapeHtml(household.lotNumber)}</p>
-                        <p><strong>Members:</strong> ${memberCount}</p>
-                    </div>
-                </div>
+                    </td>
+                </tr>
             `;
         });
-        html += '</div>';
+
+        html += `
+                    </tbody>
+                </table>
+            </div>
+        `;
 
         listContainer.innerHTML = html;
     }

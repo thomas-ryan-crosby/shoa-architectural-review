@@ -1511,45 +1511,84 @@ header .btn-secondary:hover {
     margin-top: 20px;
 }
 
-.household-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 20px;
-    margin-top: 20px;
-}
-
-.household-card {
+.household-table-wrapper {
+    overflow-x: auto;
     background: var(--card-bg);
-    border: 2px solid var(--border-color);
     border-radius: 8px;
-    padding: 20px;
-    transition: all 0.3s ease;
+    border: 2px solid var(--border-color);
     box-shadow: 0 2px 4px rgba(0,0,0,0.08);
 }
 
-.household-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.12);
-    border-color: var(--primary-color);
+.household-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--white);
 }
 
-.household-card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 15px;
+.household-table thead {
+    background: var(--primary-color);
+    color: var(--white);
 }
 
-.household-card-header h3 {
-    margin: 0;
-    font-size: 1.1rem;
+.household-table th {
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid rgba(255,255,255,0.2);
+}
+
+.household-table th.actions-column {
+    text-align: center;
+    width: 120px;
+}
+
+.household-table tbody tr {
+    border-bottom: 1px solid var(--border-color);
+    transition: background-color 0.2s ease;
+}
+
+.household-table tbody tr:hover {
+    background-color: rgba(44, 85, 48, 0.05);
+}
+
+.household-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.household-table td {
+    padding: 14px 16px;
+    color: var(--text-color);
+    font-size: 0.95rem;
+}
+
+.household-table .address-cell {
+    font-weight: 500;
     color: var(--text-primary);
-    flex: 1;
+}
+
+.household-table .lot-cell {
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.household-table .members-cell {
+    text-align: center;
+    color: var(--text-light);
+}
+
+.household-table .actions-cell {
+    text-align: center;
+    padding: 8px 16px;
 }
 
 .household-actions {
     display: flex;
     gap: 8px;
+    justify-content: center;
+    align-items: center;
 }
 
 .btn-icon {
@@ -1572,20 +1611,6 @@ header .btn-secondary:hover {
 .btn-icon.btn-danger:hover {
     background: rgba(220, 53, 69, 0.1);
     color: var(--error-color);
-}
-
-.household-card-body {
-    color: var(--text-color);
-}
-
-.household-card-body p {
-    margin: 8px 0;
-    font-size: 0.95rem;
-}
-
-.household-card-body strong {
-    color: var(--text-primary);
-    margin-right: 5px;
 }
 
 .members-list {
@@ -1641,17 +1666,52 @@ header .btn-secondary:hover {
 
 /* Mobile Responsive for Households */
 @media (max-width: 768px) {
-    .household-grid {
-        grid-template-columns: 1fr;
+    .household-table-wrapper {
+        border-radius: 6px;
     }
 
-    .household-card-header {
-        flex-direction: column;
-        gap: 10px;
+    .household-table {
+        font-size: 0.85rem;
+    }
+
+    .household-table th,
+    .household-table td {
+        padding: 10px 8px;
+    }
+
+    .household-table th {
+        font-size: 0.8rem;
+        padding: 10px 8px;
+    }
+
+    .household-table .address-cell {
+        max-width: 150px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .household-table .actions-cell {
+        padding: 6px 8px;
     }
 
     .household-actions {
-        align-self: flex-end;
+        gap: 4px;
+    }
+
+    .btn-icon {
+        font-size: 1rem;
+        padding: 4px 6px;
+    }
+}
+
+@media (max-width: 480px) {
+    .household-table th.actions-column {
+        width: 80px;
+    }
+
+    .household-table .address-cell {
+        max-width: 120px;
     }
 }
 
