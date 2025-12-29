@@ -99,8 +99,14 @@
         </header>
 
         <main>
+            <!-- Tab Navigation -->
+            <div class="tab-navigation">
+                <button type="button" class="tab-button active" data-tab="projects">Projects</button>
+                <button type="button" class="tab-button" data-tab="households">Households & Members</button>
+            </div>
+
             <!-- Project Overview -->
-            <div id="projectsTab">
+            <div id="projectsTab" class="tab-content active">
                 <section class="form-section">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                         <h2 style="margin: 0;">Project Tracking</h2>
@@ -552,6 +558,42 @@
                     </div>
                 </section>
             </div>
+
+            <!-- Households & Members Tab -->
+            <div id="householdsTab" class="tab-content">
+                <section class="form-section">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
+                        <h2 style="margin: 0;">Households & Members</h2>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button type="button" id="addHouseholdBtn" class="btn-secondary" style="display: none;">
+                                + Add Household
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Search/Filter -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 15px; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 200px;">
+                            <input type="text" id="householdSearch" placeholder="Search by address or lot number..." style="width: 100%; padding: 10px; border: 2px solid var(--border-color); border-radius: 6px; font-size: 0.95rem;">
+                        </div>
+                        <div style="display: flex; gap: 10px;">
+                            <select id="householdSortBy" style="padding: 10px; border: 2px solid var(--border-color); border-radius: 6px; font-size: 0.95rem;">
+                                <option value="address">Sort by Address</option>
+                                <option value="lotNumber">Sort by Lot Number</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Household List -->
+                    <div id="householdList" class="household-list">
+                        <!-- Households will be dynamically added here -->
+                    </div>
+
+                    <div class="no-households" id="noHouseholds" style="display: none; text-align: center; padding: 40px; color: var(--text-light);">
+                        <p>No households found. Upload a CSV file or add a household manually to get started.</p>
+                    </div>
+                </section>
+            </div>
         </main>
 
         <footer>
@@ -892,6 +934,75 @@
         </div>
     </div>
 
+    <!-- Household Detail/Edit Modal -->
+    <div class="modal-overlay" id="householdModal" style="display: none;">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2 id="householdModalTitle">Household Details</h2>
+                <button class="modal-close" id="closeHouseholdModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="householdForm">
+                    <div class="form-group">
+                        <label for="householdAddress">Address <span class="required">*</span></label>
+                        <input type="text" id="householdAddress" required placeholder="e.g., 133 Juniper Court">
+                    </div>
+                    <div class="form-group">
+                        <label for="householdLotNumber">Lot Number <span class="required">*</span></label>
+                        <input type="text" id="householdLotNumber" required placeholder="e.g., 434">
+                    </div>
+                    <div id="householdMembersSection" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+                        <h3 style="margin-bottom: 15px;">Members</h3>
+                        <div id="householdMembersList">
+                            <!-- Members will be listed here -->
+                        </div>
+                        <button type="button" id="addMemberBtn" class="btn-secondary" style="margin-top: 10px; display: none;">+ Add Member</button>
+                    </div>
+                    <input type="hidden" id="householdId">
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="saveHouseholdBtn" class="btn-primary">Save</button>
+                <button type="button" id="cancelHouseholdBtn" class="btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Member Modal -->
+    <div class="modal-overlay" id="addMemberModal" style="display: none;">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>Add Member to Household</h2>
+                <button class="modal-close" id="closeAddMemberModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="addMemberForm">
+                    <div class="form-group">
+                        <label for="memberEmail">Email <span class="required">*</span></label>
+                        <input type="email" id="memberEmail" required placeholder="member@example.com">
+                        <small class="form-hint">Member must have an existing account in the system</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="memberName">Name</label>
+                        <input type="text" id="memberName" placeholder="Full Name">
+                    </div>
+                    <div class="form-group">
+                        <label for="memberRole">Role <span class="required">*</span></label>
+                        <select id="memberRole" required>
+                            <option value="household_admin">Household Admin</option>
+                            <option value="household_member">Household Member</option>
+                        </select>
+                    </div>
+                    <input type="hidden" id="addMemberHouseholdId">
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="saveMemberBtn" class="btn-primary">Add Member</button>
+                <button type="button" id="cancelMemberBtn" class="btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <div class="loading-overlay" id="loadingOverlay" style="display: none;">
         <div class="loading-content">
             <div class="spinner-large"></div>
@@ -927,6 +1038,8 @@
     <script src="js/file-handler.js"></script>
     <script src="js/pdf-generator.js"></script>
     <script src="js/project-manager.js"></script>
+    <script src="js/household-data.js"></script>
+    <script src="js/household-manager.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

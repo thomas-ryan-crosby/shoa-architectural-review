@@ -71,6 +71,18 @@ service cloud.firestore {
       // For now, allow authenticated users to update (admin check is done in application code)
       allow update: if request.auth != null;
     }
+    
+    // Households collection - for property and member management
+    match /households/{householdId} {
+      // Authenticated users can read all households
+      allow read: if request.auth != null;
+      // Only authenticated users can create (admin check done in app code)
+      allow create: if request.auth != null;
+      // Authenticated users can update (admin/household_admin check done in app code)
+      allow update: if request.auth != null;
+      // Only authenticated users can delete (admin check done in app code)
+      allow delete: if request.auth != null;
+    }
   }
 }
 ```
