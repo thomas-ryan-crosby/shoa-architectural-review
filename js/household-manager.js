@@ -756,7 +756,10 @@ class HouseholdManager {
             console.warn('Error checking admin status:', error);
         }
 
-        console.log('Rendering households - isAdmin:', isAdminCheck, 'userManager:', !!window.userManager);
+        // Debug logging
+        if (!isAdminCheck) {
+            console.log('Rendering households - isAdmin:', isAdminCheck, 'userManager:', !!window.userManager, 'userManager.isAdmin:', typeof window.userManager?.isAdmin);
+        }
 
         let html = `
             <div class="household-table-wrapper">
