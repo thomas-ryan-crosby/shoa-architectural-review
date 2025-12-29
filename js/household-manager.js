@@ -585,7 +585,10 @@ class HouseholdManager {
                         ...doc.data()
                     });
                 });
-                this.renderHouseholds();
+                // Small delay to ensure userManager has loaded user data
+                setTimeout(() => {
+                    this.renderHouseholds();
+                }, 200);
             }, (error) => {
                 console.error('Error listening to households:', error);
             });

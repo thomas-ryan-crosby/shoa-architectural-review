@@ -48,6 +48,13 @@ class UserManager {
                     this.currentUserStatus = null;
                 }
             }
+            
+            // Trigger re-render of households after user data is loaded
+            if (window.householdManager && typeof window.householdManager.renderHouseholds === 'function') {
+                setTimeout(() => {
+                    window.householdManager.renderHouseholds();
+                }, 100);
+            }
         } catch (error) {
             console.error('Error loading user data:', error);
         }
