@@ -527,6 +527,7 @@ class HouseholdManager {
                     const householdData = {
                         address: household.address.trim(),
                         lotNumber: household.lotNumber.trim(),
+                        status: household.status || 'built',
                         members: [],
                         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                         updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -714,6 +715,7 @@ class HouseholdManager {
                         <tr>
                             <th>Address</th>
                             <th>Lot Number</th>
+                            <th>Status</th>
                             <th>Members</th>
                             <th class="actions-column">Actions</th>
                         </tr>
@@ -724,11 +726,15 @@ class HouseholdManager {
         filtered.forEach(household => {
             const memberCount = household.members ? household.members.length : 0;
             const canEdit = this.canEditHousehold(household.id);
+            const status = household.status || 'built';
+            const statusLabel = status === 'lotonly' ? 'Lot Only' : 'Built';
+            const statusClass = status === 'lotonly' ? 'status-lotonly' : 'status-built';
 
             html += `
                 <tr>
                     <td class="address-cell">${this.escapeHtml(household.address)}</td>
                     <td class="lot-cell">${this.escapeHtml(household.lotNumber)}</td>
+                    <td class="status-cell"><span class="status-badge ${statusClass}">${statusLabel}</span></td>
                     <td class="members-cell">${memberCount}</td>
                     <td class="actions-cell">
                         <div class="household-actions">
@@ -748,6 +754,52 @@ class HouseholdManager {
         `;
 
         listContainer.innerHTML = html;
+        
+        // Update metrics dashboard
+        this.renderMetrics();
+    }
+
+    calculateMetrics() {
+        const total = this.households.length;
+        let built = 0;
+        let lotOnly = 0;
+        let withMembers = 0;
+
+        this.households.forEach(household => {
+            const status = household.status || 'built';
+            if (status === 'lotonly') {
+                lotOnly++;
+            } else {
+                built++;
+            }
+
+            if (household.members && household.members.length > 0) {
+                withMembers++;
+            }
+        });
+
+        return {
+            total,
+            built,
+            lotOnly,
+            withMembers
+        };
+    }
+
+    renderMetrics() {
+        const metrics = this.calculateMetrics();
+
+        const updateMetric = (id, value) => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.textContent = value;
+            }
+        };
+
+        updateMetric('metricTotalHouseholds', metrics.total);
+        updateMetric('metricBuiltHouseholds', metrics.built);
+        updateMetric('metricLotOnlyHouseholds', metrics.lotOnly);
+        updateMetric('metricHouseholdsWithMembers', metrics.withMembers);
     }
 
     renderHouseholdMembers(householdId) {
