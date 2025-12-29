@@ -1012,12 +1012,15 @@
 
     <!-- Household Detail/Edit Modal -->
     <div class="modal-overlay" id="householdModal" style="display: none;">
-        <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
             <div class="modal-header">
                 <h2 id="householdModalTitle">Household Details</h2>
                 <button class="modal-close" id="closeHouseholdModal">&times;</button>
             </div>
             <div class="modal-body">
+                <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; padding: 12px; margin-bottom: 20px;">
+                    <strong>⚠️ Note:</strong> Household address and lot number should only be changed when community configuration changes (e.g., lots are combined or new lots are added).
+                </div>
                 <form id="householdForm">
                     <div class="form-group">
                         <label for="householdAddress">Address <span class="required">*</span></label>
@@ -1027,13 +1030,36 @@
                         <label for="householdLotNumber">Lot Number <span class="required">*</span></label>
                         <input type="text" id="householdLotNumber" required placeholder="e.g., 434">
                     </div>
+                    <div class="form-group">
+                        <label for="householdStatus">Status</label>
+                        <select id="householdStatus" required>
+                            <option value="built">Built</option>
+                            <option value="lotonly">Lot Only</option>
+                        </select>
+                    </div>
+                    
                     <div id="householdMembersSection" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color);">
-                        <h3 style="margin-bottom: 15px;">Members</h3>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <h3 style="margin: 0;">Members</h3>
+                            <button type="button" id="addMemberBtn" class="btn-secondary small-btn" style="display: none;">+ Add Member</button>
+                        </div>
                         <div id="householdMembersList">
                             <!-- Members will be listed here -->
                         </div>
-                        <button type="button" id="addMemberBtn" class="btn-secondary" style="margin-top: 10px; display: none;">+ Add Member</button>
+                        <div id="noMembers" style="display: none; text-align: center; color: var(--text-light); margin-top: 15px;">No members added yet.</div>
                     </div>
+
+                    <div id="householdVehiclesSection" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <h3 style="margin: 0;">Vehicles</h3>
+                            <button type="button" id="addVehicleBtn" class="btn-secondary small-btn" style="display: none;">+ Add Vehicle</button>
+                        </div>
+                        <div id="householdVehiclesList">
+                            <!-- Vehicles will be listed here -->
+                        </div>
+                        <div id="noVehicles" style="display: none; text-align: center; color: var(--text-light); margin-top: 15px;">No vehicles registered yet.</div>
+                    </div>
+                    
                     <input type="hidden" id="householdId">
                 </form>
             </div>
@@ -1065,9 +1091,11 @@
                     <div class="form-group">
                         <label for="memberRole">Role <span class="required">*</span></label>
                         <select id="memberRole" required>
+                            <option value="primary_member">Primary Member</option>
                             <option value="household_admin">Household Admin</option>
                             <option value="household_member">Household Member</option>
                         </select>
+                        <small class="form-hint">Primary Member: Main contact. Household Admin: Can manage members and vehicles. Household Member: View-only access.</small>
                     </div>
                     <input type="hidden" id="addMemberHouseholdId">
                 </form>
@@ -1075,6 +1103,42 @@
             <div class="modal-footer">
                 <button type="button" id="saveMemberBtn" class="btn-primary">Add Member</button>
                 <button type="button" id="cancelMemberBtn" class="btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Vehicle Modal -->
+    <div class="modal-overlay" id="addVehicleModal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="vehicleModalTitle">Add Vehicle</h2>
+                <button class="modal-close" id="closeAddVehicleModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="addVehicleForm">
+                    <div class="form-group">
+                        <label for="vehicleMake">Make <span class="required">*</span></label>
+                        <input type="text" id="vehicleMake" required placeholder="e.g., Toyota">
+                    </div>
+                    <div class="form-group">
+                        <label for="vehicleModel">Model <span class="required">*</span></label>
+                        <input type="text" id="vehicleModel" required placeholder="e.g., Camry">
+                    </div>
+                    <div class="form-group">
+                        <label for="vehicleYear">Year <span class="required">*</span></label>
+                        <input type="number" id="vehicleYear" required placeholder="e.g., 2020" min="1900" max="2100">
+                    </div>
+                    <div class="form-group">
+                        <label for="vehicleTagNumber">Tag Number <span class="required">*</span></label>
+                        <input type="text" id="vehicleTagNumber" required placeholder="e.g., ABC1234">
+                    </div>
+                    <input type="hidden" id="addVehicleHouseholdId">
+                    <input type="hidden" id="editVehicleIndex">
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="saveVehicleBtn" class="btn-primary">Save Vehicle</button>
+                <button type="button" id="cancelVehicleBtn" class="btn-secondary">Cancel</button>
             </div>
         </div>
     </div>

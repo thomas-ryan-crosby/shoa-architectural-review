@@ -355,9 +355,12 @@ class HouseholdManager {
         const form = document.getElementById('householdForm');
         const addressInput = document.getElementById('householdAddress');
         const lotInput = document.getElementById('householdLotNumber');
+        const statusInput = document.getElementById('householdStatus');
         const householdIdInput = document.getElementById('householdId');
         const membersSection = document.getElementById('householdMembersSection');
+        const vehiclesSection = document.getElementById('householdVehiclesSection');
         const addMemberBtn = document.getElementById('addMemberBtn');
+        const addVehicleBtn = document.getElementById('addVehicleBtn');
 
         if (householdId) {
             // Edit mode
@@ -367,6 +370,7 @@ class HouseholdManager {
             if (title) title.textContent = 'Edit Household';
             if (addressInput) addressInput.value = household.address || '';
             if (lotInput) lotInput.value = household.lotNumber || '';
+            if (statusInput) statusInput.value = household.status || 'built';
             if (householdIdInput) householdIdInput.value = householdId;
 
             // Load and display members
@@ -377,13 +381,25 @@ class HouseholdManager {
             } else if (addMemberBtn) {
                 addMemberBtn.style.display = 'none';
             }
+
+            // Load and display vehicles
+            this.renderHouseholdVehicles(householdId);
+            if (vehiclesSection) vehiclesSection.style.display = 'block';
+            if (addVehicleBtn && this.canEditHousehold(householdId)) {
+                addVehicleBtn.style.display = 'block';
+            } else if (addVehicleBtn) {
+                addVehicleBtn.style.display = 'none';
+            }
         } else {
             // Add mode
             if (title) title.textContent = 'Add Household';
             if (form) form.reset();
+            if (statusInput) statusInput.value = 'built';
             if (householdIdInput) householdIdInput.value = '';
             if (membersSection) membersSection.style.display = 'none';
+            if (vehiclesSection) vehiclesSection.style.display = 'none';
             if (addMemberBtn) addMemberBtn.style.display = 'none';
+            if (addVehicleBtn) addVehicleBtn.style.display = 'none';
         }
 
         if (modal) modal.style.display = 'flex';
@@ -399,6 +415,7 @@ class HouseholdManager {
 
         const addressInput = document.getElementById('householdAddress');
         const lotInput = document.getElementById('householdLotNumber');
+        const statusInput = document.getElementById('householdStatus');
         const householdIdInput = document.getElementById('householdId');
 
         if (!addressInput || !lotInput) return;
@@ -412,10 +429,12 @@ class HouseholdManager {
             return;
         }
 
+        const status = statusInput ? statusInput.value : 'built';
+
         try {
             if (householdId) {
                 // Update existing
-                await this.updateHousehold(householdId, { address, lotNumber });
+                await this.updateHousehold(householdId, { address, lotNumber, status });
             } else {
                 // Create new
                 // Check for duplicates
@@ -424,7 +443,7 @@ class HouseholdManager {
                     alert('A household with this address and lot number already exists.');
                     return;
                 }
-                await this.createHousehold(address, lotNumber);
+                await this.createHousehold(address, lotNumber, status);
             }
 
             this.closeHouseholdModal();
@@ -612,7 +631,7 @@ class HouseholdManager {
         }
     }
 
-    async createHousehold(address, lotNumber) {
+    async createHousehold(address, lotNumber, status = 'built') {
         if (!this.requireAuth() || !this.db) return;
 
         const user = window.firebaseAuth.currentUser;
@@ -621,7 +640,9 @@ class HouseholdManager {
         const householdData = {
             address: address.trim(),
             lotNumber: lotNumber.trim(),
+            status: status || 'built',
             members: [],
+            vehicles: [],
             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
             updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
             createdBy: user.email,
@@ -1049,25 +1070,35 @@ class HouseholdManager {
 
     renderHouseholdMembers(householdId) {
         const membersList = document.getElementById('householdMembersList');
+        const noMembers = document.getElementById('noMembers');
         if (!membersList) return;
 
         const household = this.households.find(h => h.id === householdId);
         if (!household || !household.members || household.members.length === 0) {
-            membersList.innerHTML = '<p style="color: var(--text-light);">No members added yet.</p>';
+            membersList.innerHTML = '';
+            if (noMembers) noMembers.style.display = 'block';
             return;
         }
 
         const canEdit = this.canEditHousehold(householdId);
         const currentUser = window.firebaseAuth.currentUser;
 
+        const noMembers = document.getElementById('noMembers');
+        if (noMembers) noMembers.style.display = 'none';
+
         let html = '<div class="members-list">';
         household.members.forEach((member, index) => {
             const isCurrentUser = currentUser && member.email === currentUser.email;
+            let roleLabel = 'Member';
+            if (member.role === 'primary_member') roleLabel = 'Primary Member';
+            else if (member.role === 'household_admin') roleLabel = 'Household Admin';
+            else if (member.role === 'household_member') roleLabel = 'Household Member';
+            
             html += `
-                <div class="member-item">
+                <div class="member-item" style="display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid var(--border-color);">
                     <div>
                         <strong>${this.escapeHtml(member.name || member.email)}</strong>
-                        <span class="member-role">${member.role === 'household_admin' ? 'Admin' : 'Member'}</span>
+                        <span class="member-role" style="margin-left: 10px; padding: 2px 8px; background: var(--primary-color); color: white; border-radius: 4px; font-size: 0.85rem;">${roleLabel}</span>
                     </div>
                     ${canEdit && !isCurrentUser ? `
                         <button type="button" class="btn-icon btn-small" onclick="window.householdManager.removeMember('${householdId}', '${member.email}')" title="Remove">✕</button>
@@ -1133,6 +1164,294 @@ class HouseholdManager {
 
         const members = household.members.filter(m => m.email !== memberEmail);
         await this.updateHousehold(householdId, { members: members });
+        
+        // Reload to refresh UI
+        await this.loadHouseholds();
+        this.openHouseholdModal(householdId);
+    }
+
+    renderHouseholdVehicles(householdId) {
+        const vehiclesList = document.getElementById('householdVehiclesList');
+        const noVehicles = document.getElementById('noVehicles');
+        if (!vehiclesList) return;
+
+        const household = this.households.find(h => h.id === householdId);
+        if (!household || !household.vehicles || household.vehicles.length === 0) {
+            vehiclesList.innerHTML = '';
+            if (noVehicles) noVehicles.style.display = 'block';
+            return;
+        }
+
+        if (noVehicles) noVehicles.style.display = 'none';
+
+        const canEdit = this.canEditHousehold(householdId);
+
+        let html = '<div class="vehicles-list">';
+        household.vehicles.forEach((vehicle, index) => {
+            html += `
+                <div class="vehicle-item" style="display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid var(--border-color);">
+                    <div>
+                        <strong>${this.escapeHtml(vehicle.year || '')} ${this.escapeHtml(vehicle.make || '')} ${this.escapeHtml(vehicle.model || '')}</strong>
+                        <div style="color: var(--text-light); font-size: 0.9rem; margin-top: 4px;">Tag: ${this.escapeHtml(vehicle.tagNumber || '')}</div>
+                    </div>
+                    ${canEdit ? `
+                        <div style="display: flex; gap: 5px;">
+                            <button type="button" class="btn-icon btn-small" onclick="window.householdManager.openEditVehicleModal('${householdId}', ${index})" title="Edit">✏️</button>
+                            <button type="button" class="btn-icon btn-small btn-danger" onclick="window.householdManager.removeVehicle('${householdId}', ${index})" title="Remove">✕</button>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        });
+        html += '</div>';
+
+        vehiclesList.innerHTML = html;
+    }
+
+    openAddVehicleModal(householdId, vehicleIndex = null) {
+        const modal = document.getElementById('addVehicleModal');
+        const title = document.getElementById('vehicleModalTitle');
+        const householdIdInput = document.getElementById('addVehicleHouseholdId');
+        const vehicleIndexInput = document.getElementById('editVehicleIndex');
+        const form = document.getElementById('addVehicleForm');
+        const makeInput = document.getElementById('vehicleMake');
+        const modelInput = document.getElementById('vehicleModel');
+        const yearInput = document.getElementById('vehicleYear');
+        const tagInput = document.getElementById('vehicleTagNumber');
+
+        if (householdIdInput) householdIdInput.value = householdId;
+        if (vehicleIndexInput) vehicleIndexInput.value = vehicleIndex !== null ? vehicleIndex : '';
+
+        if (vehicleIndex !== null) {
+            // Edit mode
+            const household = this.households.find(h => h.id === householdId);
+            if (household && household.vehicles && household.vehicles[vehicleIndex]) {
+                const vehicle = household.vehicles[vehicleIndex];
+                if (title) title.textContent = 'Edit Vehicle';
+                if (makeInput) makeInput.value = vehicle.make || '';
+                if (modelInput) modelInput.value = vehicle.model || '';
+                if (yearInput) yearInput.value = vehicle.year || '';
+                if (tagInput) tagInput.value = vehicle.tagNumber || '';
+            }
+        } else {
+            // Add mode
+            if (title) title.textContent = 'Add Vehicle';
+            if (form) form.reset();
+        }
+
+        if (modal) modal.style.display = 'flex';
+    }
+
+    closeAddVehicleModal() {
+        const modal = document.getElementById('addVehicleModal');
+        if (modal) modal.style.display = 'none';
+    }
+
+    async saveVehicle() {
+        if (!this.requireAuth() || !this.db) return;
+
+        const householdIdInput = document.getElementById('addVehicleHouseholdId');
+        const vehicleIndexInput = document.getElementById('editVehicleIndex');
+        const makeInput = document.getElementById('vehicleMake');
+        const modelInput = document.getElementById('vehicleModel');
+        const yearInput = document.getElementById('vehicleYear');
+        const tagInput = document.getElementById('vehicleTagNumber');
+
+        if (!householdIdInput || !makeInput || !modelInput || !yearInput || !tagInput) return;
+
+        const householdId = householdIdInput.value;
+        const vehicleIndex = vehicleIndexInput.value !== '' ? parseInt(vehicleIndexInput.value) : null;
+        const make = makeInput.value.trim();
+        const model = modelInput.value.trim();
+        const year = yearInput.value.trim();
+        const tagNumber = tagInput.value.trim();
+
+        if (!make || !model || !year || !tagNumber) {
+            alert('Please fill in all vehicle fields.');
+            return;
+        }
+
+        const household = this.households.find(h => h.id === householdId);
+        if (!household) return;
+
+        const vehicles = household.vehicles || [];
+
+        if (vehicleIndex !== null) {
+            // Update existing vehicle
+            vehicles[vehicleIndex] = { make, model, year, tagNumber };
+        } else {
+            // Add new vehicle
+            vehicles.push({ make, model, year, tagNumber });
+        }
+
+        await this.updateHousehold(householdId, { vehicles: vehicles });
+        this.closeAddVehicleModal();
+        
+        // Reload to refresh UI
+        await this.loadHouseholds();
+        this.openHouseholdModal(householdId);
+    }
+
+    openEditVehicleModal(householdId, vehicleIndex) {
+        this.openAddVehicleModal(householdId, vehicleIndex);
+    }
+
+    async removeVehicle(householdId, vehicleIndex) {
+        if (!this.requireAuth() || !this.db) return;
+
+        if (!confirm('Are you sure you want to remove this vehicle?')) {
+            return;
+        }
+
+        const household = this.households.find(h => h.id === householdId);
+        if (!household || !household.vehicles) return;
+
+        const vehicles = household.vehicles.filter((v, index) => index !== vehicleIndex);
+        await this.updateHousehold(householdId, { vehicles: vehicles });
+        
+        // Reload to refresh UI
+        await this.loadHouseholds();
+        this.openHouseholdModal(householdId);
+    }
+
+    renderHouseholdVehicles(householdId) {
+        const vehiclesList = document.getElementById('householdVehiclesList');
+        const noVehicles = document.getElementById('noVehicles');
+        if (!vehiclesList) return;
+
+        const household = this.households.find(h => h.id === householdId);
+        if (!household || !household.vehicles || household.vehicles.length === 0) {
+            vehiclesList.innerHTML = '';
+            if (noVehicles) noVehicles.style.display = 'block';
+            return;
+        }
+
+        if (noVehicles) noVehicles.style.display = 'none';
+
+        const canEdit = this.canEditHousehold(householdId);
+
+        let html = '<div class="vehicles-list">';
+        household.vehicles.forEach((vehicle, index) => {
+            html += `
+                <div class="vehicle-item" style="display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid var(--border-color);">
+                    <div>
+                        <strong>${this.escapeHtml(vehicle.year || '')} ${this.escapeHtml(vehicle.make || '')} ${this.escapeHtml(vehicle.model || '')}</strong>
+                        <div style="color: var(--text-light); font-size: 0.9rem; margin-top: 4px;">Tag: ${this.escapeHtml(vehicle.tagNumber || '')}</div>
+                    </div>
+                    ${canEdit ? `
+                        <div style="display: flex; gap: 5px;">
+                            <button type="button" class="btn-icon btn-small" onclick="window.householdManager.openEditVehicleModal('${householdId}', ${index})" title="Edit">✏️</button>
+                            <button type="button" class="btn-icon btn-small btn-danger" onclick="window.householdManager.removeVehicle('${householdId}', ${index})" title="Remove">✕</button>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        });
+        html += '</div>';
+
+        vehiclesList.innerHTML = html;
+    }
+
+    openAddVehicleModal(householdId, vehicleIndex = null) {
+        const modal = document.getElementById('addVehicleModal');
+        const title = document.getElementById('vehicleModalTitle');
+        const householdIdInput = document.getElementById('addVehicleHouseholdId');
+        const vehicleIndexInput = document.getElementById('editVehicleIndex');
+        const form = document.getElementById('addVehicleForm');
+        const makeInput = document.getElementById('vehicleMake');
+        const modelInput = document.getElementById('vehicleModel');
+        const yearInput = document.getElementById('vehicleYear');
+        const tagInput = document.getElementById('vehicleTagNumber');
+
+        if (householdIdInput) householdIdInput.value = householdId;
+        if (vehicleIndexInput) vehicleIndexInput.value = vehicleIndex !== null ? vehicleIndex : '';
+
+        if (vehicleIndex !== null) {
+            // Edit mode
+            const household = this.households.find(h => h.id === householdId);
+            if (household && household.vehicles && household.vehicles[vehicleIndex]) {
+                const vehicle = household.vehicles[vehicleIndex];
+                if (title) title.textContent = 'Edit Vehicle';
+                if (makeInput) makeInput.value = vehicle.make || '';
+                if (modelInput) modelInput.value = vehicle.model || '';
+                if (yearInput) yearInput.value = vehicle.year || '';
+                if (tagInput) tagInput.value = vehicle.tagNumber || '';
+            }
+        } else {
+            // Add mode
+            if (title) title.textContent = 'Add Vehicle';
+            if (form) form.reset();
+        }
+
+        if (modal) modal.style.display = 'flex';
+    }
+
+    closeAddVehicleModal() {
+        const modal = document.getElementById('addVehicleModal');
+        if (modal) modal.style.display = 'none';
+    }
+
+    async saveVehicle() {
+        if (!this.requireAuth() || !this.db) return;
+
+        const householdIdInput = document.getElementById('addVehicleHouseholdId');
+        const vehicleIndexInput = document.getElementById('editVehicleIndex');
+        const makeInput = document.getElementById('vehicleMake');
+        const modelInput = document.getElementById('vehicleModel');
+        const yearInput = document.getElementById('vehicleYear');
+        const tagInput = document.getElementById('vehicleTagNumber');
+
+        if (!householdIdInput || !makeInput || !modelInput || !yearInput || !tagInput) return;
+
+        const householdId = householdIdInput.value;
+        const vehicleIndex = vehicleIndexInput.value !== '' ? parseInt(vehicleIndexInput.value) : null;
+        const make = makeInput.value.trim();
+        const model = modelInput.value.trim();
+        const year = yearInput.value.trim();
+        const tagNumber = tagInput.value.trim();
+
+        if (!make || !model || !year || !tagNumber) {
+            alert('Please fill in all vehicle fields.');
+            return;
+        }
+
+        const household = this.households.find(h => h.id === householdId);
+        if (!household) return;
+
+        const vehicles = household.vehicles || [];
+
+        if (vehicleIndex !== null) {
+            // Update existing vehicle
+            vehicles[vehicleIndex] = { make, model, year, tagNumber };
+        } else {
+            // Add new vehicle
+            vehicles.push({ make, model, year, tagNumber });
+        }
+
+        await this.updateHousehold(householdId, { vehicles: vehicles });
+        this.closeAddVehicleModal();
+        
+        // Reload to refresh UI
+        await this.loadHouseholds();
+        this.openHouseholdModal(householdId);
+    }
+
+    openEditVehicleModal(householdId, vehicleIndex) {
+        this.openAddVehicleModal(householdId, vehicleIndex);
+    }
+
+    async removeVehicle(householdId, vehicleIndex) {
+        if (!this.requireAuth() || !this.db) return;
+
+        if (!confirm('Are you sure you want to remove this vehicle?')) {
+            return;
+        }
+
+        const household = this.households.find(h => h.id === householdId);
+        if (!household || !household.vehicles) return;
+
+        const vehicles = household.vehicles.filter((v, index) => index !== vehicleIndex);
+        await this.updateHousehold(householdId, { vehicles: vehicles });
         
         // Reload to refresh UI
         await this.loadHouseholds();
