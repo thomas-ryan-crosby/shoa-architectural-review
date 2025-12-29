@@ -16,3 +16,8 @@ desktop.ini
 convert-*.html
 *-base64.txt
 
+# Data files (CSV and generated JSON)
+data/*.csv
+data/*.json
+!data/.gitkeep
+
