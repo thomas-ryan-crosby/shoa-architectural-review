@@ -1739,4 +1739,30 @@ header .btn-secondary:hover {
     }
 }
 
+/* Annual Dues Summary */
+.annual-dues-summary {
+    transition: all 0.3s ease;
+}
+
+.annual-dues-summary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+}
+
+@media (max-width: 768px) {
+    .annual-dues-summary > div:first-child {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .annual-dues-summary > div:first-child > div:last-child {
+        text-align: center;
+        margin-top: 15px;
+    }
+
+    #totalAnnualDues {
+        font-size: 2rem !important;
+    }
+}
+
 

@@ -83,6 +83,14 @@ service cloud.firestore {
       // Only authenticated users can delete (admin check done in app code)
       allow delete: if request.auth != null;
     }
+    
+    // Household configuration - for dues settings
+    match /householdConfig/{configId} {
+      // Authenticated users can read
+      allow read: if request.auth != null;
+      // Only authenticated users can write (admin check done in app code)
+      allow write: if request.auth != null;
+    }
   }
 }
 ```

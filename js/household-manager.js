@@ -7,6 +7,10 @@ class HouseholdManager {
         this.currentSort = 'address';
         this.firestoreEnabled = false;
         this.collectionName = 'households';
+        this.duesConfig = {
+            builtDues: 0,
+            lotOnlyDues: 0
+        };
         this.init();
     }
 
@@ -16,6 +20,7 @@ class HouseholdManager {
         this.setupCSVUpload();
         this.setupHouseholdForm();
         this.setupSearchAndSort();
+        this.setupDuesConfiguration();
         
         // Initialize Firebase/Firestore
         await this.initializeFirestore();
@@ -447,9 +452,19 @@ class HouseholdManager {
         const isAdmin = window.userManager && window.userManager.isAdmin();
 
         const addHouseholdBtn = document.getElementById('addHouseholdBtn');
+        const duesConfigSection = document.getElementById('duesConfigSection');
+        const configureDuesBtn = document.getElementById('configureDuesBtn');
 
         if (addHouseholdBtn) {
             addHouseholdBtn.style.display = isAdmin ? 'block' : 'none';
+        }
+
+        if (duesConfigSection) {
+            duesConfigSection.style.display = 'none'; // Hide by default, show when button clicked
+        }
+
+        if (configureDuesBtn) {
+            configureDuesBtn.style.display = isAdmin ? 'block' : 'none';
         }
     }
 
@@ -490,6 +505,9 @@ class HouseholdManager {
             
             // Auto-update existing households with status information
             await this.updateHouseholdStatusesAuto();
+            
+            // Load dues configuration
+            await this.loadDuesConfig();
         } catch (error) {
             console.error('Error initializing Firestore:', error);
             this.firestoreEnabled = false;
@@ -904,6 +922,121 @@ class HouseholdManager {
         updateMetric('metricBuiltHouseholds', metrics.built);
         updateMetric('metricLotOnlyHouseholds', metrics.lotOnly);
         updateMetric('metricHouseholdsWithMembers', metrics.withMembers);
+        
+        // Update annual dues calculations
+        this.renderAnnualDues(metrics);
+    }
+
+    setupDuesConfiguration() {
+        const configureDuesBtn = document.getElementById('configureDuesBtn');
+        const duesConfigSection = document.getElementById('duesConfigSection');
+        const saveDuesConfigBtn = document.getElementById('saveDuesConfigBtn');
+
+        if (configureDuesBtn && duesConfigSection) {
+            configureDuesBtn.addEventListener('click', () => {
+                const isVisible = duesConfigSection.style.display !== 'none';
+                duesConfigSection.style.display = isVisible ? 'none' : 'block';
+                
+                if (!isVisible) {
+                    // Load current values into inputs
+                    const builtDuesInput = document.getElementById('builtDuesAmount');
+                    const lotOnlyDuesInput = document.getElementById('lotOnlyDuesAmount');
+                    if (builtDuesInput) builtDuesInput.value = this.duesConfig.builtDues || '';
+                    if (lotOnlyDuesInput) lotOnlyDuesInput.value = this.duesConfig.lotOnlyDues || '';
+                }
+            });
+        }
+
+        if (saveDuesConfigBtn) {
+            saveDuesConfigBtn.addEventListener('click', async () => {
+                await this.saveDuesConfig();
+            });
+        }
+    }
+
+    async loadDuesConfig() {
+        if (!this.db) return;
+
+        try {
+            const configDoc = await this.db.collection('householdConfig').doc('dues').get();
+            if (configDoc.exists) {
+                const data = configDoc.data();
+                this.duesConfig = {
+                    builtDues: data.builtDues || 0,
+                    lotOnlyDues: data.lotOnlyDues || 0
+                };
+            }
+            
+            // Update display
+            const metrics = this.calculateMetrics();
+            this.renderAnnualDues(metrics);
+        } catch (error) {
+            console.error('Error loading dues config:', error);
+        }
+    }
+
+    async saveDuesConfig() {
+        if (!this.requireAuth() || !this.db) return;
+
+        const builtDuesInput = document.getElementById('builtDuesAmount');
+        const lotOnlyDuesInput = document.getElementById('lotOnlyDuesAmount');
+
+        if (!builtDuesInput || !lotOnlyDuesInput) return;
+
+        const builtDues = parseFloat(builtDuesInput.value) || 0;
+        const lotOnlyDues = parseFloat(lotOnlyDuesInput.value) || 0;
+
+        if (builtDues < 0 || lotOnlyDues < 0) {
+            alert('Dues amounts cannot be negative.');
+            return;
+        }
+
+        try {
+            const user = window.firebaseAuth.currentUser;
+            await this.db.collection('householdConfig').doc('dues').set({
+                builtDues: builtDues,
+                lotOnlyDues: lotOnlyDues,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedBy: user ? user.email : 'system'
+            });
+
+            this.duesConfig = { builtDues, lotOnlyDues };
+            
+            // Hide config section
+            const duesConfigSection = document.getElementById('duesConfigSection');
+            if (duesConfigSection) duesConfigSection.style.display = 'none';
+            
+            // Update display
+            const metrics = this.calculateMetrics();
+            this.renderAnnualDues(metrics);
+            
+            alert('Dues configuration saved successfully!');
+        } catch (error) {
+            console.error('Error saving dues config:', error);
+            alert('Error saving dues configuration. Please try again.');
+        }
+    }
+
+    renderAnnualDues(metrics) {
+        const builtDuesCalculation = document.getElementById('builtDuesCalculation');
+        const lotOnlyDuesCalculation = document.getElementById('lotOnlyDuesCalculation');
+        const totalAnnualDues = document.getElementById('totalAnnualDues');
+
+        const builtTotal = metrics.built * (this.duesConfig.builtDues || 0);
+        const lotOnlyTotal = metrics.lotOnly * (this.duesConfig.lotOnlyDues || 0);
+        const total = builtTotal + lotOnlyTotal;
+
+        if (builtDuesCalculation) {
+            builtDuesCalculation.textContent = `${metrics.built} × $${(this.duesConfig.builtDues || 0).toFixed(2)} = $${builtTotal.toFixed(2)}`;
+        }
+
+        if (lotOnlyDuesCalculation) {
+            lotOnlyDuesCalculation.textContent = `${metrics.lotOnly} × $${(this.duesConfig.lotOnlyDues || 0).toFixed(2)} = $${lotOnlyTotal.toFixed(2)}`;
+        }
+
+        if (totalAnnualDues) {
+            totalAnnualDues.textContent = `$${total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        }
     }
 
     renderHouseholdMembers(householdId) {
