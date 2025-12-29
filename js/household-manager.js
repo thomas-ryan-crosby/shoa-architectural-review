@@ -833,21 +833,28 @@ class HouseholdManager {
 
     async updateHouseholdStatusesAuto() {
         if (!this.db || typeof HOUSEHOLD_DATA === 'undefined') {
-            console.log('Skipping status update: db or HOUSEHOLD_DATA not available');
             return;
         }
 
         try {
-            console.log('Starting auto-update of household statuses...');
             // Wait a moment for households to load
             await new Promise(resolve => setTimeout(resolve, 2000));
             
             // Ensure households are loaded
             if (this.households.length === 0) {
-                console.log('No households loaded yet, waiting...');
                 await this.loadHouseholds();
                 await new Promise(resolve => setTimeout(resolve, 1000));
             }
+
+            // Check if all households already have status - if so, skip update entirely
+            const householdsWithoutStatus = this.households.filter(h => !h.status || !h.status.trim());
+            
+            if (householdsWithoutStatus.length === 0) {
+                // All households have status, no need to update
+                return;
+            }
+
+            console.log(`Updating ${householdsWithoutStatus.length} households with missing status information...`);
 
             // Create a map of address+lot to status from HOUSEHOLD_DATA
             const statusMap = new Map();
@@ -857,18 +864,12 @@ class HouseholdManager {
             });
 
             let updated = 0;
-            let skipped = 0;
+            let errors = 0;
 
             // Get current user for update tracking
             const user = window.firebaseAuth ? window.firebaseAuth.currentUser : null;
 
-            for (const household of this.households) {
-                // Skip if already has status
-                if (household.status) {
-                    skipped++;
-                    continue;
-                }
-
+            for (const household of householdsWithoutStatus) {
                 // Find matching status from data
                 const key = `${household.address.toLowerCase().trim()}_${household.lotNumber.trim()}`;
                 const status = statusMap.get(key) || 'built';
@@ -883,17 +884,14 @@ class HouseholdManager {
                     updated++;
                 } catch (error) {
                     console.error(`Error updating household ${household.address}:`, error);
+                    errors++;
                 }
             }
 
             if (updated > 0) {
-                console.log(`Auto-updated ${updated} households with status information (${skipped} already had status)`);
+                console.log(`Updated ${updated} households with status information${errors > 0 ? ` (${errors} errors)` : ''}`);
                 // Reload households to refresh the display
                 await this.loadHouseholds();
-            } else if (skipped > 0) {
-                console.log(`All ${skipped} households already have status information`);
-            } else {
-                console.log('No households found to update');
             }
         } catch (error) {
             console.error('Error auto-updating household statuses:', error);
