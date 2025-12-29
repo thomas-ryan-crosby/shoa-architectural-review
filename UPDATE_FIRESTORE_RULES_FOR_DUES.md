@@ -1,13 +1,13 @@
-# Update Firestore Rules for Households Collection
+# Update Firestore Rules for Dues Configuration
 
 ## Problem
 You're seeing this error:
 ```
-Error listening to households: FirebaseError: Missing or insufficient permissions.
-Error initializing households: FirebaseError: Missing or insufficient permissions.
+Error loading dues config: FirebaseError: Missing or insufficient permissions.
+Error saving dues config: FirebaseError: Missing or insufficient permissions.
 ```
 
-This means your Firestore security rules don't include the `households` collection yet.
+This means your Firestore security rules don't include the `householdConfig` collection yet.
 
 ## Solution: Update Firestore Security Rules
 
@@ -15,7 +15,19 @@ This means your Firestore security rules don't include the `households` collecti
 2. Select your project: **sanctuary-hoa-arch-review**
 3. Click **"Firestore Database"** in the left menu
 4. Click the **"Rules"** tab at the top
-5. **Replace** the existing rules with this (make sure to include the households section):
+5. **Add** this section to your existing rules (add it after the `households` collection rules):
+
+```javascript
+// Household configuration - for dues settings
+match /householdConfig/{configId} {
+  // Authenticated users can read
+  allow read: if request.auth != null;
+  // Only authenticated users can write (admin check done in app code)
+  allow write: if request.auth != null;
+}
+```
+
+**Complete rules should look like this:**
 
 ```javascript
 rules_version = '2';
@@ -72,22 +84,18 @@ service cloud.firestore {
 
 ## What These Rules Do
 
-- ✅ **`allow read: if request.auth != null`** - Authenticated users can view all households
-- 🔒 **`allow create: if request.auth != null`** - Only logged-in users can create households (admin check done in app)
-- 🔒 **`allow update: if request.auth != null`** - Only logged-in users can update households (admin/household_admin check done in app)
-- 🔒 **`allow delete: if request.auth != null`** - Only logged-in users can delete households (admin check done in app)
+- ✅ **`allow read: if request.auth != null`** - Authenticated users can read dues configuration
+- 🔒 **`allow write: if request.auth != null`** - Only logged-in users can update dues configuration (admin check done in app)
 
 ## Verify It's Working
 
 After updating the rules:
 1. Make sure you're signed in as an admin
-2. Open the "Households & Members" tab
-3. Open the browser console (F12)
-4. You should see:
-   - ✅ "HouseholdManager: Firestore initialized"
-   - ✅ "Initializing households from embedded data..."
-   - ✅ "Household initialization complete: X imported, 0 skipped"
-5. All 423 households should appear in the list
+2. Go to the "Households & Members" tab
+3. Click "⚙️ Configure Dues Amounts"
+4. Enter dues amounts and click "Save Dues Configuration"
+5. You should see "Dues configuration saved successfully!"
+6. The Annual Dues Summary should update with the calculated revenue
 
 ## Still Not Working?
 
