@@ -832,11 +832,22 @@ class HouseholdManager {
     }
 
     async updateHouseholdStatusesAuto() {
-        if (!this.db || typeof HOUSEHOLD_DATA === 'undefined') return;
+        if (!this.db || typeof HOUSEHOLD_DATA === 'undefined') {
+            console.log('Skipping status update: db or HOUSEHOLD_DATA not available');
+            return;
+        }
 
         try {
+            console.log('Starting auto-update of household statuses...');
             // Wait a moment for households to load
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            // Ensure households are loaded
+            if (this.households.length === 0) {
+                console.log('No households loaded yet, waiting...');
+                await this.loadHouseholds();
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
 
             // Create a map of address+lot to status from HOUSEHOLD_DATA
             const statusMap = new Map();
@@ -879,6 +890,10 @@ class HouseholdManager {
                 console.log(`Auto-updated ${updated} households with status information (${skipped} already had status)`);
                 // Reload households to refresh the display
                 await this.loadHouseholds();
+            } else if (skipped > 0) {
+                console.log(`All ${skipped} households already have status information`);
+            } else {
+                console.log('No households found to update');
             }
         } catch (error) {
             console.error('Error auto-updating household statuses:', error);
